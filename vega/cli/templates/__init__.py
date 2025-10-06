@@ -15,6 +15,7 @@ from .components import (
     render_standard_main,
     render_fastapi_project_main,
 )
+from .loader import render_template
 
 __all__ = [
     "render_entity",
@@ -32,4 +33,5 @@ __all__ = [
     "render_fastapi_main",
     "render_standard_main",
     "render_fastapi_project_main",
+    "render_template",
 ]

@@ -28,13 +28,17 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 packages = [{ include = "vega", from = "." }]
-include = ["ARCHITECTURE.md"]
+include = [
+    "ARCHITECTURE.md",
+    "vega/cli/templates/project/*",
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 pydantic = "^2.0"
 pydantic-settings = "^2.0"
 click = "^8.0"
+jinja2 = "^3.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"

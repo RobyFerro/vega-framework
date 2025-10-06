@@ -8,7 +8,11 @@
       "Bash(python:*)",
       "Read(//c/**)",
       "Bash(cat:*)",
-      "Read(//tmp/final-test-arch/**)"
+      "Read(//tmp/final-test-arch/**)",
+      "Bash(mkdir:*)",
+      "Bash(poetry lock:*)",
+      "Bash(poetry install:*)",
+      "Bash(poetry run vega:*)"
     ],
     "deny": [],
     "ask": []

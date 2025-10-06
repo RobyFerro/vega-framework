@@ -1,0 +1,69 @@
+# {{ project_name }}
+
+Vega Framework application with Clean Architecture.
+
+## Structure
+
+```
+{{ project_name }}/
+├── domain/              # 🔵 Business logic (framework-independent)
+│   ├── entities/        # Business entities
+│   ├── repositories/    # Repository interfaces
+│   ├── services/        # Service interfaces
+│   └── interactors/     # Use cases
+│
+├── application/         # 🟢 Application workflows
+│   └── mediators/       # Complex workflows
+│
+├── infrastructure/      # 🟡 Concrete implementations
+│   ├── repositories/    # Repository implementations
+│   └── services/        # Service implementations
+│
+├── presentation/        # Delivery mechanisms
+{% if template == "fastapi" -%}
+│   ├── web/            # FastAPI web interface
+│   │   ├── routes/     # HTTP endpoints
+│   │   ├── app.py      # FastAPI app factory
+│   │   └── main.py     # ASGI entrypoint
+│   └── cli/            # CLI commands (if needed)
+{% else -%}
+│   └── cli/            # CLI commands
+{% endif -%}
+│
+├── config.py            # Dependency injection setup
+├── settings.py          # Application configuration
+└── main.py              # Application entry point
+```
+
+## Getting Started
+
+```bash
+# Install dependencies
+poetry install
+
+# Setup environment
+cp .env.example .env
+# Edit .env with your configuration
+
+# Generate components
+vega generate entity User
+vega generate repository UserRepository
+vega generate interactor CreateUser
+
+# Run tests
+poetry run pytest
+```
+
+## Vega Framework
+
+This project uses [Vega Framework](https://github.com/your-org/vega-framework) for Clean Architecture:
+
+- Automatic Dependency Injection
+- Clean Architecture patterns (4 layers: Domain, Application, Infrastructure, Presentation)
+- Type-safe with Python type hints
+- Easy to test and maintain
+
+## Documentation
+
+- [Vega Framework Docs](https://vega-framework.readthedocs.io/)
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)

@@ -7,7 +7,7 @@ import importlib.resources
 import click
 
 from vega.cli.scaffolds import create_fastapi_scaffold
-from vega.cli.templates import render_standard_main, render_fastapi_project_main
+from vega.cli.templates.loader import render_template
 
 
 def _load_architecture_md() -> str | None:
@@ -123,212 +123,32 @@ def init_project(project_name: str, template: str, parent_path: str):
     (project_path / "tests" / "__init__.py").write_text("")
 
     # Create config.py
-    config_content = f'''"""Dependency Injection configuration for {project_name}"""
-from vega.di import Container, set_container
-
-# Domain interfaces (Abstract)
-# Example:
-# from {project_name}.domain.repositories.user_repository import UserRepository
-
-# Infrastructure implementations (Concrete)
-# Example:
-# from {project_name}.infrastructure.repositories.memory_user_repository import MemoryUserRepository
-
-# DI Registry: Map interfaces to implementations
-SERVICES = {{
-    # Example:
-    # UserRepository: MemoryUserRepository,
-}}
-
-# Create and set container
-container = Container(SERVICES)
-set_container(container)
-'''
+    config_content = render_template("config.py.j2", project_name=project_name)
     (project_path / "config.py").write_text(config_content)
     click.echo(f"  + Created config.py")
 
     # Create settings.py
-    settings_content = f'''"""Application settings for {project_name}"""
-from vega.settings import BaseSettings
-from pydantic import Field
-
-
-class Settings(BaseSettings):
-    """Application configuration"""
-
-    # Application
-    app_name: str = Field(default="{project_name}")
-    debug: bool = Field(default=False)
-
-    # Add your settings here
-    # database_url: str = Field(...)
-    # api_key: str = Field(...)
-
-
-# Global settings instance
-settings = Settings()
-'''
+    settings_content = render_template("settings.py.j2", project_name=project_name)
     (project_path / "settings.py").write_text(settings_content)
     click.echo(f"  + Created settings.py")
 
     # Create .env.example
-    env_content = f'''# {project_name} - Environment Variables
-
-# Application
-APP_NAME={project_name}
-DEBUG=true
-
-# Add your environment variables here
-# DATABASE_URL=postgresql://user:pass@localhost/dbname
-# API_KEY=your_api_key_here
-'''
+    env_content = render_template(".env.example", project_name=project_name)
     (project_path / ".env.example").write_text(env_content)
     click.echo(f"  + Created .env.example")
 
     # Create .gitignore
-    gitignore_content = '''# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-build/
-dist/
-*.egg-info/
-
-# Environment
-.env
-.venv
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# OS
-.DS_Store
-Thumbs.db
-'''
+    gitignore_content = render_template(".gitignore")
     (project_path / ".gitignore").write_text(gitignore_content)
     click.echo(f"  + Created .gitignore")
 
     # Create pyproject.toml with dependencies based on template
-    fastapi_deps = ""
-    if template == "fastapi":
-        fastapi_deps = '''fastapi = "^0.115.0"
-uvicorn = {extras = ["standard"], version = "^0.32.0"}
-'''
-
-    pyproject_content = f'''[tool.poetry]
-name = "{project_name}"
-version = "0.1.0"
-description = "Vega Framework application"
-authors = ["Your Name <you@example.com>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-vega-framework = "^0.1.3"
-pydantic = "^2.0"
-pydantic-settings = "^2.0"
-click = "^8.1.0"
-{fastapi_deps}
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.0"
-pytest-asyncio = "^0.21"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-'''
+    pyproject_content = render_template("pyproject.toml.j2", project_name=project_name, template=template)
     (project_path / "pyproject.toml").write_text(pyproject_content)
     click.echo(f"  + Created pyproject.toml")
 
     # Create README.md
-    fastapi_structure = ""
-    if template == "fastapi":
-        fastapi_structure = '''│
-├── presentation/        # Delivery mechanisms
-│   ├── web/            # FastAPI web interface
-│   │   ├── routes/     # HTTP endpoints
-│   │   ├── app.py      # FastAPI app factory
-│   │   └── main.py     # ASGI entrypoint
-│   └── cli/            # CLI commands (if needed)
-'''
-    else:
-        fastapi_structure = '''│
-├── presentation/        # Delivery mechanisms
-│   └── cli/            # CLI commands
-'''
-
-    readme_content = f'''# {project_name}
-
-Vega Framework application with Clean Architecture.
-
-## Structure
-
-```
-{project_name}/
-├── domain/              # 🔵 Business logic (framework-independent)
-│   ├── entities/        # Business entities
-│   ├── repositories/    # Repository interfaces
-│   ├── services/        # Service interfaces
-│   └── interactors/     # Use cases
-│
-├── application/         # 🟢 Application workflows
-│   └── mediators/       # Complex workflows
-│
-├── infrastructure/      # 🟡 Concrete implementations
-│   ├── repositories/    # Repository implementations
-│   └── services/        # Service implementations
-{fastapi_structure}│
-├── config.py            # Dependency injection setup
-├── settings.py          # Application configuration
-└── main.py              # Application entry point
-```
-
-## Getting Started
-
-```bash
-# Install dependencies
-poetry install
-
-# Setup environment
-cp .env.example .env
-# Edit .env with your configuration
-
-# Generate components
-vega generate entity User
-vega generate repository UserRepository
-vega generate interactor CreateUser
-
-# Run tests
-poetry run pytest
-```
-
-## Vega Framework
-
-This project uses [Vega Framework](https://github.com/your-org/vega-framework) for Clean Architecture:
-
-- Automatic Dependency Injection
-- Clean Architecture patterns (4 layers: Domain, Application, Infrastructure, Presentation)
-- Type-safe with Python type hints
-- Easy to test and maintain
-
-## Documentation
-
-- [Vega Framework Docs](https://vega-framework.readthedocs.io/)
-- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-'''
+    readme_content = render_template("README.md.j2", project_name=project_name, template=template)
     (project_path / "README.md").write_text(readme_content, encoding='utf-8')
     click.echo(f"  + Created README.md")
 
@@ -348,12 +168,12 @@ This project uses [Vega Framework](https://github.com/your-org/vega-framework) f
         create_fastapi_scaffold(project_path, project_name)
 
         # Create main.py for FastAPI project
-        main_content = render_fastapi_project_main(project_name)
+        main_content = render_template("main.py.j2", project_name=project_name, template="fastapi")
         (project_path / "main.py").write_text(main_content)
         click.echo(f"  + Created main.py (FastAPI entrypoint)")
     else:
         # Create standard main.py
-        main_content = render_standard_main(project_name)
+        main_content = render_template("main.py.j2", project_name=project_name, template="standard")
         (project_path / "main.py").write_text(main_content)
         click.echo(f"  + Created main.py")
 
