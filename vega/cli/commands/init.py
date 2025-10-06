@@ -1,12 +1,16 @@
 """Init command - Create new Vega project"""
 import os
-import click
 from pathlib import Path
 
+import click
+
+from vega.cli.scaffolds import create_fastapi_scaffold
+from vega.cli.templates import render_standard_main, render_fastapi_project_main
 
 def init_project(project_name: str, template: str, parent_path: str):
     """Initialize a new Vega project with Clean Architecture structure"""
 
+    template = template.lower()
     # Validate project name
     if not project_name.replace('-', '').replace('_', '').isalnum():
         click.echo(click.style("ERROR: Error: Project name must be alphanumeric (- and _ allowed)", fg='red'))
@@ -147,7 +151,13 @@ Thumbs.db
     (project_path / ".gitignore").write_text(gitignore_content)
     click.echo(f"  + Created .gitignore")
 
-    # Create pyproject.toml
+    # Create pyproject.toml with dependencies based on template
+    fastapi_deps = ""
+    if template == "fastapi":
+        fastapi_deps = '''fastapi = "^0.115.0"
+uvicorn = {extras = ["standard"], version = "^0.32.0"}
+'''
+
     pyproject_content = f'''[tool.poetry]
 name = "{project_name}"
 version = "0.1.0"
@@ -160,7 +170,7 @@ python = "^3.10"
 vega-framework = "^0.1.0"
 pydantic = "^2.0"
 pydantic-settings = "^2.0"
-
+{fastapi_deps}
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
 pytest-asyncio = "^0.21"
@@ -234,11 +244,37 @@ This project uses [Vega Framework](https://github.com/your-org/vega-framework) f
     (project_path / "README.md").write_text(readme_content, encoding='utf-8')
     click.echo(f"  + Created README.md")
 
-    # Success message
+    # Create main.py based on template
+    if template == "fastapi":
+        click.echo("\n[*] Adding FastAPI scaffold (web/)")
+        create_fastapi_scaffold(project_path, project_name)
+
+        # Create main.py for FastAPI project
+        main_content = render_fastapi_project_main(project_name)
+        (project_path / "main.py").write_text(main_content)
+        click.echo(f"  + Created main.py (FastAPI entrypoint)")
+    else:
+        # Create standard main.py
+        main_content = render_standard_main(project_name)
+        (project_path / "main.py").write_text(main_content)
+        click.echo(f"  + Created main.py")
+
+
+    # Success message with appropriate next steps
     click.echo(f"\n{click.style('SUCCESS: Success!', fg='green', bold=True)} Project created successfully.\n")
     click.echo("Next steps:")
     click.echo(f"  cd {project_name}")
     click.echo(f"  poetry install")
     click.echo(f"  cp .env.example .env")
+
+    if template == "fastapi":
+        click.echo(f"  python main.py              # Start FastAPI server")
+        click.echo(f"  # Then visit http://localhost:8000/api/health/status")
+    else:
+        click.echo(f"  python main.py              # Run application")
+
+    click.echo(f"\nGenerate components:")
     click.echo(f"  vega generate entity User")
+    click.echo(f"  vega generate repository UserRepository")
+    click.echo(f"  vega generate interactor CreateUser")
     click.echo(f"\n[Docs] https://vega-framework.readthedocs.io/")

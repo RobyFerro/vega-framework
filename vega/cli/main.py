@@ -52,11 +52,12 @@ def init(project_name, template, path):
 
 @cli.command()
 @click.argument('component_type', type=click.Choice([
-    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator'
+    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'web'
 ]))
 @click.argument('name')
 @click.option('--path', default='.', help='Project root path')
-def generate(component_type, name, path):
+@click.option('--impl', default=None, help='Generate infrastructure implementation for repository/service (e.g., memory, sql)')
+def generate(component_type, name, path, impl):
     """
     Generate a component in your Vega project.
 
@@ -67,10 +68,13 @@ def generate(component_type, name, path):
         service     - Service interface (domain layer)
         interactor  - Use case (business logic)
         mediator    - Workflow (orchestrates use cases)
+        web         - Web scaffolding (FastAPI)
 
     Examples:
         vega generate entity Product
         vega generate repository ProductRepository
+        vega generate repository Product --impl memory
+        vega generate web fastapi
         vega generate interactor CreateProduct
         vega generate mediator CheckoutFlow
     """
@@ -78,7 +82,7 @@ def generate(component_type, name, path):
     if component_type == 'repo':
         component_type = 'repository'
 
-    generate_component(component_type, name, path)
+    generate_component(component_type, name, path, impl)
 
 
 @cli.command()

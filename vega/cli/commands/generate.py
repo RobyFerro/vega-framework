@@ -1,8 +1,19 @@
 """Generate command - Create components in Vega project"""
-import os
 import click
 import re
 from pathlib import Path
+
+from vega.cli.templates import (
+    render_entity,
+    render_infrastructure_repository,
+    render_infrastructure_service,
+    render_interactor,
+    render_mediator,
+    render_repository_interface,
+    render_service_interface,
+)
+from vega.cli.scaffolds import create_fastapi_scaffold
+
 
 
 def to_snake_case(name: str) -> str:
@@ -12,11 +23,48 @@ def to_snake_case(name: str) -> str:
 
 
 def to_pascal_case(name: str) -> str:
-    """Convert to PascalCase"""
-    return ''.join(word.capitalize() for word in name.replace('_', ' ').replace('-', ' ').split())
+    """Convert strings to PascalCase, handling separators and camelCase input"""
+    cleaned = name.strip()
+    if not cleaned:
+        return ""
+
+    # Normalize common separators to spaces
+    normalized = cleaned.replace('-', ' ').replace('_', ' ')
+    if ' ' in normalized:
+        parts = normalized.split()
+    else:
+        parts = re.findall(r'[A-Z]+(?=$|[A-Z][a-z0-9])|[A-Z]?[a-z0-9]+|[0-9]+', cleaned)
+        if not parts:
+            parts = [cleaned]
+
+    def _pascal_piece(piece: str) -> str:
+        return piece if piece.isupper() else piece[:1].upper() + piece[1:].lower()
+
+    return ''.join(_pascal_piece(part) for part in parts if part)
 
 
-def generate_component(component_type: str, name: str, project_path: str):
+def _resolve_implementation_names(class_name: str, implementation: str) -> tuple[str, str]:
+    """Derive implementation class and file names from flag input."""
+    impl_pascal = to_pascal_case(implementation) or "Impl"
+    base = class_name
+
+    if impl_pascal.lower() in {"impl", "implementation"}:
+        impl_class = f"{base}{impl_pascal}"
+    elif base.lower().startswith(impl_pascal.lower()):
+        impl_class = base
+    else:
+        impl_class = f"{impl_pascal}{base}"
+
+    impl_file = to_snake_case(impl_class)
+    return impl_class, impl_file
+
+
+def generate_component(
+    component_type: str,
+    name: str,
+    project_path: str,
+    implementation: str | None = None,
+):
     """Generate a component in the Vega project"""
 
     project_root = Path(project_path).resolve()
@@ -31,14 +79,42 @@ def generate_component(component_type: str, name: str, project_path: str):
     project_name = project_root.name
 
     class_name = to_pascal_case(name)
-    file_name = to_snake_case(name)
+    implementation = implementation.strip() if implementation else None
+    if component_type == "web":
+        _generate_fastapi_web(project_root, project_name, name)
+        return
+
+
+    suffixes = {
+        "repository": "Repository",
+        "service": "Service",
+        "mediator": "Mediator",
+    }
+
+    if implementation and component_type not in {'repository', 'service'}:
+        click.echo(
+            click.style(
+                "WARNING: Implementation option is only supported for repositories and services",
+                fg='yellow',
+            )
+        )
+        implementation = None
+
+    if component_type in suffixes:
+        suffix = suffixes[component_type]
+        if class_name.lower().endswith(suffix.lower()):
+            class_name = f"{class_name[:-len(suffix)]}{suffix}"
+        else:
+            class_name = f"{class_name}{suffix}"
+
+    file_name = to_snake_case(class_name)
 
     if component_type == 'entity':
         _generate_entity(project_root, project_name, class_name, file_name)
     elif component_type == 'repository':
-        _generate_repository(project_root, project_name, class_name, file_name)
+        _generate_repository(project_root, project_name, class_name, file_name, implementation)
     elif component_type == 'service':
-        _generate_service(project_root, project_name, class_name, file_name)
+        _generate_service(project_root, project_name, class_name, file_name, implementation)
     elif component_type == 'interactor':
         _generate_interactor(project_root, project_name, class_name, file_name)
     elif component_type == 'mediator':
@@ -54,32 +130,23 @@ def _generate_entity(project_root: Path, project_name: str, class_name: str, fil
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
-    content = f'''"""{class_name} entity"""
-from dataclasses import dataclass
-from typing import Optional
-
-
-@dataclass
-class {class_name}:
-    """{class_name} domain entity"""
-    id: str
-    # Add your fields here
-
-    # Add your business logic methods here
-    def is_valid(self) -> bool:
-        """Validate entity"""
-        return bool(self.id)
-'''
+    content = render_entity(class_name)
 
     file_path.write_text(content)
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
 
 
-def _generate_repository(project_root: Path, project_name: str, class_name: str, file_name: str):
+def _generate_repository(
+    project_root: Path,
+    project_name: str,
+    class_name: str,
+    file_name: str,
+    implementation: str | None = None,
+):
     """Generate repository interface"""
 
     # Remove 'Repository' suffix if present to get entity name
-    entity_name = class_name.replace('Repository', '')
+    entity_name = class_name[:-len('Repository')] if class_name.endswith('Repository') else class_name
     entity_file = to_snake_case(entity_name)
 
     file_path = project_root / "domain" / "repositories" / f"{file_name}.py"
@@ -88,27 +155,24 @@ def _generate_repository(project_root: Path, project_name: str, class_name: str,
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
-    content = f'''"""{class_name} interface"""
-from abc import abstractmethod
-from typing import List, Optional
+    # Check if entity exists
+    entity_path = project_root / "domain" / "entities" / f"{entity_file}.py"
+    if not entity_path.exists():
+        click.echo(
+            click.style(
+                f"⚠️  Warning: Entity {entity_name} does not exist at {entity_path.relative_to(project_root)}",
+                fg='yellow',
+            )
+        )
 
-from vega.patterns import Repository
-from {project_name}.domain.entities.{entity_file} import {entity_name}
+        if click.confirm(f"Do you want to create the entity {entity_name}?", default=True):
+            _generate_entity(project_root, project_name, entity_name, entity_file)
+            click.echo()  # Empty line for readability
+        else:
+            click.echo(click.style(f"ERROR: Cannot create repository without entity {entity_name}", fg='red'))
+            return
 
-
-class {class_name}(Repository[{entity_name}]):
-    """{class_name} interface"""
-
-    @abstractmethod
-    async def find_all(self) -> List[{entity_name}]:
-        """Find all {entity_name.lower()}s"""
-        pass
-
-    # Add your custom methods here
-    # @abstractmethod
-    # async def find_by_name(self, name: str) -> Optional[{entity_name}]:
-    #     pass
-'''
+    content = render_repository_interface(class_name, entity_name, entity_file)
 
     file_path.write_text(content)
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
@@ -119,8 +183,24 @@ class {class_name}(Repository[{entity_name}]):
     click.echo(f"   2. Implement repository in infrastructure/repositories/")
     click.echo(f"   3. Register in config.py SERVICES dict")
 
+    if implementation:
+        _generate_infrastructure_repository(
+            project_root,
+            class_name,
+            file_name,
+            entity_name,
+            entity_file,
+            implementation,
+        )
 
-def _generate_service(project_root: Path, project_name: str, class_name: str, file_name: str):
+
+def _generate_service(
+    project_root: Path,
+    project_name: str,
+    class_name: str,
+    file_name: str,
+    implementation: str | None = None,
+):
     """Generate service interface"""
 
     file_path = project_root / "domain" / "services" / f"{file_name}.py"
@@ -129,22 +209,7 @@ def _generate_service(project_root: Path, project_name: str, class_name: str, fi
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
-    content = f'''"""{class_name} interface"""
-from abc import abstractmethod
-
-from vega.patterns import Service
-
-
-class {class_name}(Service):
-    """{class_name} interface"""
-
-    @abstractmethod
-    async def execute(self, data: dict) -> dict:
-        """Execute service operation"""
-        pass
-
-    # Add your custom methods here
-'''
+    content = render_service_interface(class_name)
 
     file_path.write_text(content)
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
@@ -152,6 +217,14 @@ class {class_name}(Service):
     click.echo(f"\n💡 Next steps:")
     click.echo(f"   1. Implement service in infrastructure/services/")
     click.echo(f"   2. Register in config.py SERVICES dict")
+
+    if implementation:
+        _generate_infrastructure_service(
+            project_root,
+            class_name,
+            file_name,
+            implementation,
+        )
 
 
 def _generate_interactor(project_root: Path, project_name: str, class_name: str, file_name: str):
@@ -172,28 +245,7 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
-    content = f'''"""{class_name} use case"""
-from vega.patterns import Interactor
-from vega.di import bind
-
-# Import your dependencies
-# from {project_name}.domain.entities.{entity_file} import {entity_name}
-# from {project_name}.domain.repositories.{entity_file}_repository import {entity_name}Repository
-
-
-class {class_name}(Interactor[dict]):  # Replace dict with your return type
-    """{class_name} use case"""
-
-    def __init__(self, **kwargs):
-        # Store input parameters
-        pass
-
-    @bind
-    async def call(self) -> dict:  # Add dependencies as parameters
-        """Execute the use case"""
-        # TODO: Implement use case logic
-        raise NotImplementedError("Implement this use case")
-'''
+    content = render_interactor(class_name, entity_name, entity_file)
 
     file_path.write_text(content)
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
@@ -211,33 +263,75 @@ def _generate_mediator(project_root: Path, project_name: str, class_name: str, f
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
-    content = f'''"""{class_name} workflow"""
-from vega.patterns import Mediator
-
-# Import your use cases
-# from {project_name}.domain.interactors.create_user import CreateUser
-
-
-class {class_name}(Mediator[dict]):  # Replace dict with your return type
-    """{class_name} workflow - orchestrates multiple use cases"""
-
-    def __init__(self, **kwargs):
-        # Store input parameters
-        pass
-
-    async def call(self) -> dict:
-        """Execute the workflow"""
-        # TODO: Orchestrate multiple use cases
-        # Example:
-        # user = await CreateUser(name="John")
-        # await SendWelcomeEmail(user.email)
-        # return user
-
-        raise NotImplementedError("Implement this workflow")
-'''
+    content = render_mediator(class_name)
 
     file_path.write_text(content)
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
 
     click.echo(f"\n💡 Usage:")
     click.echo(f"   result = await {class_name}(param=value)")
+
+
+def _generate_infrastructure_repository(
+    project_root: Path,
+    interface_class_name: str,
+    interface_file_name: str,
+    entity_name: str,
+    entity_file: str,
+    implementation: str,
+) -> None:
+    """Generate infrastructure repository implementation extending the domain interface."""
+    impl_class, impl_file = _resolve_implementation_names(interface_class_name, implementation)
+    file_path = project_root / "infrastructure" / "repositories" / f"{impl_file}.py"
+
+    if file_path.exists():
+        click.echo(click.style(f"WARNING: Implementation {file_path} already exists", fg='yellow'))
+        return
+
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    content = render_infrastructure_repository(
+        impl_class,
+        interface_class_name,
+        interface_file_name,
+        entity_name,
+        entity_file,
+    )
+
+    file_path.write_text(content)
+    click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
+
+
+def _generate_infrastructure_service(
+    project_root: Path,
+    interface_class_name: str,
+    interface_file_name: str,
+    implementation: str,
+) -> None:
+    """Generate infrastructure service implementation extending the domain interface."""
+    impl_class, impl_file = _resolve_implementation_names(interface_class_name, implementation)
+    file_path = project_root / "infrastructure" / "services" / f"{impl_file}.py"
+
+    if file_path.exists():
+        click.echo(click.style(f"WARNING: Implementation {file_path} already exists", fg='yellow'))
+        return
+
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    content = render_infrastructure_service(
+        impl_class,
+        interface_class_name,
+        interface_file_name,
+    )
+
+    file_path.write_text(content)
+    click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
+
+def _generate_fastapi_web(project_root: Path, project_name: str, name: str) -> None:
+    """Generate FastAPI web scaffold"""
+    if name.lower() not in {"fastapi", "fast-api"}:
+        click.echo(click.style("ERROR: Unsupported web scaffold. Use: vega generate web fastapi", fg='red'))
+        return
+
+    create_fastapi_scaffold(project_root, project_name)
+

@@ -2,7 +2,7 @@
 import inspect
 import logging
 from functools import wraps
-from typing import Callable, Dict, Any, get_type_hints
+from typing import Callable, Dict, Any, get_type_hints, Tuple
 
 from vega.di.scope import Scope, _scope_manager, scope_context
 from vega.di.errors import DependencyInjectionError
@@ -10,28 +10,95 @@ from vega.di.container import get_container
 
 logger = logging.getLogger(__name__)
 
+# Constants for method detection
+_METHOD_FIRST_PARAMS = frozenset({'self', 'cls'})
+
+
+def _is_instance_or_class_method(func: Callable) -> bool:
+    """
+    Check if a function is an instance or class method.
+
+    Returns True if the first parameter is 'self' or 'cls'.
+    """
+    try:
+        sig = inspect.signature(func)
+        params = list(sig.parameters.keys())
+        return len(params) > 0 and params[0] in _METHOD_FIRST_PARAMS
+    except Exception:
+        return False
+
+
+def _resolve_and_merge_kwargs(
+    func: Callable,
+    provided_kwargs: Dict[str, Any],
+    scope: Scope,
+    is_method: bool
+) -> Dict[str, Any]:
+    """
+    Resolve dependencies and merge with provided kwargs.
+
+    Args:
+        func: The function to resolve dependencies for
+        provided_kwargs: Already provided keyword arguments
+        scope: Dependency scope
+        is_method: Whether the function is an instance/class method
+
+    Returns:
+        Merged dictionary of resolved dependencies and provided kwargs
+    """
+    return _resolve_dependencies_from_hints(
+        method=func,
+        provided_kwargs=provided_kwargs,
+        scope=scope,
+        context_name=func.__name__,
+        skip_first_param=is_method
+    )
+
 
 def _resolve_dependencies_from_hints(
     method: Callable,
     provided_kwargs: Dict[str, Any],
     scope: Scope = Scope.TRANSIENT,
-    context_name: str = "unknown"
+    context_name: str = "unknown",
+    skip_first_param: bool = False
 ) -> Dict[str, Any]:
     """
-    Resolve dependencies from type hints.
+    Resolve dependencies from type hints using the DI container.
 
-    Shared between @injectable and @bind decorators.
+    This function inspects the type hints of a method and automatically resolves
+    dependencies that are registered in the DI container. It handles:
+    - Skipping parameters that are already provided
+    - Skipping parameters with default values
+    - Skipping the first parameter for instance/class methods (self/cls)
+    - Resolving dependencies with the appropriate scope
+
+    Args:
+        method: The method/function to resolve dependencies for
+        provided_kwargs: Already provided keyword arguments (will not be resolved)
+        scope: Dependency scope (TRANSIENT, SCOPED, or SINGLETON)
+        context_name: Context name for logging and debugging
+        skip_first_param: If True, skip the first parameter (self/cls for methods)
+
+    Returns:
+        Dictionary mapping parameter names to resolved dependency instances
+
+    Note:
+        Parameters not found in the container or with resolution errors are silently
+        skipped (logged at DEBUG level). This allows for flexible dependency resolution
+        where not all parameters need to come from the container.
     """
     container = get_container()
 
-    # Get type hints
+    # Extract type hints from method signature
+    # Fall back to __annotations__ if get_type_hints fails (e.g., forward references)
     try:
         hints = get_type_hints(method)
     except Exception as e:
         hints = method.__annotations__ if hasattr(method, '__annotations__') else {}
         logger.debug(f"{context_name}: Using __annotations__ instead of get_type_hints: {e}")
 
-    # Get signature for parameters with defaults
+    # Identify parameters with default values - these won't be auto-injected
+    # Also handle skip_first_param for instance/class methods
     try:
         sig = inspect.signature(method)
         params_with_defaults = {
@@ -39,35 +106,42 @@ def _resolve_dependencies_from_hints(
             for name, param in sig.parameters.items()
             if param.default is not inspect.Parameter.empty
         }
+
+        # Exclude 'self' or 'cls' from dependency resolution for methods
+        if skip_first_param:
+            param_names = list(sig.parameters.keys())
+            if param_names:
+                first_param = param_names[0]
+                hints = {k: v for k, v in hints.items() if k != first_param}
     except Exception:
         params_with_defaults = {}
 
     resolved = {}
 
-    # Auto-resolve dependencies
+    # Iterate through type hints and resolve dependencies from container
     for param_name, param_type in hints.items():
+        # Skip return type annotation
         if param_name == 'return':
             continue
 
-        # Skip if already provided
+        # Use provided value if already given (allows manual override)
         if param_name in provided_kwargs:
             resolved[param_name] = provided_kwargs[param_name]
             continue
 
-        # Skip if has default value
+        # Skip parameters with default values (optional dependencies)
         if param_name in params_with_defaults:
             continue
 
-        # Try to resolve the dependency
-        # param_type could be either abstract or concrete
+        # Attempt to resolve dependency from container
+        # Type can be either an abstract interface or concrete implementation
         try:
-            # Check if type is registered in container
             if param_type in container._services or param_type in container._concrete_services:
-                # Create cache key and factory
+                # Generate unique cache key for scope management
                 cache_key = f"{param_type.__module__}.{param_type.__name__}"
                 factory = lambda pt=param_type: container.resolve(pt)
 
-                # Use ScopeManager to get or create instance
+                # Resolve with appropriate scope (TRANSIENT/SCOPED/SINGLETON)
                 resolved[param_name] = _scope_manager.get_or_create(
                     cache_key=cache_key,
                     scope=scope,
@@ -75,7 +149,7 @@ def _resolve_dependencies_from_hints(
                     context_name=f"{context_name} -> {param_name}"
                 )
         except Exception as e:
-            # Dependency not found or error resolving
+            # Silently skip unresolvable dependencies (not in container)
             logger.debug(
                 f"{context_name}: Could not resolve '{param_name}' of type '{param_type}': {e}"
             )
@@ -103,40 +177,25 @@ def bind(method: Callable = None, *, scope: Scope = Scope.SCOPED) -> Callable:
 
     def decorator(func: Callable) -> Callable:
         is_async = inspect.iscoroutinefunction(func)
-        func_name = func.__name__
+        is_method = _is_instance_or_class_method(func)
 
         if is_async:
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
-                # Auto-create scope context if using SCOPED and no scope is active
-                # This makes @bind transparent - the first @bind creates the scope
                 with scope_context():
-                    # Resolve dependencies
-                    resolved_kwargs = _resolve_dependencies_from_hints(
-                        method=func,
-                        provided_kwargs=kwargs,
-                        scope=scope,
-                        context_name=func_name
+                    resolved_kwargs = _resolve_and_merge_kwargs(
+                        func, kwargs, scope, is_method
                     )
-
-                    # Call original function with resolved dependencies
                     return await func(*args, **resolved_kwargs)
 
             return async_wrapper
         else:
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
-                # Auto-create scope context if using SCOPED and no scope is active
                 with scope_context():
-                    # Resolve dependencies
-                    resolved_kwargs = _resolve_dependencies_from_hints(
-                        method=func,
-                        provided_kwargs=kwargs,
-                        scope=scope,
-                        context_name=func_name
+                    resolved_kwargs = _resolve_and_merge_kwargs(
+                        func, kwargs, scope, is_method
                     )
-
-                    # Call original function with resolved dependencies
                     return func(*args, **resolved_kwargs)
 
             return sync_wrapper

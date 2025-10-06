@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python test:*)",
+      "Read(//c/Users/rober/Documents/Projects/bdc-python-demo/**)",
+      "Read(//c/Users/rober/Documents/Projects/test-fastapi-project/**)",
+      "Bash(powershell:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
