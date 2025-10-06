@@ -255,7 +255,7 @@ async def get_container() -> Any:
 
 
 def render_fastapi_main(project_name: str) -> str:
-    """Return the template for web/main.py"""
+    """Return the template for presentation/web/main.py"""
     template = f'''"""FastAPI ASGI entrypoint for {project_name}"""
 from fastapi import FastAPI
 
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "web.main:app",
+        "presentation.web.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,
@@ -278,45 +278,87 @@ if __name__ == "__main__":
 
 
 def render_standard_main(project_name: str) -> str:
-    """Return the template for main.py (standard project)"""
+    """Return the template for main.py (standard project with CLI)"""
     template = f'''"""Main entry point for {project_name}"""
 import asyncio
+import click
 import config  # noqa: F401 - Import to initialize DI container
 
 # Import your use cases here
 # from domain.interactors.create_user import CreateUser
 
 
-async def main():
-    """Main application entry point"""
-    # Example: Create and execute a use case
-    # user = await CreateUser(name="John Doe", email="john@example.com")
-    # print(f"Created user: {{user.name}}")
+@click.group()
+def cli():
+    """Vega Framework CLI Application"""
+    pass
 
-    print("Vega Framework application is running!")
-    print("Add your business logic here.")
+
+@cli.command()
+def hello():
+    """Example CLI command"""
+    click.echo("Hello from Vega Framework!")
+    click.echo("Add your CLI commands in presentation/cli/commands/")
+
+
+@cli.command()
+@click.option('--name', default='World', help='Name to greet')
+def greet(name: str):
+    """Example command with parameter"""
+    click.echo(f"Hello, {{name}}!")
+
+
+# Add more CLI commands here or import them from presentation/cli/commands/
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    cli()
 '''
     return dedent(template).rstrip() + "\n"
 
 
 def render_fastapi_project_main(project_name: str) -> str:
-    """Return the template for main.py (FastAPI project root)"""
+    """Return the template for main.py (FastAPI project with Web and CLI)"""
     template = f'''"""Main entry point for {project_name}"""
+import click
 import config  # noqa: F401 - Import to initialize DI container
 
-if __name__ == "__main__":
-    import uvicorn
-    from web.main import app
 
+@click.group()
+def cli():
+    """Vega Framework Application - CLI and Web"""
+    pass
+
+
+@cli.command()
+@click.option('--host', default='0.0.0.0', help='Host to bind')
+@click.option('--port', default=8000, help='Port to bind')
+@click.option('--reload', is_flag=True, help='Enable auto-reload')
+def web(host: str, port: int, reload: bool):
+    """Start FastAPI web server"""
+    import uvicorn
+    from presentation.web.main import app
+
+    click.echo(f"Starting web server on http://{{host}}:{{port}}")
     uvicorn.run(
         app,
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
+        host=host,
+        port=port,
+        reload=reload,
     )
+
+
+@cli.command()
+def hello():
+    """Example CLI command"""
+    click.echo("Hello from Vega Framework!")
+    click.echo("Add your CLI commands in presentation/cli/commands/")
+
+
+# Add more CLI commands here or import them from presentation/cli/commands/
+
+
+if __name__ == "__main__":
+    cli()
 '''
     return dedent(template).rstrip() + "\n"

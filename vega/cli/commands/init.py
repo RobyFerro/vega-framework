@@ -1,6 +1,7 @@
 """Init command - Create new Vega project"""
 import os
 from pathlib import Path
+import importlib.resources
 
 import click
 
@@ -34,9 +35,11 @@ def init_project(project_name: str, template: str, parent_path: str):
         "application/mediators",
         "infrastructure/repositories",
         "infrastructure/services",
+        "presentation/cli/commands",
         "tests/domain",
         "tests/application",
         "tests/infrastructure",
+        "tests/presentation",
     ]
 
     for directory in directories:
@@ -50,6 +53,7 @@ def init_project(project_name: str, template: str, parent_path: str):
     (project_path / "domain" / "__init__.py").write_text("")
     (project_path / "application" / "__init__.py").write_text("")
     (project_path / "infrastructure" / "__init__.py").write_text("")
+    (project_path / "presentation" / "__init__.py").write_text("")
     (project_path / "tests" / "__init__.py").write_text("")
 
     # Create config.py
@@ -167,9 +171,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-vega-framework = "^0.1.0"
+vega-framework = "^0.1.3"
 pydantic = "^2.0"
 pydantic-settings = "^2.0"
+click = "^8.1.0"
 {fastapi_deps}
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
@@ -183,6 +188,22 @@ build-backend = "poetry.core.masonry.api"
     click.echo(f"  + Created pyproject.toml")
 
     # Create README.md
+    fastapi_structure = ""
+    if template == "fastapi":
+        fastapi_structure = '''│
+├── presentation/        # Delivery mechanisms
+│   ├── web/            # FastAPI web interface
+│   │   ├── routes/     # HTTP endpoints
+│   │   ├── app.py      # FastAPI app factory
+│   │   └── main.py     # ASGI entrypoint
+│   └── cli/            # CLI commands (if needed)
+'''
+    else:
+        fastapi_structure = '''│
+├── presentation/        # Delivery mechanisms
+│   └── cli/            # CLI commands
+'''
+
     readme_content = f'''# {project_name}
 
 Vega Framework application with Clean Architecture.
@@ -191,21 +212,22 @@ Vega Framework application with Clean Architecture.
 
 ```
 {project_name}/
-├── domain/              # Business logic (framework-independent)
+├── domain/              # 🔵 Business logic (framework-independent)
 │   ├── entities/        # Business entities
 │   ├── repositories/    # Repository interfaces
 │   ├── services/        # Service interfaces
 │   └── interactors/     # Use cases
 │
-├── application/         # Application workflows
+├── application/         # 🟢 Application workflows
 │   └── mediators/       # Complex workflows
 │
-├── infrastructure/      # External implementations
+├── infrastructure/      # 🟡 Concrete implementations
 │   ├── repositories/    # Repository implementations
 │   └── services/        # Service implementations
-│
+{fastapi_structure}│
 ├── config.py            # Dependency injection setup
-└── settings.py          # Application configuration
+├── settings.py          # Application configuration
+└── main.py              # Application entry point
 ```
 
 ## Getting Started
@@ -232,7 +254,7 @@ poetry run pytest
 This project uses [Vega Framework](https://github.com/your-org/vega-framework) for Clean Architecture:
 
 - Automatic Dependency Injection
-- Clean Architecture patterns
+- Clean Architecture patterns (4 layers: Domain, Application, Infrastructure, Presentation)
 - Type-safe with Python type hints
 - Easy to test and maintain
 
@@ -244,9 +266,40 @@ This project uses [Vega Framework](https://github.com/your-org/vega-framework) f
     (project_path / "README.md").write_text(readme_content, encoding='utf-8')
     click.echo(f"  + Created README.md")
 
+    # Copy ARCHITECTURE.md from vega framework to project root
+    try:
+        # Try multiple methods to find ARCHITECTURE.md
+        architecture_content = None
+
+        # Method 1: Try from vega package resources (for installed package)
+        try:
+            import vega
+            vega_pkg_path = Path(vega.__file__).parent.parent
+            arch_path = vega_pkg_path / "ARCHITECTURE.md"
+            if arch_path.exists():
+                architecture_content = arch_path.read_text(encoding='utf-8')
+        except Exception:
+            pass
+
+        # Method 2: Try relative to this file (for development)
+        if not architecture_content:
+            vega_root = Path(__file__).parent.parent.parent.parent
+            arch_path = vega_root / "ARCHITECTURE.md"
+            if arch_path.exists():
+                architecture_content = arch_path.read_text(encoding='utf-8')
+
+        # Write the file if found
+        if architecture_content:
+            architecture_dest = project_path / "ARCHITECTURE.md"
+            architecture_dest.write_text(architecture_content, encoding='utf-8')
+            click.echo(f"  + Created ARCHITECTURE.md")
+    except Exception as e:
+        # If file doesn't exist or can't be read, skip silently
+        pass
+
     # Create main.py based on template
     if template == "fastapi":
-        click.echo("\n[*] Adding FastAPI scaffold (web/)")
+        click.echo("\n[*] Adding FastAPI scaffold (presentation/web/)")
         create_fastapi_scaffold(project_path, project_name)
 
         # Create main.py for FastAPI project
@@ -268,10 +321,16 @@ This project uses [Vega Framework](https://github.com/your-org/vega-framework) f
     click.echo(f"  cp .env.example .env")
 
     if template == "fastapi":
-        click.echo(f"  python main.py              # Start FastAPI server")
-        click.echo(f"  # Then visit http://localhost:8000/api/health/status")
+        click.echo(f"\nRun commands:")
+        click.echo(f"  python main.py web          # Start FastAPI server (http://localhost:8000)")
+        click.echo(f"  python main.py web --reload # Start with auto-reload")
+        click.echo(f"  python main.py hello        # Run CLI command")
+        click.echo(f"  python main.py --help       # Show all commands")
     else:
-        click.echo(f"  python main.py              # Run application")
+        click.echo(f"\nRun commands:")
+        click.echo(f"  python main.py hello        # Run example CLI command")
+        click.echo(f"  python main.py greet --name John  # Run with parameters")
+        click.echo(f"  python main.py --help       # Show all commands")
 
     click.echo(f"\nGenerate components:")
     click.echo(f"  vega generate entity User")

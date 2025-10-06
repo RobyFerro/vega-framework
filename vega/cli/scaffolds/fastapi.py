@@ -22,12 +22,12 @@ def create_fastapi_scaffold(
     overwrite: bool = False,
     echo: Callable[[str], None] | None = None,
 ) -> list[Path]:
-    """Create FastAPI scaffolding under the project web/ directory."""
+    """Create FastAPI scaffolding under the project presentation/web/ directory."""
     if echo is None:
         echo = click.echo
 
     created: list[Path] = []
-    web_dir = project_root / "web"
+    web_dir = project_root / "presentation" / "web"
     routes_dir = web_dir / "routes"
 
     files: Iterable[tuple[Path, str]] = (
@@ -63,7 +63,7 @@ def create_fastapi_scaffold(
 
     echo("\n[TIP] FastAPI scaffold ready:")
     echo("   1. poetry install  # sync dependencies (or poetry update)")
-    echo("   2. poetry run uvicorn web.main:app --reload")
+    echo("   2. poetry run uvicorn presentation.web.main:app --reload")
 
     return created
 

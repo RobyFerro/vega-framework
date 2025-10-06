@@ -5,6 +5,7 @@ from pathlib import Path
 
 from vega.cli.commands.init import init_project
 from vega.cli.commands.generate import generate_component
+from vega.cli.commands.add import add
 
 
 @click.group()
@@ -103,6 +104,10 @@ def doctor(path):
     """
     click.echo("🏥 Running Vega Doctor...")
     click.echo("⚠️  Feature not implemented yet. Coming soon!")
+
+
+# Register the add command
+cli.add_command(add)
 
 
 if __name__ == '__main__':

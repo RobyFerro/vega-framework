@@ -22,46 +22,94 @@ Vega Framework is built on **Clean Architecture** principles, ensuring:
 
 ## Clean Architecture Layers
 
-### 1. Domain Layer
+Vega Framework implements a strict 4-layer architecture that enforces the **Dependency Rule**: dependencies always point inward, from outer layers to inner layers. The domain layer remains completely independent and never knows about infrastructure details.
 
-The core business logic, independent of any framework or external dependency.
+### 1. Domain Layer (Core)
+
+The innermost layer containing pure business logic, completely independent of any framework, database, or external dependency.
 
 **Contains:**
-- **Entities** - Business objects and data structures
-- **Repository Interfaces** - Data persistence abstractions
-- **Service Interfaces** - External service abstractions
-- **Interactors (Use Cases)** - Business operations
+
+- **Entities** - Business objects and data structures (pure Python classes)
+- **Repository Interfaces** - Abstract data persistence contracts (using `Repository[T]`)
+- **Service Interfaces** - Abstract external service contracts (using `Service`)
+- **Interactors (Use Cases)** - Business operations that implement specific use cases
 
 **Rules:**
-- No dependencies on infrastructure
-- No framework-specific code
-- Pure business logic
+
+- ✅ **NO** dependencies on any other layer
+- ✅ **NO** framework-specific code (no FastAPI, SQLAlchemy, etc.)
+- ✅ **NO** infrastructure details (no database, HTTP, file system)
+- ✅ Pure business logic only
+- ✅ Only defines **interfaces**, never concrete implementations
+
+**Purpose:** Keep business logic isolated and testable. The domain should work even if you swap databases, frameworks, or delivery mechanisms.
 
 ### 2. Application Layer
 
-Coordinates domain use cases and manages workflows.
+Orchestrates domain use cases into complex workflows and coordinates multiple business operations.
 
 **Contains:**
-- **Mediators** - Multi-step workflows that orchestrate interactors
+
+- **Mediators** - Multi-step workflows that orchestrate multiple interactors
+- **Application Services** - Coordinate domain operations for specific application scenarios
 
 **Rules:**
-- Can depend on domain layer
-- No dependencies on infrastructure details
-- Orchestrates business operations
+
+- ✅ Can depend **only** on the domain layer
+- ✅ **NO** dependencies on infrastructure or presentation
+- ✅ **NO** knowledge of HTTP, databases, or external services
+- ✅ Orchestrates business operations without implementation details
+
+**Purpose:** Manage complex business workflows while remaining independent of delivery mechanisms and infrastructure.
 
 ### 3. Infrastructure Layer
 
-Implements interfaces defined in domain layer with specific technologies.
+Provides concrete implementations of domain interfaces using specific technologies and frameworks.
 
 **Contains:**
-- **Repository Implementations** - Database, file system, API clients
-- **Service Implementations** - Email providers, payment gateways, etc.
-- **Framework Adapters** - FastAPI routes, CLI commands
+
+- **Repository Implementations** - Concrete data persistence (PostgreSQL, MongoDB, Redis, File System)
+- **Service Implementations** - Concrete external integrations (Sendgrid, Stripe, AWS S3)
+- **Adapters** - Technology-specific integrations and clients
+- **Configuration** - DI container setup and dependency mappings
 
 **Rules:**
-- Implements domain interfaces
-- Contains technology-specific code
-- Should be easily replaceable
+
+- ✅ Implements interfaces defined in domain layer
+- ✅ Contains **all** technology-specific code
+- ✅ Depends on domain layer (implements its interfaces)
+- ✅ Should be easily replaceable without affecting domain logic
+- ✅ **NO** business logic - only technical implementations
+
+**Purpose:** Isolate all technical details and external dependencies, ensuring they can be swapped without impacting business logic. This layer makes the domain's abstractions concrete.
+
+### 4. Presentation Layer (Delivery Mechanisms)
+
+Handles user interaction and external communication, acting as the entry point to the application.
+
+**Contains:**
+
+- **Web API** - FastAPI routes, controllers, request/response models (when web is enabled)
+- **CLI** - Command-line interface commands and argument parsing
+- **GraphQL/gRPC** - Alternative API implementations (if needed)
+- **WebSockets** - Real-time communication handlers (if needed)
+
+**Rules:**
+
+- ✅ Depends on application and domain layers
+- ✅ Handles user input validation and formatting
+- ✅ Translates external requests into domain operations
+- ✅ **NO** business logic - only presentation concerns
+- ✅ Can depend on infrastructure for framework setup
+
+**Purpose:** Provide different interfaces for users to interact with the application (web, CLI, etc.) while keeping business logic independent of delivery mechanism.
+
+**Examples:**
+
+- **CLI**: Uses Click/Typer to define commands that invoke interactors or mediators
+- **Web API**: FastAPI endpoints that receive HTTP requests and call domain use cases
+- **Both**: Can coexist in the same application, sharing the same business logic
 
 ## Core Patterns
 
@@ -301,41 +349,69 @@ class TemporaryService:
 
 ## Project Structure
 
-Vega projects follow a standard structure:
+Vega projects follow a standard 4-layer structure:
 
 ```
 my-app/
-├── domain/
+├── domain/                       # 🔵 DOMAIN LAYER (Core Business Logic)
 │   ├── entities/
 │   │   ├── __init__.py
-│   │   └── user.py              # Business entities
+│   │   └── user.py              # Business entities (pure Python)
 │   ├── repositories/
 │   │   ├── __init__.py
-│   │   └── user_repository.py   # Repository interfaces
+│   │   └── user_repository.py   # Repository interfaces (abstractions)
 │   ├── services/
 │   │   ├── __init__.py
-│   │   └── email_service.py     # Service interfaces
+│   │   └── email_service.py     # Service interfaces (abstractions)
 │   └── interactors/
 │       ├── __init__.py
-│       └── create_user.py       # Use cases
+│       └── create_user.py       # Use cases (business operations)
 │
-├── application/
+├── application/                  # 🟢 APPLICATION LAYER (Workflows)
 │   └── mediators/
 │       ├── __init__.py
-│       └── registration_flow.py # Workflows
+│       └── registration_flow.py # Multi-step workflows
 │
-├── infrastructure/
+├── infrastructure/               # 🟡 INFRASTRUCTURE LAYER (Concrete Implementations)
 │   ├── repositories/
 │   │   ├── __init__.py
-│   │   └── postgres_user_repository.py
+│   │   └── postgres_user_repository.py  # PostgreSQL implementation
 │   └── services/
 │       ├── __init__.py
-│       └── sendgrid_email_service.py
+│       └── sendgrid_email_service.py    # Sendgrid implementation
+│
+├── presentation/                 # 🟠 PRESENTATION LAYER (Delivery Mechanisms)
+│   ├── web/                      # FastAPI web interface (if enabled)
+│   │   ├── __init__.py
+│   │   ├── routes/
+│   │   │   └── user_routes.py
+│   │   └── models/
+│   │       └── user_dto.py      # Request/Response models
+│   └── cli/                      # CLI interface (always present)
+│       ├── __init__.py
+│       └── commands/
+│           └── user_commands.py # CLI commands
 │
 ├── config.py                     # DI container configuration
 ├── settings.py                   # Application settings
-└── main.py                       # Entry point
+└── main.py                       # Entry point (CLI or Web)
 ```
+
+**Layer Dependencies (Dependency Rule):**
+
+```text
+Presentation → Application → Domain ← Infrastructure
+    ↓              ↓                      ↓
+  (CLI)        (Mediators)           (Implements)
+  (Web)       (Workflows)            (Interfaces)
+```
+
+**Key Points:**
+
+- **Domain** is the center and has NO dependencies
+- **Application** depends only on Domain
+- **Infrastructure** implements Domain interfaces
+- **Presentation** depends on Application and Domain (and may use Infrastructure for setup)
 
 ## Best Practices
 
@@ -456,10 +532,12 @@ async def test_create_user():
 
 Vega Framework enforces clean architecture principles through:
 
-- **Clear layer separation** - Domain, Application, Infrastructure
+- **Clear 4-layer separation** - Domain, Application, Infrastructure, Presentation
 - **Dependency inversion** - Interfaces in domain, implementations in infrastructure
+- **Pure business logic** - Domain remains uncontaminated by frameworks and external dependencies
+- **Flexible delivery mechanisms** - CLI and Web can share the same business logic
 - **Automatic DI** - Type-safe dependency injection
 - **Focused patterns** - Interactor, Mediator, Repository, Service
 - **Testability** - Easy to mock and test
 
-Follow these patterns to build maintainable, scalable Python applications.
+Follow these patterns to build maintainable, scalable Python applications that respect the Dependency Rule and keep your business logic independent of infrastructure details.
