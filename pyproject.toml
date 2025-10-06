@@ -2,13 +2,20 @@
 name = "vega-framework"
 version = "0.1.0"
 description = "Lightweight Python framework for Clean Architecture with automatic dependency injection"
-authors = ["Vega Contributors"]
+authors = ["Roberto Ferro"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/your-org/vega-framework"
 repository = "https://github.com/your-org/vega-framework"
 documentation = "https://vega-framework.readthedocs.io"
-keywords = ["clean-architecture", "dependency-injection", "framework", "python", "async"]
+keywords = [
+    "clean-architecture",
+    "dependency-injection",
+    "framework",
+    "python",
+    "async",
+    "vega",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -20,9 +27,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-packages = [
-    { include = "vega", from = "." },
-]
+packages = [{ include = "vega", from = "." }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
