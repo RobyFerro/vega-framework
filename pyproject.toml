@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.1.0"
-description = "Lightweight Python framework for Clean Architecture with automatic dependency injection"
+version = "0.1.1"
+description = "Enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
 readme = "README.md"
