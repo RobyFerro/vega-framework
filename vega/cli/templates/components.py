@@ -308,6 +308,25 @@ def greet(name: str):
     click.echo(f"Hello, {{name}}!")
 
 
+# Uncomment this block if you enable FastAPI support
+# @cli.command()
+# @click.option('--host', default='0.0.0.0', help='Host to bind')
+# @click.option('--port', default=8000, help='Port to bind')
+# @click.option('--reload', is_flag=True, help='Enable auto-reload')
+# def web(host: str, port: int, reload: bool):
+#     """Start FastAPI web server"""
+#     import uvicorn
+#     from presentation.web.main import app
+#
+#     click.echo(f"Starting web server on http://{{host}}:{{port}}")
+#     uvicorn.run(
+#         app,
+#         host=host,
+#         port=port,
+#         reload=reload,
+#     )
+
+
 # Add more CLI commands here or import them from presentation/cli/commands/
 
 

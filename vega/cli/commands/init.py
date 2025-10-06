@@ -1,5 +1,6 @@
 """Init command - Create new Vega project"""
-import os
+from __future__ import annotations
+
 from pathlib import Path
 import importlib.resources
 
@@ -7,6 +8,71 @@ import click
 
 from vega.cli.scaffolds import create_fastapi_scaffold
 from vega.cli.templates import render_standard_main, render_fastapi_project_main
+
+
+def _load_architecture_md() -> str | None:
+    """Try to load ARCHITECTURE.md content from several known locations."""
+
+    candidate_paths: list[Path] = []
+
+    # When the framework is installed, the file may live next to the package.
+    try:
+        import vega  # type: ignore
+
+        package_file = Path(getattr(vega, "__file__", ""))
+        if package_file:
+            package_dir = package_file.parent
+            candidate_paths.append(package_dir / "ARCHITECTURE.md")
+            candidate_paths.append(package_dir.parent / "ARCHITECTURE.md")
+    except Exception:
+        pass
+
+    # When running from a cloned repository, walk up from this module.
+    current_file = Path(__file__)
+    candidate_paths.extend(parent / "ARCHITECTURE.md" for parent in current_file.parents)
+    candidate_paths.append(Path.cwd() / "ARCHITECTURE.md")
+
+    seen: set[str] = set()
+    for candidate in candidate_paths:
+        try:
+            resolved = candidate if candidate.is_absolute() else candidate.resolve()
+        except Exception:
+            resolved = candidate
+
+        key = str(resolved)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        if resolved.is_file():
+            try:
+                return resolved.read_text(encoding="utf-8")
+            except Exception:
+                continue
+
+    # Fallback to package resources in case the file is bundled differently.
+    try:
+        files = getattr(importlib.resources, "files", None)
+        if files:
+            resource = files("vega").joinpath("ARCHITECTURE.md")
+            if resource.is_file():
+                return resource.read_text(encoding="utf-8")
+        else:  # pragma: no cover - legacy Python fallback
+            return importlib.resources.read_text("vega", "ARCHITECTURE.md", encoding="utf-8")
+    except Exception:
+        pass
+
+    # setuptools-style fallback
+    try:  # pragma: no cover - optional dependency
+        import pkg_resources  # type: ignore
+
+        data = pkg_resources.resource_string("vega", "ARCHITECTURE.md")
+        if data:
+            return data.decode("utf-8")
+    except Exception:
+        pass
+
+    return None
 
 def init_project(project_name: str, template: str, parent_path: str):
     """Initialize a new Vega project with Clean Architecture structure"""
@@ -267,35 +333,14 @@ This project uses [Vega Framework](https://github.com/your-org/vega-framework) f
     click.echo(f"  + Created README.md")
 
     # Copy ARCHITECTURE.md from vega framework to project root
-    try:
-        # Try multiple methods to find ARCHITECTURE.md
-        architecture_content = None
-
-        # Method 1: Try from vega package resources (for installed package)
+    architecture_content = _load_architecture_md()
+    if architecture_content:
         try:
-            import vega
-            vega_pkg_path = Path(vega.__file__).parent.parent
-            arch_path = vega_pkg_path / "ARCHITECTURE.md"
-            if arch_path.exists():
-                architecture_content = arch_path.read_text(encoding='utf-8')
+            architecture_dest = project_path / "ARCHITECTURE.md"
+            architecture_dest.write_text(architecture_content, encoding="utf-8")
+            click.echo("  + Created ARCHITECTURE.md")
         except Exception:
             pass
-
-        # Method 2: Try relative to this file (for development)
-        if not architecture_content:
-            vega_root = Path(__file__).parent.parent.parent.parent
-            arch_path = vega_root / "ARCHITECTURE.md"
-            if arch_path.exists():
-                architecture_content = arch_path.read_text(encoding='utf-8')
-
-        # Write the file if found
-        if architecture_content:
-            architecture_dest = project_path / "ARCHITECTURE.md"
-            architecture_dest.write_text(architecture_content, encoding='utf-8')
-            click.echo(f"  + Created ARCHITECTURE.md")
-    except Exception as e:
-        # If file doesn't exist or can't be read, skip silently
-        pass
 
     # Create main.py based on template
     if template == "fastapi":
