@@ -1,6 +1,6 @@
 # Vega Framework
 
-A lightweight Python framework for building applications with **Clean Architecture** principles.
+A lightweight Python framework for building applications.
 
 ## Features
 
