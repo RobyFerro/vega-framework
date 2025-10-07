@@ -18,6 +18,11 @@ from .components import (
     render_pydantic_models_init,
     render_pydantic_user_models,
     render_fastapi_router,
+    render_fastapi_middleware,
+    render_database_manager,
+    render_alembic_ini,
+    render_alembic_env,
+    render_sqlalchemy_model,
 )
 from .loader import render_template
 
@@ -41,5 +46,10 @@ __all__ = [
     "render_pydantic_models_init",
     "render_pydantic_user_models",
     "render_fastapi_router",
+    "render_fastapi_middleware",
+    "render_database_manager",
+    "render_alembic_ini",
+    "render_alembic_env",
+    "render_sqlalchemy_model",
     "render_template",
 ]

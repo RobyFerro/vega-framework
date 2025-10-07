@@ -3,21 +3,24 @@ from pathlib import Path
 
 import click
 
-from vega.cli.scaffolds import create_fastapi_scaffold
+from vega.cli.scaffolds import create_fastapi_scaffold, create_sqlalchemy_scaffold
 
 
 @click.command()
-@click.argument('feature', type=click.Choice(['web'], case_sensitive=False))
+@click.argument('feature', type=click.Choice(['web', 'sqlalchemy', 'db'], case_sensitive=False))
 @click.option('--path', default='.', help='Path to Vega project (default: current directory)')
 def add(feature: str, path: str):
     """Add features to an existing Vega project
 
     Features:
-        web - Add FastAPI web scaffold to the project
+        web        - Add FastAPI web scaffold to the project
+        sqlalchemy - Add SQLAlchemy database support (alias: db)
+        db         - Alias for sqlalchemy
 
     Examples:
         vega add web
-        vega add web --path ./my-project
+        vega add sqlalchemy
+        vega add db --path ./my-project
     """
     project_path = Path(path).resolve()
 
@@ -32,6 +35,8 @@ def add(feature: str, path: str):
 
     if feature.lower() == 'web':
         add_web_feature(project_path, project_name)
+    elif feature.lower() in ['sqlalchemy', 'db']:
+        add_sqlalchemy_feature(project_path, project_name)
 
 
 def add_web_feature(project_path: Path, project_name: str):
@@ -86,3 +91,35 @@ def web(host: str, port: int, reload: bool):
     click.echo("  3. Run the server:")
     click.echo("     python main.py web --reload")
     click.echo("  4. Visit http://localhost:8000/api/health/status")
+
+
+def add_sqlalchemy_feature(project_path: Path, project_name: str):
+    """Add SQLAlchemy database support to existing project"""
+    click.echo(f"\n[*] Adding SQLAlchemy database support to: {click.style(project_name, fg='green', bold=True)}\n")
+
+    # Check if database_manager.py already exists
+    db_manager_path = project_path / "infrastructure" / "database_manager.py"
+    if db_manager_path.exists():
+        click.echo(click.style("WARNING: SQLAlchemy scaffold already exists!", fg='yellow'))
+        if not click.confirm("Do you want to overwrite existing files?"):
+            click.echo("Aborted.")
+            return
+        overwrite = True
+    else:
+        overwrite = False
+
+    # Create SQLAlchemy scaffold
+    create_sqlalchemy_scaffold(project_path, project_name, overwrite=overwrite)
+
+    click.echo(f"\n{click.style('SUCCESS: SQLAlchemy database support added!', fg='green', bold=True)}\n")
+    click.echo("Next steps:")
+    click.echo("  1. Add DATABASE_URL to your settings.py:")
+    click.echo('     DATABASE_URL: str = "sqlite+aiosqlite:///./database.db"')
+    click.echo("  2. Install dependencies:")
+    click.echo("     poetry install")
+    click.echo("  3. Initialize database:")
+    click.echo("     vega migrate init")
+    click.echo("  4. Create your first migration:")
+    click.echo('     vega migrate create -m "Initial migration"')
+    click.echo("  5. Apply migrations:")
+    click.echo("     vega migrate upgrade")

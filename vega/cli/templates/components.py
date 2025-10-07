@@ -147,3 +147,38 @@ def render_fastapi_router(resource_name: str, resource_file: str, project_name: 
         resource_file=resource_file,
         project_name=project_name,
     )
+
+
+def render_fastapi_middleware(class_name: str, file_name: str) -> str:
+    """Return the template for a FastAPI middleware"""
+    return render_template(
+        "middleware.py.j2",
+        subfolder="web",
+        class_name=class_name,
+        file_name=file_name,
+    )
+
+
+def render_database_manager() -> str:
+    """Return the template for database_manager.py"""
+    return render_template("database_manager.py.j2", subfolder="sqlalchemy")
+
+
+def render_alembic_ini() -> str:
+    """Return the template for alembic.ini"""
+    return render_template("alembic.ini.j2", subfolder="sqlalchemy")
+
+
+def render_alembic_env() -> str:
+    """Return the template for alembic/env.py"""
+    return render_template("env.py.j2", subfolder="sqlalchemy")
+
+
+def render_sqlalchemy_model(class_name: str, table_name: str) -> str:
+    """Return the template for a SQLAlchemy model"""
+    return render_template(
+        "model.py.j2",
+        subfolder="infrastructure",
+        class_name=class_name,
+        table_name=table_name,
+    )

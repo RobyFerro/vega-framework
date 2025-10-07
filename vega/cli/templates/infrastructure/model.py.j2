@@ -1,0 +1,19 @@
+"""{{ class_name }} SQLAlchemy model"""
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy.sql import func
+from infrastructure.database_manager import Base
+
+
+class {{ class_name }}Model(Base):
+    """{{ class_name }} database model"""
+    __tablename__ = "{{ table_name }}"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    # Add your columns here
+    # name = Column(String(255), nullable=False)
+    # email = Column(String(255), unique=True, nullable=False)
+    # is_active = Column(Boolean, default=True, nullable=False)
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

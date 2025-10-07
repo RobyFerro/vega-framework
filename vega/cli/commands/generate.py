@@ -12,6 +12,8 @@ from vega.cli.templates import (
     render_repository_interface,
     render_service_interface,
     render_fastapi_router,
+    render_fastapi_middleware,
+    render_sqlalchemy_model,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
 
@@ -118,6 +120,10 @@ def generate_component(
         _generate_mediator(project_root, project_name, class_name, file_name)
     elif component_type == 'router':
         _generate_router(project_root, project_name, name)
+    elif component_type == 'middleware':
+        _generate_middleware(project_root, project_name, class_name, file_name)
+    elif component_type == 'model':
+        _generate_sqlalchemy_model(project_root, project_name, class_name, file_name)
 
 
 def _generate_entity(project_root: Path, project_name: str, class_name: str, file_name: str):
@@ -398,15 +404,6 @@ def _register_router_in_init(project_root: Path, resource_file: str, resource_na
 def _generate_router(project_root: Path, project_name: str, name: str) -> None:
     """Generate a FastAPI router for a resource"""
 
-    # Check if FastAPI is available
-    try:
-        import fastapi
-    except ImportError:
-        click.echo(click.style("ERROR: FastAPI not installed", fg='red'))
-        click.echo("   Router generation requires FastAPI web module")
-        click.echo("   Install it with: vega add web")
-        return
-
     # Check if web folder exists
     web_path = project_root / "presentation" / "web"
     if not web_path.exists():
@@ -450,3 +447,226 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
     click.echo(f"   2. Implement domain interactors for {resource_name} operations")
     click.echo(f"   3. Replace in-memory storage with actual use cases")
 
+
+def _generate_middleware(project_root: Path, project_name: str, class_name: str, file_name: str) -> None:
+    """Generate a FastAPI middleware"""
+
+    # Check if web folder exists
+    web_path = project_root / "presentation" / "web"
+    if not web_path.exists():
+        click.echo(click.style("ERROR: Web module not found", fg='red'))
+        click.echo("   Middleware generation requires FastAPI web module")
+        click.echo("   Install it with: vega add web")
+        return
+
+    # Remove 'Middleware' suffix if present to avoid duplication
+    if class_name.endswith('Middleware'):
+        class_name = class_name[:-len('Middleware')]
+
+    file_name = to_snake_case(class_name)
+
+    # Create middleware directory if it doesn't exist
+    middleware_path = web_path / "middleware"
+    middleware_path.mkdir(exist_ok=True)
+
+    # Check if __init__.py exists
+    init_file = middleware_path / "__init__.py"
+    if not init_file.exists():
+        init_file.write_text('"""FastAPI Middlewares"""\n')
+        click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
+
+    # Generate middleware file
+    middleware_file = middleware_path / f"{file_name}.py"
+
+    if middleware_file.exists():
+        click.echo(click.style(f"ERROR: Error: {middleware_file.relative_to(project_root)} already exists", fg='red'))
+        return
+
+    content = render_fastapi_middleware(class_name, file_name)
+    middleware_file.write_text(content)
+
+    click.echo(f"+ Created {click.style(str(middleware_file.relative_to(project_root)), fg='green')}")
+
+    # Register the middleware in app.py
+    _register_middleware_in_app(project_root, class_name, file_name)
+
+    # Instructions for next steps
+    click.echo(f"\nNext steps:")
+    click.echo(f"   1. Implement your middleware logic in {class_name}Middleware.dispatch()")
+    click.echo(f"   2. The middleware has been registered in app.py")
+    click.echo(f"   3. Restart your server to apply changes")
+
+
+def _register_middleware_in_app(project_root: Path, class_name: str, file_name: str) -> None:
+    """Register a new middleware in app.py"""
+    app_file = project_root / "presentation" / "web" / "app.py"
+
+    if not app_file.exists():
+        click.echo(click.style("WARNING: app.py not found", fg='yellow'))
+        click.echo(f"\nTo register manually, add to app.py:")
+        click.echo(click.style(f'''
+from .middleware.{file_name} import {class_name}Middleware
+
+def create_app() -> FastAPI:
+    app = FastAPI(...)
+    app.add_middleware({class_name}Middleware)
+    app.include_router(get_api_router())
+    return app
+''', fg='cyan'))
+        return
+
+    content = app_file.read_text()
+    lines = content.split('\n')
+
+    # Check if already registered
+    middleware_import = f"from .middleware.{file_name} import {class_name}Middleware"
+    middleware_call = f"app.add_middleware({class_name}Middleware)"
+
+    if any(middleware_import in line for line in lines):
+        click.echo(click.style(f"WARNING: Middleware {class_name} already imported in app.py", fg='yellow'))
+        return
+
+    # Find import section and add middleware import
+    import_added = False
+    for i, line in enumerate(lines):
+        if line.startswith('from .routes import'):
+            # Add import before routes import
+            lines.insert(i, middleware_import)
+            lines.insert(i + 1, '')
+            import_added = True
+            break
+
+    if not import_added:
+        # Fallback: add after FastAPI import
+        for i, line in enumerate(lines):
+            if 'from fastapi import' in line:
+                lines.insert(i + 1, middleware_import)
+                lines.insert(i + 2, '')
+                break
+
+    # Find create_app function and add middleware registration
+    middleware_added = False
+    for i, line in enumerate(lines):
+        if 'app = FastAPI(' in line:
+            # Find the end of FastAPI initialization
+            j = i + 1
+            while j < len(lines) and not lines[j].strip().startswith('app.include_router'):
+                j += 1
+
+            # Add middleware registration before include_router
+            lines.insert(j, f'    {middleware_call}')
+            middleware_added = True
+            break
+
+    if import_added or middleware_added:
+        app_file.write_text('\n'.join(lines))
+        click.echo(f"+ Updated {click.style(str(app_file.relative_to(project_root)), fg='green')}")
+    else:
+        click.echo(click.style("WARNING: Could not auto-register middleware in app.py", fg='yellow'))
+        click.echo(f"\nTo register manually, add to app.py:")
+        click.echo(click.style(f'''
+from .middleware.{file_name} import {class_name}Middleware
+
+def create_app() -> FastAPI:
+    app = FastAPI(...)
+    app.add_middleware({class_name}Middleware)
+    app.include_router(get_api_router())
+    return app
+''', fg='cyan'))
+
+
+
+
+def _generate_sqlalchemy_model(project_root: Path, project_name: str, class_name: str, file_name: str) -> None:
+    """Generate a SQLAlchemy model"""
+
+    # Check if infrastructure/database_manager.py exists
+    db_manager_path = project_root / "infrastructure" / "database_manager.py"
+    if not db_manager_path.exists():
+        click.echo(click.style("ERROR: SQLAlchemy not configured", fg='red'))
+        click.echo("   Model generation requires SQLAlchemy support")
+        click.echo("   Install it with: vega add sqlalchemy")
+        return
+
+    # Create models directory if it doesn't exist
+    models_path = project_root / "infrastructure" / "models"
+    models_path.mkdir(exist_ok=True)
+
+    # Check if __init__.py exists in models directory
+    init_file = models_path / "__init__.py"
+    if not init_file.exists():
+        init_file.write_text('"""SQLAlchemy models"""\n')
+        click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
+
+    # Generate model file
+    model_file = models_path / f"{file_name}.py"
+
+    if model_file.exists():
+        click.echo(click.style(f"ERROR: Error: {model_file.relative_to(project_root)} already exists", fg='red'))
+        return
+
+    # Convert class name to table name (e.g., User -> users, ProductCategory -> product_categories)
+    table_name = to_snake_case(class_name)
+    if not table_name.endswith('s'):
+        table_name = f"{table_name}s"
+
+    content = render_sqlalchemy_model(class_name, table_name)
+    model_file.write_text(content)
+
+    click.echo(f"+ Created {click.style(str(model_file.relative_to(project_root)), fg='green')}")
+
+    # Update alembic/env.py to import the model
+    _register_model_in_alembic(project_root, class_name, file_name)
+
+    # Instructions for next steps
+    click.echo(f"\nNext steps:")
+    click.echo(f"   1. Add columns to your model in {model_file.relative_to(project_root)}")
+    click.echo(f"   2. Create migration: vega migrate create -m \"Add {table_name} table\"")
+    click.echo(f"   3. Apply migration: vega migrate upgrade")
+
+
+def _register_model_in_alembic(project_root: Path, class_name: str, file_name: str) -> None:
+    """Register a new model in alembic/env.py"""
+    env_file = project_root / "alembic" / "env.py"
+
+    if not env_file.exists():
+        click.echo(click.style("WARNING: alembic/env.py not found", fg='yellow'))
+        click.echo(f"\nTo register manually, add to alembic/env.py:")
+        click.echo(click.style(f'''
+from infrastructure.models.{file_name} import {class_name}Model  # noqa: F401
+''', fg='cyan'))
+        return
+
+    content = env_file.read_text()
+    lines = content.split('\n')
+
+    # Check if already registered
+    model_import = f"from infrastructure.models.{file_name} import {class_name}Model"
+    if any(model_import in line for line in lines):
+        click.echo(click.style(f"WARNING: Model {class_name} already imported in alembic/env.py", fg='yellow'))
+        return
+
+    # Find the import section for models and add the new import
+    import_added = False
+    for i, line in enumerate(lines):
+        # Look for existing model imports or the Base import
+        if "from infrastructure.database_manager import Base" in line:
+            # Add import after Base import
+            lines.insert(i + 1, f"from infrastructure.models.{file_name} import {class_name}Model  # noqa: F401")
+            import_added = True
+            break
+        elif "from infrastructure.models." in line or "from domain.entities." in line:
+            # Add after other model imports
+            lines.insert(i + 1, f"from infrastructure.models.{file_name} import {class_name}Model  # noqa: F401")
+            import_added = True
+            break
+
+    if import_added:
+        env_file.write_text('\n'.join(lines))
+        click.echo(f"+ Updated {click.style('alembic/env.py', fg='green')} with model import")
+    else:
+        click.echo(click.style("WARNING: Could not auto-register model in alembic/env.py", fg='yellow'))
+        click.echo(f"\nTo register manually, add to alembic/env.py:")
+        click.echo(click.style(f'''
+from infrastructure.models.{file_name} import {class_name}Model  # noqa: F401
+''', fg='cyan'))

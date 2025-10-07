@@ -8,6 +8,7 @@ from vega.cli.commands.init import init_project
 from vega.cli.commands.generate import generate_component
 from vega.cli.commands.add import add
 from vega.cli.commands.update import update_vega, check_version
+from vega.cli.commands.migrate import migrate
 
 
 @click.group()
@@ -55,7 +56,7 @@ def init(project_name, template, path):
 
 @cli.command()
 @click.argument('component_type', type=click.Choice([
-    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'router'
+    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'router', 'middleware', 'model'
 ]))
 @click.argument('name')
 @click.option('--path', default='.', help='Project root path')
@@ -72,6 +73,8 @@ def generate(component_type, name, path, impl):
         interactor  - Use case (business logic)
         mediator    - Workflow (orchestrates use cases)
         router      - FastAPI router (requires web module)
+        middleware  - FastAPI middleware (requires web module)
+        model       - SQLAlchemy model (requires sqlalchemy module)
 
     Examples:
         vega generate entity Product
@@ -80,6 +83,8 @@ def generate(component_type, name, path, impl):
         vega generate interactor CreateProduct
         vega generate mediator CheckoutFlow
         vega generate router Product
+        vega generate middleware Logging
+        vega generate model User
     """
     # Normalize 'repo' to 'repository'
     if component_type == 'repo':
@@ -126,8 +131,9 @@ def update(check, force):
         update_vega(force=force)
 
 
-# Register the add command
+# Register the add and migrate commands
 cli.add_command(add)
+cli.add_command(migrate)
 
 
 if __name__ == '__main__':

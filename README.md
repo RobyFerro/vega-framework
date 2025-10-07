@@ -10,6 +10,8 @@ An enterprise-ready Python framework that enforces Clean Architecture for buildi
 - ✅ **Type-Safe** - Full type hints support
 - ✅ **Framework-Agnostic** - Works with any domain (web, AI, IoT, fintech, etc.)
 - ✅ **CLI Scaffolding** - Generate projects and components instantly
+- ✅ **FastAPI Integration** - Built-in web scaffold with routing and middleware
+- ✅ **SQLAlchemy Support** - Database management with async support and migrations
 - ✅ **Lightweight** - No unnecessary dependencies
 
 ## Installation
@@ -57,12 +59,44 @@ vega generate repository <Name> [--impl memory|sql]
 vega generate service <Name>
 vega generate interactor <Name>
 vega generate mediator <Name>
+vega generate router <Name>          # Requires FastAPI
+vega generate middleware <Name>      # Requires FastAPI
+vega generate model <Name>           # Requires SQLAlchemy
 ```
 
-### Add features
+### Add Features
 
 ```bash
+# Add FastAPI web scaffold
 vega add web
+
+# Add SQLAlchemy database support
+vega add sqlalchemy
+# or
+vega add db
+```
+
+### Database Migrations (SQLAlchemy)
+
+```bash
+# Initialize database
+vega migrate init
+
+# Create a new migration
+vega migrate create -m "migration message"
+
+# Apply migrations
+vega migrate upgrade [--revision head]
+
+# Rollback migrations
+vega migrate downgrade [--revision -1]
+
+# Show current revision
+vega migrate current
+
+# Show migration history
+vega migrate history
+```
 
 ### Validate Project
 
