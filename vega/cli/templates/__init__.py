@@ -17,6 +17,7 @@ from .components import (
     render_fastapi_project_main,
     render_pydantic_models_init,
     render_pydantic_user_models,
+    render_fastapi_router,
 )
 from .loader import render_template
 
@@ -39,5 +40,6 @@ __all__ = [
     "render_fastapi_project_main",
     "render_pydantic_models_init",
     "render_pydantic_user_models",
+    "render_fastapi_router",
     "render_template",
 ]

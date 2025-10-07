@@ -1,0 +1,119 @@
+"""{{ resource_name }} management endpoints"""
+from fastapi import APIRouter, HTTPException, status
+from typing import List
+
+# TODO: Import your Pydantic models here
+# from ..models.{{ resource_file }}_models import Create{{ resource_name }}Request, {{ resource_name }}Response
+
+# TODO: Import your interactors/use cases here
+# from {{ project_name }}.domain.interactors.{{ resource_file }} import Create{{ resource_name }}, Get{{ resource_name }}, List{{ resource_name }}
+
+router = APIRouter()
+
+# TODO: Remove this in-memory storage and use proper repositories/interactors
+{{ resource_file }}_db: dict[str, dict] = {}
+{{ resource_file }}_counter = 0
+
+
+@router.post(
+    "",
+    # response_model={{ resource_name }}Response,  # Uncomment when you have the model
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new {{ resource_name.lower() }}",
+    description="Create a new {{ resource_name.lower() }} with the provided information"
+)
+async def create_{{ resource_file }}(
+    # {{ resource_file }}_data: Create{{ resource_name }}Request  # Uncomment when you have the model
+):
+    """Create a new {{ resource_name.lower() }}"""
+    global {{ resource_file }}_counter
+    {{ resource_file }}_counter += 1
+    item_id = f"{{ resource_file }}_{% raw %}{{% endraw %}{{ resource_file }}_counter{% raw %}}{% endraw %}"
+
+    # TODO: Replace with actual use case/interactor
+    # Example: item = await Create{{ resource_name }}(param=value)
+
+    new_item = {
+        "id": item_id,
+        # Add your fields here
+    }
+
+    {{ resource_file }}_db[item_id] = new_item
+    return new_item
+
+
+@router.get(
+    "",
+    # response_model=List[{{ resource_name }}Response],  # Uncomment when you have the model
+    summary="List all {{ resource_file }}s",
+    description="Retrieve a list of all {{ resource_file }}s"
+)
+async def list_{{ resource_file }}s():
+    """Get all {{ resource_file }}s"""
+    # TODO: Replace with actual use case/interactor
+    # Example: items = await List{{ resource_name }}s()
+    return list({{ resource_file }}_db.values())
+
+
+@router.get(
+    "/{item_id}",
+    # response_model={{ resource_name }}Response,  # Uncomment when you have the model
+    summary="Get {{ resource_name.lower() }} by ID",
+    description="Retrieve a specific {{ resource_name.lower() }} by its ID"
+)
+async def get_{{ resource_file }}(item_id: str):
+    """Get a {{ resource_name.lower() }} by ID"""
+    # TODO: Replace with actual use case/interactor
+    # Example: item = await Get{{ resource_name }}(item_id=item_id)
+
+    if item_id not in {{ resource_file }}_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{{ resource_name }} with id '{item_id}' not found"
+        )
+
+    return {{ resource_file }}_db[item_id]
+
+
+@router.put(
+    "/{item_id}",
+    # response_model={{ resource_name }}Response,  # Uncomment when you have the model
+    summary="Update {{ resource_name.lower() }}",
+    description="Update an existing {{ resource_name.lower() }}"
+)
+async def update_{{ resource_file }}(
+    item_id: str,
+    # {{ resource_file }}_data: Update{{ resource_name }}Request  # Uncomment when you have the model
+):
+    """Update a {{ resource_name.lower() }}"""
+    # TODO: Replace with actual use case/interactor
+    # Example: item = await Update{{ resource_name }}(item_id=item_id, data=...)
+
+    if item_id not in {{ resource_file }}_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{{ resource_name }} with id '{item_id}' not found"
+        )
+
+    # Update logic here
+    return {{ resource_file }}_db[item_id]
+
+
+@router.delete(
+    "/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete {{ resource_name.lower() }}",
+    description="Delete a {{ resource_name.lower() }} by its ID"
+)
+async def delete_{{ resource_file }}(item_id: str):
+    """Delete a {{ resource_name.lower() }}"""
+    # TODO: Replace with actual use case/interactor
+    # Example: await Delete{{ resource_name }}(item_id=item_id)
+
+    if item_id not in {{ resource_file }}_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{{ resource_name }} with id '{item_id}' not found"
+        )
+
+    del {{ resource_file }}_db[item_id]

@@ -136,3 +136,14 @@ def render_pydantic_user_models() -> str:
 def render_fastapi_user_route() -> str:
     """Return the template for web/routes/users.py"""
     return render_template("users_route.py.j2", subfolder="web")
+
+
+def render_fastapi_router(resource_name: str, resource_file: str, project_name: str) -> str:
+    """Return the template for a FastAPI router"""
+    return render_template(
+        "router.py.j2",
+        subfolder="web",
+        resource_name=resource_name,
+        resource_file=resource_file,
+        project_name=project_name,
+    )

@@ -11,6 +11,7 @@ from vega.cli.templates import (
     render_mediator,
     render_repository_interface,
     render_service_interface,
+    render_fastapi_router,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
 
@@ -115,6 +116,8 @@ def generate_component(
         _generate_interactor(project_root, project_name, class_name, file_name)
     elif component_type == 'mediator':
         _generate_mediator(project_root, project_name, class_name, file_name)
+    elif component_type == 'router':
+        _generate_router(project_root, project_name, name)
 
 
 def _generate_entity(project_root: Path, project_name: str, class_name: str, file_name: str):
@@ -330,4 +333,120 @@ def _generate_fastapi_web(project_root: Path, project_name: str, name: str) -> N
         return
 
     create_fastapi_scaffold(project_root, project_name)
+
+
+def _register_router_in_init(project_root: Path, resource_file: str, resource_name: str) -> None:
+    """Register a new router in routes/__init__.py"""
+    routes_init = project_root / "presentation" / "web" / "routes" / "__init__.py"
+
+    if not routes_init.exists():
+        click.echo(click.style("WARNING: routes/__init__.py not found", fg='yellow'))
+        return
+
+    content = routes_init.read_text()
+    lines = content.split('\n')
+
+    # Check if already registered
+    router_call = f"{resource_file}.router"
+    if any(router_call in line for line in lines):
+        click.echo(click.style(f"WARNING: Router {resource_file} already registered in routes/__init__.py", fg='yellow'))
+        return
+
+    # Find and update the import line
+    import_updated = False
+    for i, line in enumerate(lines):
+        if line.strip().startswith('from . import') and 'health' in line:
+            # Parse existing imports
+            imports_part = line.split('from . import')[1].strip()
+            existing_imports = [imp.strip() for imp in imports_part.split(',')]
+
+            # Check if already in imports (shouldn't happen, but just in case)
+            if resource_file in existing_imports:
+                break
+
+            # Add new import alphabetically
+            existing_imports.append(resource_file)
+            existing_imports.sort()
+
+            lines[i] = f"from . import {', '.join(existing_imports)}"
+            import_updated = True
+            break
+
+    if not import_updated:
+        # Fallback: add import line
+        for i, line in enumerate(lines):
+            if line.startswith('from fastapi import'):
+                lines.insert(i + 2, f"from . import {resource_file}")
+                break
+
+    # Find the function and add the router registration
+    last_include_idx = -1
+    for i, line in enumerate(lines):
+        if 'router.include_router' in line:
+            last_include_idx = i
+
+    if last_include_idx != -1:
+        # Add the new router after the last include_router
+        plural = f"{resource_file}s" if not resource_file.endswith('s') else resource_file
+        new_line = f'    router.include_router({resource_file}.router, tags=["{resource_name}s"], prefix="/{plural}")'
+        lines.insert(last_include_idx + 1, new_line)
+
+    routes_init.write_text('\n'.join(lines))
+    click.echo(f"+ Updated {click.style(str(routes_init.relative_to(project_root)), fg='green')}")
+
+
+def _generate_router(project_root: Path, project_name: str, name: str) -> None:
+    """Generate a FastAPI router for a resource"""
+
+    # Check if FastAPI is available
+    try:
+        import fastapi
+    except ImportError:
+        click.echo(click.style("ERROR: FastAPI not installed", fg='red'))
+        click.echo("   Router generation requires FastAPI web module")
+        click.echo("   Install it with: vega add web")
+        return
+
+    # Check if web folder exists
+    web_path = project_root / "presentation" / "web"
+    if not web_path.exists():
+        click.echo(click.style("ERROR: Web module not found", fg='red'))
+        click.echo("   Router generation requires FastAPI web module")
+        click.echo("   Install it with: vega add web")
+        return
+
+    # Convert name to appropriate formats
+    resource_name = to_pascal_case(name)
+    resource_file = to_snake_case(resource_name)
+
+    # Create routes directory if it doesn't exist
+    routes_path = web_path / "routes"
+    routes_path.mkdir(exist_ok=True)
+
+    # Check if __init__.py exists
+    init_file = routes_path / "__init__.py"
+    if not init_file.exists():
+        init_file.write_text('"""API Routes"""\n')
+        click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
+
+    # Generate router file
+    router_file = routes_path / f"{resource_file}.py"
+
+    if router_file.exists():
+        click.echo(click.style(f"ERROR: Error: {router_file.relative_to(project_root)} already exists", fg='red'))
+        return
+
+    content = render_fastapi_router(resource_name, resource_file, project_name)
+    router_file.write_text(content)
+
+    click.echo(f"+ Created {click.style(str(router_file.relative_to(project_root)), fg='green')}")
+
+    # Register the router in routes/__init__.py
+    _register_router_in_init(project_root, resource_file, resource_name)
+
+    # Instructions for next steps
+    click.echo(f"\nNext steps:")
+    click.echo(f"   1. Create Pydantic models in presentation/web/models/{resource_file}_models.py")
+    click.echo(f"   2. Implement domain interactors for {resource_name} operations")
+    click.echo(f"   3. Replace in-memory storage with actual use cases")
 

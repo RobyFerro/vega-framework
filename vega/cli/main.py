@@ -53,7 +53,7 @@ def init(project_name, template, path):
 
 @cli.command()
 @click.argument('component_type', type=click.Choice([
-    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator'
+    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'router'
 ]))
 @click.argument('name')
 @click.option('--path', default='.', help='Project root path')
@@ -69,14 +69,15 @@ def generate(component_type, name, path, impl):
         service     - Service interface (domain layer)
         interactor  - Use case (business logic)
         mediator    - Workflow (orchestrates use cases)
+        router      - FastAPI router (requires web module)
 
     Examples:
         vega generate entity Product
         vega generate repository ProductRepository
         vega generate repository Product --impl memory
-        vega generate web fastapi
         vega generate interactor CreateProduct
         vega generate mediator CheckoutFlow
+        vega generate router Product
     """
     # Normalize 'repo' to 'repository'
     if component_type == 'repo':
