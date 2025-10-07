@@ -262,6 +262,232 @@ class StripePaymentService(PaymentService):
         pass
 ```
 
+## Development Workflow with Vega CLI
+
+Vega provides powerful CLI commands to quickly scaffold components following Clean Architecture principles. These commands help you maintain the correct architectural boundaries while accelerating development.
+
+### Generating Domain Layer Components
+
+**Entities** - Pure business objects:
+```bash
+vega generate entity User
+vega generate entity Product
+vega generate entity Order
+```
+
+**Repository Interfaces** - Data persistence abstractions:
+```bash
+vega generate repository UserRepository
+vega generate repository Product  # Auto-adds "Repository" suffix
+```
+
+**Repository with Implementation** - Create both interface and concrete implementation:
+```bash
+vega generate repository User --impl memory   # In-memory implementation
+vega generate repository User --impl sql      # SQL implementation
+vega generate repository User --impl postgres # PostgreSQL implementation
+```
+
+**Service Interfaces** - External service abstractions:
+```bash
+vega generate service EmailService
+vega generate service PaymentService
+```
+
+**Service with Implementation**:
+```bash
+vega generate service Email --impl sendgrid
+vega generate service Payment --impl stripe
+```
+
+**Interactors** - Single-purpose use cases:
+```bash
+vega generate interactor CreateUser
+vega generate interactor GetUserById
+vega generate interactor UpdateUserEmail
+vega generate interactor DeleteUser
+```
+
+### Generating Application Layer Components
+
+**Mediators** - Complex workflows:
+```bash
+vega generate mediator UserRegistrationFlow
+vega generate mediator CheckoutWorkflow
+vega generate mediator OrderProcessingPipeline
+```
+
+### Generating Infrastructure Layer Components
+
+**SQLAlchemy Models** - Database models (requires database support):
+```bash
+vega generate model User
+vega generate model Product
+vega generate model Order
+```
+
+Note: Models are automatically registered in Alembic for migrations.
+
+### Generating Presentation Layer Components
+
+**CLI Commands** - Command-line interfaces:
+```bash
+vega generate command CreateUser              # Async command (default)
+vega generate command ListUsers --impl sync   # Synchronous command
+```
+
+The generator will interactively prompt for:
+- Command description
+- Options and arguments (flags, parameters)
+- Whether to use interactors
+- Parameter types and validation
+
+**FastAPI Routers** - HTTP API endpoints (requires web support):
+```bash
+vega generate router User
+vega generate router Product
+vega generate router Order
+```
+
+**FastAPI Middleware** - Request/response processing (requires web support):
+```bash
+vega generate middleware Logging
+vega generate middleware Authentication
+vega generate middleware RateLimiting
+```
+
+### Adding Features to Existing Projects
+
+**Add FastAPI Web Support**:
+```bash
+vega add web
+```
+
+Creates complete FastAPI scaffold:
+- `presentation/web/` directory structure
+- Routes and middleware setup
+- Health check endpoints
+- App factory pattern
+
+**Add Database Support**:
+```bash
+vega add sqlalchemy  # or: vega add db
+```
+
+Adds complete database infrastructure:
+- SQLAlchemy async support
+- Alembic migrations
+- Database manager
+- Base model classes
+
+### Database Migrations Workflow
+
+After adding SQLAlchemy support, manage your database schema:
+
+```bash
+# Initialize database (creates tables)
+vega migrate init
+
+# Create migration after model changes
+vega migrate create -m "Add users table"
+vega migrate create -m "Add email_verified field to users"
+
+# Apply pending migrations
+vega migrate upgrade
+
+# Rollback last migration
+vega migrate downgrade
+
+# Check current migration status
+vega migrate current
+
+# View migration history
+vega migrate history
+```
+
+### Project Validation
+
+Validate your project structure and architecture compliance:
+
+```bash
+vega doctor
+vega doctor --path ./my-project
+```
+
+Checks for:
+- Correct folder structure
+- DI container configuration
+- Import dependencies
+- Architecture violations (e.g., domain depending on infrastructure)
+
+### Development Best Practices with CLI
+
+**1. Start with Domain Layer**:
+```bash
+# Define your entities first
+vega generate entity User
+
+# Create repository interfaces
+vega generate repository UserRepository
+
+# Implement use cases
+vega generate interactor CreateUser
+vega generate interactor GetUserById
+```
+
+**2. Add Infrastructure Implementations**:
+```bash
+# Generate repository implementation
+vega generate repository User --impl memory  # Start with in-memory
+
+# Later, add database support
+vega add sqlalchemy
+vega generate model User
+vega generate repository User --impl sql
+```
+
+**3. Build Application Workflows**:
+```bash
+# Orchestrate multiple use cases
+vega generate mediator UserRegistrationFlow
+```
+
+**4. Create Delivery Mechanisms**:
+```bash
+# CLI interface
+vega generate command create-user
+
+# Web API (add web first if not present)
+vega add web
+vega generate router User
+```
+
+**5. Validate Architecture**:
+```bash
+# Ensure clean architecture compliance
+vega doctor
+```
+
+### CLI Quick Reference
+
+| Command | Purpose |
+|---------|---------|
+| `vega init <name>` | Create new Vega project |
+| `vega generate entity <Name>` | Generate domain entity |
+| `vega generate repository <Name>` | Generate repository interface |
+| `vega generate interactor <Name>` | Generate use case |
+| `vega generate mediator <Name>` | Generate workflow |
+| `vega generate command <Name>` | Generate CLI command |
+| `vega generate router <Name>` | Generate FastAPI router |
+| `vega generate model <Name>` | Generate SQLAlchemy model |
+| `vega add web` | Add FastAPI support |
+| `vega add sqlalchemy` | Add database support |
+| `vega migrate <command>` | Manage database migrations |
+| `vega doctor` | Validate project architecture |
+| `vega update` | Update Vega Framework |
+
+For complete documentation, see the [README](README.md#cli-commands).
+
 ## Dependency Injection
 
 Vega provides automatic dependency injection through decorators and a container.

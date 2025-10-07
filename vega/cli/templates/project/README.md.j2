@@ -20,15 +20,11 @@ Vega Framework application with Clean Architecture.
 │   └── services/        # Service implementations
 │
 ├── presentation/        # Delivery mechanisms
-{% if template == "fastapi" -%}
-│   ├── web/            # FastAPI web interface
+│   ├── web/            # FastAPI web interface (if added)
 │   │   ├── routes/     # HTTP endpoints
 │   │   ├── app.py      # FastAPI app factory
 │   │   └── main.py     # ASGI entrypoint
-│   └── cli/            # CLI commands (if needed)
-{% else -%}
 │   └── cli/            # CLI commands
-{% endif -%}
 │
 ├── config.py            # Dependency injection setup
 ├── settings.py          # Application configuration
@@ -45,13 +41,83 @@ poetry install
 cp .env.example .env
 # Edit .env with your configuration
 
-# Generate components
-vega generate entity User
-vega generate repository UserRepository
-vega generate interactor CreateUser
+# Run CLI commands
+python main.py hello
+python main.py greet --name John
+
+# If using FastAPI template, run the web server
+python main.py web
+python main.py web --reload  # With auto-reload
+# Visit http://localhost:8000/api/health/status
 
 # Run tests
 poetry run pytest
+```
+
+## Development with Vega CLI
+
+### Generate Components
+
+Generate Clean Architecture components quickly:
+
+```bash
+# Domain layer
+vega generate entity Product
+vega generate repository ProductRepository --impl memory
+vega generate service EmailService
+vega generate interactor CreateProduct
+
+# Application layer
+vega generate mediator CheckoutFlow
+
+# Presentation layer (web)
+vega generate router Product
+vega generate middleware Logging
+
+# Presentation layer (CLI)
+vega generate command CreateUser
+vega generate command ListUsers --impl sync
+```
+
+### Add Features
+
+Add FastAPI web support to your project:
+
+```bash
+vega add web
+```
+
+### Add Database Support
+
+Add SQLAlchemy and Alembic for database management:
+
+```bash
+vega add sqlalchemy  # or: vega add db
+```
+
+Then manage your database:
+
+```bash
+# Initialize database
+vega migrate init
+
+# Create migrations
+vega migrate create -m "Add users table"
+
+# Apply migrations
+vega migrate upgrade
+
+# Rollback migrations
+vega migrate downgrade
+```
+
+### Generate Database Models
+
+After adding SQLAlchemy support:
+
+```bash
+vega generate model User
+vega generate model Product
 ```
 
 ## Using Async Commands
@@ -76,16 +142,47 @@ async def create_user(name: str):
 
 This allows the same async business logic to work in both CLI and web contexts (FastAPI).
 
+## Project Commands Quick Reference
+
+```bash
+# Component generation
+vega generate entity <Name>
+vega generate repository <Name> [--impl memory|sql]
+vega generate interactor <Name>
+vega generate mediator <Name>
+vega generate command <Name> [--impl sync]
+
+# Feature management
+vega add web
+vega add sqlalchemy
+
+# Database management (requires SQLAlchemy)
+vega migrate init
+vega migrate create -m "message"
+vega migrate upgrade
+vega migrate downgrade
+
+# Project validation
+vega doctor
+
+# Framework updates
+vega update
+vega update --check
+```
+
 ## Vega Framework
 
-This project uses [Vega Framework](https://github.com/your-org/vega-framework) for Clean Architecture:
+This project uses [Vega Framework](https://github.com/robertosixty1/vega-framework) for Clean Architecture:
 
-- Automatic Dependency Injection
-- Clean Architecture patterns (4 layers: Domain, Application, Infrastructure, Presentation)
-- Type-safe with Python type hints
-- Easy to test and maintain
+- ✅ Automatic Dependency Injection
+- ✅ Clean Architecture patterns (4 layers: Domain, Application, Infrastructure, Presentation)
+- ✅ Type-safe with Python type hints
+- ✅ Async/await support for CLI and web
+- ✅ Easy to test and maintain
+- ✅ Framework-agnostic business logic
 
 ## Documentation
 
 - [Vega Framework Docs](https://vega-framework.readthedocs.io/)
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+- [Vega CLI Reference](https://github.com/robertosixty1/vega-framework#cli-commands)
