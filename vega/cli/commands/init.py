@@ -8,6 +8,7 @@ import click
 
 from vega.cli.scaffolds import create_fastapi_scaffold
 from vega.cli.templates.loader import render_template
+import vega
 
 
 def _load_architecture_md() -> str | None:
@@ -143,7 +144,12 @@ def init_project(project_name: str, template: str, parent_path: str):
     click.echo(f"  + Created .gitignore")
 
     # Create pyproject.toml with dependencies based on template
-    pyproject_content = render_template("pyproject.toml.j2", project_name=project_name, template=template)
+    pyproject_content = render_template(
+        "pyproject.toml.j2",
+        project_name=project_name,
+        template=template,
+        vega_version=vega.__version__
+    )
     (project_path / "pyproject.toml").write_text(pyproject_content)
     click.echo(f"  + Created pyproject.toml")
 

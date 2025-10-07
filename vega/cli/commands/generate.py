@@ -80,10 +80,6 @@ def generate_component(
 
     class_name = to_pascal_case(name)
     implementation = implementation.strip() if implementation else None
-    if component_type == "web":
-        _generate_fastapi_web(project_root, project_name, name)
-        return
-
 
     suffixes = {
         "repository": "Repository",

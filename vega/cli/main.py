@@ -9,7 +9,7 @@ from vega.cli.commands.add import add
 
 
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version="0.1.5", prog_name="Vega Framework")  # Updated version
 def cli():
     """
     Vega Framework - Clean Architecture for Python
@@ -53,7 +53,7 @@ def init(project_name, template, path):
 
 @cli.command()
 @click.argument('component_type', type=click.Choice([
-    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'web'
+    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator'
 ]))
 @click.argument('name')
 @click.option('--path', default='.', help='Project root path')
@@ -69,7 +69,6 @@ def generate(component_type, name, path, impl):
         service     - Service interface (domain layer)
         interactor  - Use case (business logic)
         mediator    - Workflow (orchestrates use cases)
-        web         - Web scaffolding (FastAPI)
 
     Examples:
         vega generate entity Product
