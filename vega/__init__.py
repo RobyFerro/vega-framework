@@ -25,8 +25,30 @@ Example:
             return await repository.save(user)
 """
 
-__version__ = "0.1.0"
-__author__ = "CleanArch Contributors"
+import tomllib
+from pathlib import Path
+
+def _get_version() -> str:
+    """Read version from pyproject.toml or use importlib.metadata as fallback"""
+    try:
+        # Try reading from pyproject.toml (development)
+        pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+        if pyproject_path.exists():
+            with open(pyproject_path, "rb") as f:
+                pyproject = tomllib.load(f)
+                return pyproject["tool"]["poetry"]["version"]
+    except Exception:
+        pass
+
+    try:
+        # Fallback to importlib.metadata (installed package)
+        from importlib.metadata import version
+        return version("vega-framework")
+    except Exception:
+        return "0.0.0"
+
+__version__ = _get_version()
+__author__ = "Roberto Ferro"
 
 from vega.di import bind, injectable, Scope, scope_context
 from vega.patterns import Interactor, Mediator, Repository, Service

@@ -3,13 +3,15 @@ import click
 import os
 from pathlib import Path
 
+from vega import __version__
 from vega.cli.commands.init import init_project
 from vega.cli.commands.generate import generate_component
 from vega.cli.commands.add import add
+from vega.cli.commands.update import update_vega, check_version
 
 
 @click.group()
-@click.version_option(version="0.1.5", prog_name="Vega Framework")  # Updated version
+@click.version_option(version=__version__, prog_name="Vega Framework")
 def cli():
     """
     Vega Framework - Clean Architecture for Python
@@ -104,6 +106,24 @@ def doctor(path):
     """
     click.echo("🏥 Running Vega Doctor...")
     click.echo("⚠️  Feature not implemented yet. Coming soon!")
+
+
+@cli.command()
+@click.option('--check', is_flag=True, help='Check for updates without installing')
+@click.option('--force', is_flag=True, help='Force reinstall even if up to date')
+def update(check, force):
+    """
+    Update Vega Framework to the latest version.
+
+    Examples:
+        vega update              # Update to latest version
+        vega update --check      # Check for updates only
+        vega update --force      # Force reinstall
+    """
+    if check:
+        check_version()
+    else:
+        update_vega(force=force)
 
 
 # Register the add command
