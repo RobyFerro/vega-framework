@@ -16,7 +16,7 @@ def create(message: str):
     """Create a new migration"""
     click.echo(f"Creating new migration: {message}")
     result = subprocess.run(
-        ['alembic', 'revision', '--autogenerate', '-m', message],
+        [sys.executable, '-m', 'alembic', 'revision', '--autogenerate', '-m', message],
         capture_output=True,
         text=True
     )
@@ -36,7 +36,7 @@ def upgrade(revision: str):
     """Apply migrations"""
     click.echo(f"Upgrading database to: {revision}")
     result = subprocess.run(
-        ['alembic', 'upgrade', revision],
+        [sys.executable, '-m', 'alembic', 'upgrade', revision],
         capture_output=True,
         text=True
     )
@@ -56,7 +56,7 @@ def downgrade(revision: str):
     """Rollback migrations"""
     click.echo(f"Downgrading database to: {revision}")
     result = subprocess.run(
-        ['alembic', 'downgrade', revision],
+        [sys.executable, '-m', 'alembic', 'downgrade', revision],
         capture_output=True,
         text=True
     )
@@ -74,7 +74,7 @@ def downgrade(revision: str):
 def current():
     """Show current migration revision"""
     result = subprocess.run(
-        ['alembic', 'current'],
+        [sys.executable, '-m', 'alembic', 'current'],
         capture_output=True,
         text=True
     )
@@ -91,7 +91,7 @@ def current():
 def history():
     """Show migration history"""
     result = subprocess.run(
-        ['alembic', 'history', '--verbose'],
+        [sys.executable, '-m', 'alembic', 'history', '--verbose'],
         capture_output=True,
         text=True
     )
