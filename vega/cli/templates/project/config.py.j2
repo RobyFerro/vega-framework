@@ -9,10 +9,15 @@ from vega.di import Container, set_container
 # Example:
 # from {{ project_name }}.infrastructure.repositories.memory_user_repository import MemoryUserRepository
 
+# Uncomment and configure database manager if using SQLAlchemy
+# from infrastructure.database_manager import DatabaseManager
+# db_manager = DatabaseManager(url=settings.database_url)
+
 # DI Registry: Map interfaces to implementations
 SERVICES = {
     # Example:
     # UserRepository: MemoryUserRepository,
+    # DatabaseManager: lambda: db_manager,
 }
 
 # Create and set container
