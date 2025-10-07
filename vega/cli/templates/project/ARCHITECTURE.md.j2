@@ -1,0 +1,543 @@
+# {{ project_name }} - Architecture
+
+This document explains the architectural principles and patterns of the Vega Framework.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Clean Architecture Layers](#clean-architecture-layers)
+- [Core Patterns](#core-patterns)
+- [Dependency Injection](#dependency-injection)
+- [Project Structure](#project-structure)
+- [Best Practices](#best-practices)
+
+## Overview
+
+Vega Framework is built on **Clean Architecture** principles, ensuring:
+
+- **Separation of Concerns** - Clear boundaries between business logic and infrastructure
+- **Dependency Rule** - Dependencies point inward, domain layer knows nothing about infrastructure
+- **Testability** - Easy to mock dependencies and test in isolation
+- **Flexibility** - Swap implementations without changing business logic
+
+## Clean Architecture Layers
+
+Vega Framework implements a strict 4-layer architecture that enforces the **Dependency Rule**: dependencies always point inward, from outer layers to inner layers. The domain layer remains completely independent and never knows about infrastructure details.
+
+### 1. Domain Layer (Core)
+
+The innermost layer containing pure business logic, completely independent of any framework, database, or external dependency.
+
+**Contains:**
+
+- **Entities** - Business objects and data structures (pure Python classes)
+- **Repository Interfaces** - Abstract data persistence contracts (using `Repository[T]`)
+- **Service Interfaces** - Abstract external service contracts (using `Service`)
+- **Interactors (Use Cases)** - Business operations that implement specific use cases
+
+**Rules:**
+
+- ✅ **NO** dependencies on any other layer
+- ✅ **NO** framework-specific code (no FastAPI, SQLAlchemy, etc.)
+- ✅ **NO** infrastructure details (no database, HTTP, file system)
+- ✅ Pure business logic only
+- ✅ Only defines **interfaces**, never concrete implementations
+
+**Purpose:** Keep business logic isolated and testable. The domain should work even if you swap databases, frameworks, or delivery mechanisms.
+
+### 2. Application Layer
+
+Orchestrates domain use cases into complex workflows and coordinates multiple business operations.
+
+**Contains:**
+
+- **Mediators** - Multi-step workflows that orchestrate multiple interactors
+- **Application Services** - Coordinate domain operations for specific application scenarios
+
+**Rules:**
+
+- ✅ Can depend **only** on the domain layer
+- ✅ **NO** dependencies on infrastructure or presentation
+- ✅ **NO** knowledge of HTTP, databases, or external services
+- ✅ Orchestrates business operations without implementation details
+
+**Purpose:** Manage complex business workflows while remaining independent of delivery mechanisms and infrastructure.
+
+### 3. Infrastructure Layer
+
+Provides concrete implementations of domain interfaces using specific technologies and frameworks.
+
+**Contains:**
+
+- **Repository Implementations** - Concrete data persistence (PostgreSQL, MongoDB, Redis, File System)
+- **Service Implementations** - Concrete external integrations (Sendgrid, Stripe, AWS S3)
+- **Adapters** - Technology-specific integrations and clients
+- **Configuration** - DI container setup and dependency mappings
+
+**Rules:**
+
+- ✅ Implements interfaces defined in domain layer
+- ✅ Contains **all** technology-specific code
+- ✅ Depends on domain layer (implements its interfaces)
+- ✅ Should be easily replaceable without affecting domain logic
+- ✅ **NO** business logic - only technical implementations
+
+**Purpose:** Isolate all technical details and external dependencies, ensuring they can be swapped without impacting business logic. This layer makes the domain's abstractions concrete.
+
+### 4. Presentation Layer (Delivery Mechanisms)
+
+Handles user interaction and external communication, acting as the entry point to the application.
+
+**Contains:**
+
+- **Web API** - FastAPI routes, controllers, request/response models (when web is enabled)
+- **CLI** - Command-line interface commands and argument parsing
+- **GraphQL/gRPC** - Alternative API implementations (if needed)
+- **WebSockets** - Real-time communication handlers (if needed)
+
+**Rules:**
+
+- ✅ Depends on application and domain layers
+- ✅ Handles user input validation and formatting
+- ✅ Translates external requests into domain operations
+- ✅ **NO** business logic - only presentation concerns
+- ✅ Can depend on infrastructure for framework setup
+
+**Purpose:** Provide different interfaces for users to interact with the application (web, CLI, etc.) while keeping business logic independent of delivery mechanism.
+
+**Examples:**
+
+- **CLI**: Uses Click/Typer to define commands that invoke interactors or mediators
+- **Web API**: FastAPI endpoints that receive HTTP requests and call domain use cases
+- **Both**: Can coexist in the same application, sharing the same business logic
+
+## Core Patterns
+
+### Interactor - Single Use Case
+
+An **Interactor** represents a single, focused business operation.
+
+**Key Characteristics:**
+- One interactor = one use case
+- Constructor receives input parameters
+- `call()` method executes business logic
+- Dependencies injected via `@bind` decorator
+- Metaclass auto-calls `call()` on instantiation
+
+**Example:**
+
+```python
+from vega.patterns import Interactor
+from vega.di import bind
+
+class CreateUser(Interactor[User]):
+    def __init__(self, name: str, email: str):
+        self.name = name
+        self.email = email
+
+    @bind
+    async def call(self, repository: UserRepository) -> User:
+        # Dependencies auto-injected
+        user = User(name=self.name, email=self.email)
+        return await repository.save(user)
+
+# Usage - metaclass auto-calls call()
+user = await CreateUser(name="John", email="john@example.com")
+```
+
+### Mediator - Complex Workflow
+
+A **Mediator** orchestrates multiple interactors to accomplish complex business operations.
+
+**Key Characteristics:**
+- Coordinates multiple use cases
+- Represents a business workflow
+- No external dependencies in constructor
+- Calls multiple interactors
+
+**Example:**
+
+```python
+from vega.patterns import Mediator
+
+class CheckoutWorkflow(Mediator[Order]):
+    def __init__(self, cart_id: str, payment_method: str):
+        self.cart_id = cart_id
+        self.payment_method = payment_method
+
+    async def call(self) -> Order:
+        # Orchestrate multiple interactors
+        cart = await GetCart(self.cart_id)
+        order = await CreateOrder(cart.items)
+        await ProcessPayment(order.id, self.payment_method)
+        await SendConfirmationEmail(order.customer_email)
+        await ClearCart(self.cart_id)
+        return order
+
+# Usage
+order = await CheckoutWorkflow(cart_id="123", payment_method="stripe")
+```
+
+### Repository - Data Persistence
+
+A **Repository** provides abstraction over data persistence.
+
+**Key Characteristics:**
+- Abstract interface in domain layer
+- Concrete implementation in infrastructure layer
+- Generic type `T` represents entity type
+- Standard CRUD operations
+
+**Example:**
+
+```python
+from vega.patterns import Repository
+from typing import Optional, List
+
+# Domain layer - Interface
+class UserRepository(Repository[User]):
+    async def find_by_email(self, email: str) -> Optional[User]:
+        pass
+
+    async def find_active_users(self) -> List[User]:
+        pass
+
+# Infrastructure layer - Implementation
+from vega.di import injectable, Scope
+
+@injectable(scope=Scope.SINGLETON)
+class PostgresUserRepository(UserRepository):
+    async def find_by_email(self, email: str) -> Optional[User]:
+        # PostgreSQL-specific implementation
+        async with self.db.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT * FROM users WHERE email = $1", email
+            )
+            return User(**row) if row else None
+
+    async def find_active_users(self) -> List[User]:
+        # PostgreSQL-specific implementation
+        async with self.db.acquire() as conn:
+            rows = await conn.fetch("SELECT * FROM users WHERE active = true")
+            return [User(**row) for row in rows]
+```
+
+### Service - External Integration
+
+A **Service** provides abstraction over external services and APIs.
+
+**Key Characteristics:**
+- Abstract interface in domain layer
+- Concrete implementation in infrastructure layer
+- Represents third-party dependencies
+
+**Example:**
+
+```python
+from vega.patterns import Service
+from abc import abstractmethod
+
+# Domain layer - Interface
+class EmailService(Service):
+    @abstractmethod
+    async def send(self, to: str, subject: str, body: str) -> bool:
+        pass
+
+class PaymentService(Service):
+    @abstractmethod
+    async def charge(self, amount: float, token: str) -> PaymentResult:
+        pass
+
+# Infrastructure layer - Implementations
+@injectable(scope=Scope.SINGLETON)
+class SendgridEmailService(EmailService):
+    async def send(self, to: str, subject: str, body: str) -> bool:
+        # Sendgrid API integration
+        pass
+
+@injectable(scope=Scope.SINGLETON)
+class StripePaymentService(PaymentService):
+    async def charge(self, amount: float, token: str) -> PaymentResult:
+        # Stripe API integration
+        pass
+```
+
+## Dependency Injection
+
+Vega provides automatic dependency injection through decorators and a container.
+
+### Container Setup
+
+```python
+from vega.di import Container, set_container
+
+# Map interfaces to implementations
+container = Container({
+    UserRepository: PostgresUserRepository,
+    EmailService: SendgridEmailService,
+    PaymentService: StripePaymentService,
+})
+
+set_container(container)
+```
+
+### @bind - Method-Level DI
+
+Injects dependencies into a method based on type hints.
+
+```python
+from vega.di import bind, Scope
+
+class MyInteractor(Interactor[Result]):
+    @bind
+    async def call(self, repository: UserRepository) -> Result:
+        # repository automatically injected
+        return await repository.find_all()
+
+# Custom scope
+@bind(scope=Scope.SINGLETON)
+async def get_config(service: ConfigService) -> dict:
+    return service.load()
+```
+
+### @injectable - Class-Level DI
+
+Injects dependencies into constructor.
+
+```python
+from vega.di import injectable, Scope
+
+@injectable
+class MyService:
+    def __init__(self, repository: UserRepository):
+        self.repository = repository
+
+@injectable(scope=Scope.SINGLETON)
+class ConfigService:
+    def __init__(self, settings: SettingsRepository):
+        self.settings = settings
+```
+
+### Dependency Scopes
+
+Vega supports three dependency lifetimes:
+
+| Scope | Behavior | Use Case |
+|-------|----------|----------|
+| **TRANSIENT** | New instance every time | Stateless services, temporary objects |
+| **SCOPED** | One instance per operation/request | Request-specific state, database connections |
+| **SINGLETON** | One instance for entire application | Configuration, caches, shared state |
+
+**Example:**
+
+```python
+@injectable(scope=Scope.SINGLETON)
+class ConfigService:
+    # Shared across entire application
+    pass
+
+@injectable(scope=Scope.SCOPED)
+class RequestContext:
+    # New instance per request, shared within that request
+    pass
+
+@injectable(scope=Scope.TRANSIENT)
+class TemporaryService:
+    # New instance every time
+    pass
+```
+
+## Project Structure
+
+Vega projects follow a standard 4-layer structure:
+
+```
+{{ project_name }}/
+├── domain/                       # 🔵 DOMAIN LAYER (Core Business Logic)
+│   ├── entities/
+│   │   ├── __init__.py
+│   │   └── user.py              # Business entities (pure Python)
+│   ├── repositories/
+│   │   ├── __init__.py
+│   │   └── user_repository.py   # Repository interfaces (abstractions)
+│   ├── services/
+│   │   ├── __init__.py
+│   │   └── email_service.py     # Service interfaces (abstractions)
+│   └── interactors/
+│       ├── __init__.py
+│       └── create_user.py       # Use cases (business operations)
+│
+├── application/                  # 🟢 APPLICATION LAYER (Workflows)
+│   └── mediators/
+│       ├── __init__.py
+│       └── registration_flow.py # Multi-step workflows
+│
+├── infrastructure/               # 🟡 INFRASTRUCTURE LAYER (Concrete Implementations)
+│   ├── repositories/
+│   │   ├── __init__.py
+│   │   └── postgres_user_repository.py  # PostgreSQL implementation
+│   └── services/
+│       ├── __init__.py
+│       └── sendgrid_email_service.py    # Sendgrid implementation
+│
+├── presentation/                 # 🟠 PRESENTATION LAYER (Delivery Mechanisms)
+│   ├── web/                      # FastAPI web interface (if enabled)
+│   │   ├── __init__.py
+│   │   ├── routes/
+│   │   │   └── user_routes.py
+│   │   └── models/
+│   │       └── user_dto.py      # Request/Response models
+│   └── cli/                      # CLI interface (always present)
+│       ├── __init__.py
+│       └── commands/
+│           └── user_commands.py # CLI commands
+│
+├── config.py                     # DI container configuration
+├── settings.py                   # Application settings
+└── main.py                       # Entry point (CLI or Web)
+```
+
+**Layer Dependencies (Dependency Rule):**
+
+```text
+Presentation → Application → Domain ← Infrastructure
+    ↓              ↓                      ↓
+  (CLI)        (Mediators)           (Implements)
+  (Web)       (Workflows)            (Interfaces)
+```
+
+**Key Points:**
+
+- **Domain** is the center and has NO dependencies
+- **Application** depends only on Domain
+- **Infrastructure** implements Domain interfaces
+- **Presentation** depends on Application and Domain (and may use Infrastructure for setup)
+
+## Best Practices
+
+### 1. Keep Domain Pure
+
+✅ **Do:**
+```python
+# Domain layer
+class User:
+    def __init__(self, name: str, email: str):
+        self.name = name
+        self.email = email
+```
+
+❌ **Don't:**
+```python
+# Domain layer - NO framework dependencies!
+from sqlalchemy import Column, String
+
+class User(Base):  # ❌ Database dependency in domain
+    __tablename__ = 'users'
+```
+
+### 2. Interface Segregation
+
+✅ **Do:**
+```python
+class UserRepository(Repository[User]):
+    async def find_by_email(self, email: str) -> Optional[User]:
+        pass
+```
+
+❌ **Don't:**
+```python
+# Too many responsibilities
+class UserRepository(Repository[User]):
+    async def send_email(self, user: User): pass  # ❌ Not repository concern
+    async def charge_card(self, user: User): pass  # ❌ Not repository concern
+```
+
+### 3. Single Responsibility
+
+✅ **Do:**
+```python
+class CreateUser(Interactor[User]):
+    # Single responsibility: create user
+    pass
+
+class SendWelcomeEmail(Interactor[None]):
+    # Single responsibility: send email
+    pass
+```
+
+❌ **Don't:**
+```python
+class CreateUserAndSendEmail(Interactor[User]):
+    # ❌ Too many responsibilities
+    pass
+```
+
+### 4. Use Mediators for Workflows
+
+✅ **Do:**
+```python
+class UserRegistrationFlow(Mediator[User]):
+    async def call(self) -> User:
+        user = await CreateUser(self.name, self.email)
+        await SendWelcomeEmail(user.email)
+        return user
+```
+
+### 5. Proper Scoping
+
+```python
+# Configuration - SINGLETON
+@injectable(scope=Scope.SINGLETON)
+class AppConfig:
+    pass
+
+# Database connection pool - SINGLETON
+@injectable(scope=Scope.SINGLETON)
+class DatabasePool:
+    pass
+
+# Request context - SCOPED
+@injectable(scope=Scope.SCOPED)
+class RequestContext:
+    pass
+
+# Temporary calculator - TRANSIENT
+@injectable(scope=Scope.TRANSIENT)
+class PriceCalculator:
+    pass
+```
+
+### 6. Testing
+
+Vega's architecture makes testing straightforward:
+
+```python
+# Mock repositories
+class MockUserRepository(UserRepository):
+    async def save(self, user: User) -> User:
+        return user
+
+# Test interactor
+async def test_create_user():
+    container = Container({
+        UserRepository: MockUserRepository,
+    })
+    set_container(container)
+
+    user = await CreateUser(name="Test", email="test@example.com")
+    assert user.name == "Test"
+```
+
+## Conclusion
+
+Vega Framework enforces clean architecture principles through:
+
+- **Clear 4-layer separation** - Domain, Application, Infrastructure, Presentation
+- **Dependency inversion** - Interfaces in domain, implementations in infrastructure
+- **Pure business logic** - Domain remains uncontaminated by frameworks and external dependencies
+- **Flexible delivery mechanisms** - CLI and Web can share the same business logic
+- **Automatic DI** - Type-safe dependency injection
+- **Focused patterns** - Interactor, Mediator, Repository, Service
+- **Testability** - Easy to mock and test
+
+Follow these patterns to build maintainable, scalable Python applications that respect the Dependency Rule and keep your business logic independent of infrastructure details.

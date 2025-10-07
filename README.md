@@ -57,8 +57,12 @@ vega generate repository <Name> [--impl memory|sql]
 vega generate service <Name>
 vega generate interactor <Name>
 vega generate mediator <Name>
-vega generate web fastapi
 ```
+
+### Add features
+
+```bash
+vega add web
 
 ### Validate Project
 

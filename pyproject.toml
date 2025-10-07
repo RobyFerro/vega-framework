@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.1.5"
+version = "0.1.6"
 description = "Enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/your-org/vega-framework"
-repository = "https://github.com/your-org/vega-framework"
+homepage = "https://github.com/RobyFerro/vega-framework"
+repository = "https://github.com/RobyFerro/vega-framework"
 documentation = "https://vega-framework.readthedocs.io"
 keywords = [
     "clean-architecture",
@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 packages = [{ include = "vega", from = "." }]
-include = ["ARCHITECTURE.md", "vega/cli/templates/project/*"]
+include = ["vega/cli/templates/project/*"]
 
 [tool.poetry.dependencies]
 python = "^3.10"

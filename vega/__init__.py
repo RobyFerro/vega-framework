@@ -25,7 +25,7 @@ Example:
             return await repository.save(user)
 """
 
-__version__ = "0.1.5"
+__version__ = "0.1.0"
 __author__ = "CleanArch Contributors"
 
 from vega.di import bind, injectable, Scope, scope_context
