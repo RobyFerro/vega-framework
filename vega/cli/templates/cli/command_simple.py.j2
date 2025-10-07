@@ -1,0 +1,19 @@
+"""{{ description }}"""
+import click
+
+
+@click.command()
+{%- for option in options %}
+@click.option('{{ option.flag }}', {{ option.params }})
+{%- endfor %}
+{%- for argument in arguments %}
+@click.argument('{{ argument.name }}'{{ argument.params }})
+{%- endfor %}
+def {{ command_name }}({{ params_signature }}):
+    """{{ description }}"""
+    click.echo("{{ command_name }} executed!")
+    {% if params_signature -%}
+    {% for param in params_list -%}
+    click.echo(f"  {{ param }}: {{'{'}}{{ param }}{{'}'}}")
+    {% endfor -%}
+    {% endif %}

@@ -1,0 +1,40 @@
+"""{{ description }}"""
+import click
+from vega.cli.utils import async_command
+import config  # noqa: F401 - Initialize DI container
+
+{% if with_interactor -%}
+# Import your interactors here
+# from domain.interactors.{{ interactor_name }} import {{ interactor_name }}
+{% endif %}
+
+@click.command()
+{%- for option in options %}
+@click.option('{{ option.flag }}', {{ option.params }})
+{%- endfor %}
+{%- for argument in arguments %}
+@click.argument('{{ argument.name }}'{{ argument.params }})
+{%- endfor %}
+@async_command
+async def {{ command_name }}({{ params_signature }}):
+    """
+    {{ description }}
+
+    {% if usage_example -%}
+    Usage:
+        {{ usage_example }}
+    {% endif -%}
+    """
+    {% if with_interactor -%}
+    # Example: Execute an interactor
+    # result = await MyInteractor(param=value)
+    # click.echo(f"Result: {result}")
+    {% endif -%}
+
+    # Your command implementation here
+    click.echo("{{ command_name }} executed!")
+    {% if params_signature -%}
+    {% for param in params_list -%}
+    click.echo(f"  {{ param }}: {{'{'}}{{ param }}{{'}'}}")
+    {% endfor -%}
+    {% endif %}

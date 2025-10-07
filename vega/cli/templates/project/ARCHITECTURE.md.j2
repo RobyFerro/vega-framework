@@ -507,7 +507,47 @@ class PriceCalculator:
     pass
 ```
 
-### 6. Testing
+### 6. Async CLI Commands
+
+Vega provides the `@async_command` decorator to use async/await in Click CLI commands, allowing you to execute interactors seamlessly:
+
+```python
+import click
+from vega.cli.utils import async_command
+
+@click.command()
+@click.option('--name', required=True)
+@click.option('--email', required=True)
+@async_command
+async def create_user(name: str, email: str):
+    """Create a new user via CLI"""
+    # Import config to initialize DI container
+    import config  # noqa: F401
+    from domain.interactors.create_user import CreateUser
+
+    # Execute async interactor
+    user = await CreateUser(name=name, email=email)
+    click.echo(f"Created user: {user.id} - {user.name}")
+```
+
+**Benefits:**
+- Execute async interactors directly in CLI commands
+- Same business logic works in both CLI and Web (FastAPI) contexts
+- Clean async/await syntax
+- Automatic asyncio event loop management
+
+**Alternative short syntax:**
+```python
+from vega.cli.utils import coro  # Alias for async_command
+
+@click.command()
+@coro
+async def my_command():
+    result = await MyInteractor()
+    click.echo(result)
+```
+
+### 7. Testing
 
 Vega's architecture makes testing straightforward:
 

@@ -6,6 +6,7 @@ An enterprise-ready Python framework that enforces Clean Architecture for buildi
 
 - ✅ **Automatic Dependency Injection** - Zero boilerplate, type-safe DI
 - ✅ **Clean Architecture Patterns** - Interactor, Mediator, Repository, Service
+- ✅ **Async/Await Support** - Full async support for CLI and web
 - ✅ **Scope Management** - Singleton, Scoped, Transient lifetimes
 - ✅ **Type-Safe** - Full type hints support
 - ✅ **Framework-Agnostic** - Works with any domain (web, AI, IoT, fintech, etc.)
@@ -62,6 +63,8 @@ vega generate mediator <Name>
 vega generate router <Name>          # Requires FastAPI
 vega generate middleware <Name>      # Requires FastAPI
 vega generate model <Name>           # Requires SQLAlchemy
+vega generate command <Name>         # CLI command (async by default)
+vega generate command <Name> --impl sync  # Synchronous CLI command
 ```
 
 ### Add Features
@@ -105,6 +108,45 @@ vega doctor [--path .]
 ```
 
 Validates project structure, DI configuration, and architecture compliance.
+
+## Async CLI Commands
+
+Vega provides seamless async/await support in CLI commands, allowing you to execute interactors directly.
+
+### Generate a CLI Command
+
+```bash
+# Generate an async command (default)
+vega generate command CreateUser
+
+# Generate a synchronous command
+vega generate command ListUsers --impl sync
+```
+
+The generator will prompt you for:
+- Command description
+- Options and arguments
+- Whether it will use interactors
+
+### Manual Command Example
+
+```python
+import click
+from vega.cli.utils import async_command
+
+@click.command()
+@click.option('--name', required=True)
+@async_command
+async def create_user(name: str):
+    """Create a user using an interactor"""
+    import config  # Initialize DI container
+    from domain.interactors.create_user import CreateUser
+
+    user = await CreateUser(name=name)
+    click.echo(f"Created: {user.name}")
+```
+
+This enables the same async business logic to work in both CLI and web (FastAPI) contexts.
 
 ## Use Cases
 

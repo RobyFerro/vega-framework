@@ -14,6 +14,8 @@ from vega.cli.templates import (
     render_fastapi_router,
     render_fastapi_middleware,
     render_sqlalchemy_model,
+    render_cli_command,
+    render_cli_command_simple,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
 
@@ -124,6 +126,8 @@ def generate_component(
         _generate_middleware(project_root, project_name, class_name, file_name)
     elif component_type == 'model':
         _generate_sqlalchemy_model(project_root, project_name, class_name, file_name)
+    elif component_type == 'command':
+        _generate_command(project_root, project_name, name, implementation)
 
 
 def _generate_entity(project_root: Path, project_name: str, class_name: str, file_name: str):
@@ -670,3 +674,137 @@ from infrastructure.models.{file_name} import {class_name}Model  # noqa: F401
         click.echo(click.style(f'''
 from infrastructure.models.{file_name} import {class_name}Model  # noqa: F401
 ''', fg='cyan'))
+
+
+def _generate_command(project_root: Path, project_name: str, name: str, is_async: str | None = None) -> None:
+    """Generate a CLI command"""
+    
+    # Check if presentation/cli exists
+    cli_path = project_root / "presentation" / "cli"
+    if not cli_path.exists():
+        cli_path.mkdir(parents=True, exist_ok=True)
+        click.echo(f"+ Created {click.style(str(cli_path.relative_to(project_root)), fg='green')}")
+    
+    # Create commands directory if it doesn't exist
+    commands_path = cli_path / "commands"
+    commands_path.mkdir(exist_ok=True)
+    
+    # Check if __init__.py exists
+    init_file = commands_path / "__init__.py"
+    if not init_file.exists():
+        init_file.write_text('"""CLI Commands"""\n')
+        click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
+    
+    # Convert name to snake_case for command and file
+    command_name = to_snake_case(name).replace('_', '-')
+    file_name = to_snake_case(name)
+    
+    # Generate command file
+    command_file = commands_path / f"{file_name}.py"
+    
+    if command_file.exists():
+        click.echo(click.style(f"ERROR: Error: {command_file.relative_to(project_root)} already exists", fg='red'))
+        return
+    
+    # Determine if async (default is async unless explicitly set to 'sync' or 'simple')
+    use_async = is_async not in ['sync', 'simple', 'false', 'no'] if is_async else True
+    
+    # Prompt for command details
+    description = click.prompt("Command description", default=f"{name} command")
+    
+    # Ask if user wants to add options/arguments
+    add_params = click.confirm("Add options or arguments?", default=False)
+    
+    options = []
+    arguments = []
+    params_list = []
+    
+    if add_params:
+        click.echo("\nAdd options (e.g., --name, --email). Press Enter when done.")
+        while True:
+            opt_name = click.prompt("Option name (without --)", default="", show_default=False)
+            if not opt_name:
+                break
+            opt_type = click.prompt("Type", default="str", type=click.Choice(['str', 'int', 'bool']))
+            opt_required = click.confirm("Required?", default=False)
+            opt_help = click.prompt("Help text", default=f"{opt_name.replace('-', ' ').replace('_', ' ')}")
+            
+            params_list.append(opt_name.replace('-', '_'))
+            
+            opt_params = f"help='{opt_help}'"
+            if opt_required:
+                opt_params += ", required=True"
+            if opt_type != 'str':
+                if opt_type == 'bool':
+                    opt_params += ", is_flag=True"
+                else:
+                    opt_params += f", type={opt_type}"
+            
+            options.append({
+                "flag": f"--{opt_name}",
+                "params": opt_params
+            })
+        
+        click.echo("\nAdd arguments (positional). Press Enter when done.")
+        while True:
+            arg_name = click.prompt("Argument name", default="", show_default=False)
+            if not arg_name:
+                break
+            arg_required = click.confirm("Required?", default=True)
+            
+            params_list.append(arg_name)
+            
+            arg_params = "" if arg_required else ", required=False"
+            arguments.append({
+                "name": arg_name,
+                "params": arg_params
+            })
+    
+    params_signature = ", ".join(params_list) if params_list else ""
+    
+    # Ask about interactor usage
+    with_interactor = False
+    interactor_name = ""
+    if use_async:
+        with_interactor = click.confirm("Will this command use an interactor?", default=True)
+        if with_interactor:
+            interactor_name = click.prompt("Interactor name", default=f"{to_pascal_case(name)}")
+    
+    usage_example = f"python main.py {command_name}"
+    if params_list:
+        usage_example += " " + " ".join([f"--{p.replace('_', '-')}=value" if f"--{p.replace('_', '-')}" in str(options) else p for p in params_list])
+    
+    # Generate content
+    if use_async:
+        content = render_cli_command(
+            command_name=file_name,
+            description=description,
+            options=options,
+            arguments=arguments,
+            params_signature=params_signature,
+            params_list=params_list,
+            with_interactor=with_interactor,
+            usage_example=usage_example,
+            interactor_name=interactor_name,
+        )
+    else:
+        content = render_cli_command_simple(
+            command_name=file_name,
+            description=description,
+            options=options,
+            arguments=arguments,
+            params_signature=params_signature,
+            params_list=params_list,
+        )
+    
+    command_file.write_text(content)
+    click.echo(f"+ Created {click.style(str(command_file.relative_to(project_root)), fg='green')}")
+    
+    # Instructions for next steps
+    click.echo(f"\nNext steps:")
+    click.echo(f"   1. Implement your command logic in {command_file.relative_to(project_root)}")
+    click.echo(f"   2. Import and register in main.py:")
+    click.echo(click.style(f"      from presentation.cli.commands.{file_name} import {file_name}", fg='cyan'))
+    click.echo(click.style(f"      cli.add_command({file_name})", fg='cyan'))
+    if with_interactor:
+        click.echo(f"   3. Create interactor: vega generate interactor {interactor_name}")

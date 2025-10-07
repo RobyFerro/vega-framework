@@ -54,6 +54,28 @@ vega generate interactor CreateUser
 poetry run pytest
 ```
 
+## Using Async Commands
+
+Vega Framework supports async/await in CLI commands, allowing you to execute interactors seamlessly:
+
+```python
+import click
+from vega.cli.utils import async_command
+
+@click.command()
+@click.option('--name', required=True)
+@async_command
+async def create_user(name: str):
+    """Create a user using an interactor"""
+    import config  # Initialize DI container
+    from domain.interactors.create_user import CreateUser
+
+    user = await CreateUser(name=name)
+    click.echo(f"Created: {user.name}")
+```
+
+This allows the same async business logic to work in both CLI and web contexts (FastAPI).
+
 ## Vega Framework
 
 This project uses [Vega Framework](https://github.com/your-org/vega-framework) for Clean Architecture:

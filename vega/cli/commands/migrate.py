@@ -107,9 +107,9 @@ def history():
 @migrate.command()
 def init():
     """Initialize database with current schema (create tables)"""
-    import asyncio
     from pathlib import Path
     import sys
+    from vega.cli.utils import async_command
 
     # Add project root to path to allow imports
     project_root = Path.cwd()
@@ -123,13 +123,14 @@ def init():
         click.echo("Make sure you have SQLAlchemy configured in your project")
         sys.exit(1)
 
+    @async_command
     async def _init():
         click.echo("Creating database tables...")
         await db_manager.create_tables()
         click.secho("Database tables created successfully", fg='green')
 
     try:
-        asyncio.run(_init())
+        _init()
     except Exception as e:
         click.secho(f"Failed to initialize database: {e}", fg='red')
         sys.exit(1)

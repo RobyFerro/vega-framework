@@ -1,6 +1,10 @@
 """Main entry point for {{ project_name }}"""
 import click
+from vega.cli.utils import async_command
 import config  # noqa: F401 - Import to initialize DI container
+
+# Import your use cases here
+# from domain.interactors.create_user import CreateUser
 
 
 @click.group()
@@ -32,6 +36,30 @@ def hello():
     """Example CLI command"""
     click.echo("Hello from Vega Framework!")
     click.echo("Add your CLI commands in presentation/cli/commands/")
+
+
+@cli.command()
+@click.option('--name', required=True, help='User name')
+@click.option('--email', required=True, help='User email')
+@async_command
+async def create_user(name: str, email: str):
+    """
+    Example async CLI command that uses an interactor.
+
+    This demonstrates how to use async/await with Click commands
+    to execute interactors and other async operations.
+
+    Usage:
+        python main.py create-user --name="John Doe" --email="john@example.com"
+    """
+    # Import your interactor
+    # from domain.interactors.create_user import CreateUser
+    # user = await CreateUser(name=name, email=email)
+    # click.echo(f"Created user: {user.id} - {user.name}")
+
+    # Placeholder implementation
+    click.echo(f"Creating user: {name} ({email})")
+    click.echo("Note: Replace this with your actual CreateUser interactor")
 
 
 # Add more CLI commands here or import them from presentation/cli/commands/

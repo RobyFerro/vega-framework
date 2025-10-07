@@ -56,11 +56,11 @@ def init(project_name, template, path):
 
 @cli.command()
 @click.argument('component_type', type=click.Choice([
-    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'router', 'middleware', 'model'
+    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'router', 'middleware', 'model', 'command'
 ]))
 @click.argument('name')
 @click.option('--path', default='.', help='Project root path')
-@click.option('--impl', default=None, help='Generate infrastructure implementation for repository/service (e.g., memory, sql)')
+@click.option('--impl', default=None, help='Generate infrastructure implementation for repository/service (e.g., memory, sql) or command type (async, sync)')
 def generate(component_type, name, path, impl):
     """
     Generate a component in your Vega project.
@@ -75,6 +75,7 @@ def generate(component_type, name, path, impl):
         router      - FastAPI router (requires web module)
         middleware  - FastAPI middleware (requires web module)
         model       - SQLAlchemy model (requires sqlalchemy module)
+        command     - CLI command (async by default)
 
     Examples:
         vega generate entity Product
@@ -85,6 +86,8 @@ def generate(component_type, name, path, impl):
         vega generate router Product
         vega generate middleware Logging
         vega generate model User
+        vega generate command CreateUser
+        vega generate command ListUsers --impl sync
     """
     # Normalize 'repo' to 'repository'
     if component_type == 'repo':

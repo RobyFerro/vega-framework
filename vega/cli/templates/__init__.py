@@ -24,6 +24,8 @@ from .components import (
     render_alembic_env,
     render_alembic_script_mako,
     render_sqlalchemy_model,
+    render_cli_command,
+    render_cli_command_simple,
 )
 from .loader import render_template
 
@@ -53,5 +55,7 @@ __all__ = [
     "render_alembic_env",
     "render_alembic_script_mako",
     "render_sqlalchemy_model",
+    "render_cli_command",
+    "render_cli_command_simple",
     "render_template",
 ]

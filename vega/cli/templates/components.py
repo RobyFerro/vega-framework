@@ -189,3 +189,51 @@ def render_sqlalchemy_model(class_name: str, table_name: str) -> str:
         class_name=class_name,
         table_name=table_name,
     )
+
+
+def render_cli_command(
+    command_name: str,
+    description: str,
+    options: list[dict],
+    arguments: list[dict],
+    params_signature: str,
+    params_list: list[str],
+    with_interactor: bool = True,
+    usage_example: str = "",
+    interactor_name: str = "",
+) -> str:
+    """Return the template for a CLI command"""
+    return render_template(
+        "command.py.j2",
+        subfolder="cli",
+        command_name=command_name,
+        description=description,
+        options=options,
+        arguments=arguments,
+        params_signature=params_signature,
+        params_list=params_list,
+        with_interactor=with_interactor,
+        usage_example=usage_example,
+        interactor_name=interactor_name,
+    )
+
+
+def render_cli_command_simple(
+    command_name: str,
+    description: str,
+    options: list[dict],
+    arguments: list[dict],
+    params_signature: str,
+    params_list: list[str],
+) -> str:
+    """Return the template for a simple CLI command (non-async)"""
+    return render_template(
+        "command_simple.py.j2",
+        subfolder="cli",
+        command_name=command_name,
+        description=description,
+        options=options,
+        arguments=arguments,
+        params_signature=params_signature,
+        params_list=params_list,
+    )
