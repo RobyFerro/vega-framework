@@ -4,6 +4,8 @@ import subprocess
 import sys
 import urllib.request
 import json
+import os
+from pathlib import Path
 from typing import Optional
 
 from vega import __version__
@@ -11,6 +13,36 @@ from vega import __version__
 
 CURRENT_VERSION = __version__
 PYPI_URL = "https://pypi.org/pypi/vega-framework/json"
+
+
+def is_pipx_install() -> bool:
+    """Check if vega was installed via pipx"""
+    vega_path = Path(sys.executable)
+    return 'pipx' in str(vega_path).lower()
+
+
+def get_pipx_command() -> Optional[str]:
+    """Get the pipx executable path"""
+    # Try common locations
+    if os.name == 'nt':  # Windows
+        # Check if pipx is in PATH
+        result = subprocess.run(
+            ['where', 'pipx'],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            return result.stdout.strip().split('\n')[0]
+    else:  # Unix-like
+        result = subprocess.run(
+            ['which', 'pipx'],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+
+    return None
 
 
 def get_latest_version() -> Optional[str]:
@@ -67,6 +99,33 @@ def update_vega(force: bool = False) -> None:
     click.echo("\nUpdating Vega Framework...")
 
     try:
+        # Check if installed via pipx
+        if is_pipx_install():
+            pipx_cmd = get_pipx_command()
+            if pipx_cmd:
+                click.echo(click.style("Detected pipx installation, using pipx upgrade...", fg='cyan'))
+                cmd = [pipx_cmd, 'upgrade', 'vega-framework']
+                if force:
+                    # For pipx, we need to reinstall to force
+                    cmd = [pipx_cmd, 'reinstall', 'vega-framework']
+
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True
+                )
+
+                if result.returncode == 0:
+                    click.echo(click.style("\n+ Vega Framework updated successfully!", fg='green'))
+                    click.echo(f"\n   Run 'vega --version' to verify the installation")
+                    return
+                else:
+                    click.echo(click.style("\nERROR: pipx update failed", fg='red'))
+                    click.echo(f"\n{result.stderr}")
+                    sys.exit(1)
+            else:
+                click.echo(click.style("⚠️  pipx detected but command not found, falling back to pip...", fg='yellow'))
+
         # Try to update via pip
         cmd = [sys.executable, "-m", "pip", "install", "--upgrade"]
 
@@ -80,22 +139,13 @@ def update_vega(force: bool = False) -> None:
             text=True
         )
 
-        if result.returncode != 0:
-            # If PyPI fails, try local installation (for development)
-            click.echo(click.style("⚠️  PyPI installation failed, trying local installation...", fg='yellow'))
-
-            result = subprocess.run(
-                [sys.executable, "-m", "pip", "install", "--upgrade", "--editable", "."],
-                capture_output=True,
-                text=True
-            )
-
         if result.returncode == 0:
             click.echo(click.style("\n+ Vega Framework updated successfully!", fg='green'))
             click.echo(f"\n   Run 'vega --version' to verify the installation")
         else:
             click.echo(click.style("\nERROR: Update failed", fg='red'))
             click.echo(f"\n{result.stderr}")
+            click.echo(click.style("\nTIP: If you installed vega with pipx, use: pipx upgrade vega-framework", fg='yellow'))
             sys.exit(1)
 
     except Exception as e:
