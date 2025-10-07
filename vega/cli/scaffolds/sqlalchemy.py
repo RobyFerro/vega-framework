@@ -9,6 +9,7 @@ from vega.cli.templates import (
     render_database_manager,
     render_alembic_ini,
     render_alembic_env,
+    render_alembic_script_mako,
 )
 
 
@@ -37,6 +38,7 @@ def create_sqlalchemy_scaffold(
         (infrastructure_dir / "database_manager.py", render_database_manager()),
         (project_root / "alembic.ini", render_alembic_ini()),
         (alembic_dir / "env.py", render_alembic_env()),
+        (alembic_dir / "script.py.mako", render_alembic_script_mako()),
     ]
 
     # Create .gitkeep for versions directory

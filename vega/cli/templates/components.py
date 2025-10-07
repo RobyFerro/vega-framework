@@ -174,6 +174,13 @@ def render_alembic_env() -> str:
     return render_template("env.py.j2", subfolder="sqlalchemy")
 
 
+def render_alembic_script_mako() -> str:
+    """Return the content for alembic/script.py.mako (not a Jinja2 template)"""
+    from pathlib import Path
+    template_path = Path(__file__).parent / "sqlalchemy" / "script.py.mako"
+    return template_path.read_text(encoding="utf-8")
+
+
 def render_sqlalchemy_model(class_name: str, table_name: str) -> str:
     """Return the template for a SQLAlchemy model"""
     return render_template(

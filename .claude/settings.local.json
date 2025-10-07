@@ -15,7 +15,8 @@
       "Bash(poetry run vega:*)",
       "Bash(timeout 5 poetry run python main.py web)",
       "Bash(poetry:*)",
-      "Bash(Select-Object -Skip 1)"
+      "Bash(Select-Object -Skip 1)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

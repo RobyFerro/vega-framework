@@ -22,6 +22,7 @@ from .components import (
     render_database_manager,
     render_alembic_ini,
     render_alembic_env,
+    render_alembic_script_mako,
     render_sqlalchemy_model,
 )
 from .loader import render_template
@@ -50,6 +51,7 @@ __all__ = [
     "render_database_manager",
     "render_alembic_ini",
     "render_alembic_env",
+    "render_alembic_script_mako",
     "render_sqlalchemy_model",
     "render_template",
 ]
