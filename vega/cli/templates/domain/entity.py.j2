@@ -1,0 +1,15 @@
+"""{{ class_name }} entity"""
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class {{ class_name }}:
+    """{{ class_name }} domain entity"""
+    id: str
+    # Add your fields here
+
+    # Add your business logic methods here
+    def is_valid(self) -> bool:
+        """Validate entity"""
+        return bool(self.id)

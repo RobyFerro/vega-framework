@@ -1,0 +1,41 @@
+"""Main entry point for {{ project_name }}"""
+import click
+import config  # noqa: F401 - Import to initialize DI container
+
+
+@click.group()
+def cli():
+    """Vega Framework Application - CLI and Web"""
+    pass
+
+
+@cli.command()
+@click.option('--host', default='0.0.0.0', help='Host to bind')
+@click.option('--port', default=8000, help='Port to bind')
+@click.option('--reload', is_flag=True, help='Enable auto-reload')
+def web(host: str, port: int, reload: bool):
+    """Start FastAPI web server"""
+    import uvicorn
+    from presentation.web.main import app
+
+    click.echo(f"Starting web server on http://{host}:{port}")
+    uvicorn.run(
+        app,
+        host=host,
+        port=port,
+        reload=reload,
+    )
+
+
+@cli.command()
+def hello():
+    """Example CLI command"""
+    click.echo("Hello from Vega Framework!")
+    click.echo("Add your CLI commands in presentation/cli/commands/")
+
+
+# Add more CLI commands here or import them from presentation/cli/commands/
+
+
+if __name__ == "__main__":
+    cli()

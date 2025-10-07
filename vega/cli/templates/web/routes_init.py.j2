@@ -1,0 +1,15 @@
+"""API routers aggregation"""
+from fastapi import APIRouter
+
+from . import health, users
+
+
+API_PREFIX = "/api"
+
+
+def get_api_router() -> APIRouter:
+    """Return application API router"""
+    router = APIRouter(prefix=API_PREFIX)
+    router.include_router(health.router, tags=["health"], prefix="/health")
+    router.include_router(users.router, tags=["users"], prefix="/users")
+    return router

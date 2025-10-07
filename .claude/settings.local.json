@@ -12,7 +12,8 @@
       "Bash(mkdir:*)",
       "Bash(poetry lock:*)",
       "Bash(poetry install:*)",
-      "Bash(poetry run vega:*)"
+      "Bash(poetry run vega:*)",
+      "Bash(timeout 5 poetry run python main.py web)"
     ],
     "deny": [],
     "ask": []

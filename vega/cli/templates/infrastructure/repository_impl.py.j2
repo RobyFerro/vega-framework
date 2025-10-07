@@ -1,0 +1,13 @@
+"""{{ impl_class }} implementation"""
+from typing import List
+
+from ...domain.entities.{{ entity_file }} import {{ entity_name }}
+from ...domain.repositories.{{ interface_file_name }} import {{ interface_class_name }}
+
+
+class {{ impl_class }}({{ interface_class_name }}):
+    """{{ impl_class }} concrete implementation."""
+
+    async def find_all(self) -> List[{{ entity_name }}]:
+        """Find all {{ entity_name|lower }}s"""
+        raise NotImplementedError("Implement repository logic")

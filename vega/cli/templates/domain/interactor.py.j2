@@ -1,0 +1,21 @@
+"""{{ class_name }} use case"""
+from vega.patterns import Interactor
+from vega.di import bind
+
+# Import your dependencies
+# from ..entities.{{ entity_file }} import {{ entity_name }}
+# from ..repositories.{{ entity_file }}_repository import {{ entity_name }}Repository
+
+
+class {{ class_name }}(Interactor[dict]):  # Replace dict with your return type
+    """{{ class_name }} use case"""
+
+    def __init__(self, **kwargs):
+        # Store input parameters
+        pass
+
+    @bind
+    async def call(self) -> dict:  # Add dependencies as parameters
+        """Execute the use case"""
+        # TODO: Implement use case logic
+        raise NotImplementedError("Implement this use case")

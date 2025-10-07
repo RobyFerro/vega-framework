@@ -1,0 +1,71 @@
+"""User management endpoints"""
+from fastapi import APIRouter, HTTPException, status
+from typing import List
+
+from ..models.user_models import CreateUserRequest, UserResponse
+
+router = APIRouter()
+
+# In-memory storage for demonstration (replace with repository in production)
+users_db: dict[str, UserResponse] = {}
+user_counter = 0
+
+
+@router.post(
+    "",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new user",
+    description="Create a new user with the provided information"
+)
+async def create_user(user_data: CreateUserRequest) -> UserResponse:
+    """Create a new user"""
+    global user_counter
+    user_counter += 1
+    user_id = f"user_{user_counter}"
+
+    # TODO: Replace with actual use case/interactor
+    # Example: user = await CreateUser(name=user_data.name, email=user_data.email)
+
+    new_user = UserResponse(
+        id=user_id,
+        name=user_data.name,
+        email=user_data.email,
+        age=user_data.age
+    )
+
+    users_db[user_id] = new_user
+    return new_user
+
+
+@router.get(
+    "",
+    response_model=List[UserResponse],
+    summary="List all users",
+    description="Retrieve a list of all users"
+)
+async def list_users() -> List[UserResponse]:
+    """Get all users"""
+    # TODO: Replace with actual use case/interactor
+    # Example: users = await ListUsers()
+    return list(users_db.values())
+
+
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Get user by ID",
+    description="Retrieve a specific user by their ID"
+)
+async def get_user(user_id: str) -> UserResponse:
+    """Get a user by ID"""
+    # TODO: Replace with actual use case/interactor
+    # Example: user = await GetUser(user_id=user_id)
+
+    if user_id not in users_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id '{user_id}' not found"
+        )
+
+    return users_db[user_id]

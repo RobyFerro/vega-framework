@@ -1,0 +1,15 @@
+"""{{ class_name }} interface"""
+from abc import abstractmethod
+
+from vega.patterns import Service
+
+
+class {{ class_name }}(Service):
+    """{{ class_name }} interface"""
+
+    @abstractmethod
+    async def execute(self, data: dict) -> dict:
+        """Execute service operation"""
+        pass
+
+    # Add your custom methods here

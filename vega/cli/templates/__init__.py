@@ -10,10 +10,13 @@ from .components import (
     render_fastapi_app,
     render_fastapi_routes_init,
     render_fastapi_health_route,
+    render_fastapi_user_route,
     render_fastapi_dependencies,
     render_fastapi_main,
     render_standard_main,
     render_fastapi_project_main,
+    render_pydantic_models_init,
+    render_pydantic_user_models,
 )
 from .loader import render_template
 
@@ -29,9 +32,12 @@ __all__ = [
     "render_fastapi_app",
     "render_fastapi_routes_init",
     "render_fastapi_health_route",
+    "render_fastapi_user_route",
     "render_fastapi_dependencies",
     "render_fastapi_main",
     "render_standard_main",
     "render_fastapi_project_main",
+    "render_pydantic_models_init",
+    "render_pydantic_user_models",
     "render_template",
 ]

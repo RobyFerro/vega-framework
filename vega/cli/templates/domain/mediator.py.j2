@@ -1,0 +1,23 @@
+"""{{ class_name }} workflow"""
+from vega.patterns import Mediator
+
+# Import your use cases
+# from ...domain.interactors.create_user import CreateUser
+
+
+class {{ class_name }}(Mediator[dict]):  # Replace dict with your return type
+    """{{ class_name }} workflow - orchestrates multiple use cases"""
+
+    def __init__(self, **kwargs):
+        # Store input parameters
+        pass
+
+    async def call(self) -> dict:
+        """Execute the workflow"""
+        # TODO: Orchestrate multiple use cases
+        # Example:
+        # user = await CreateUser(name="John")
+        # await SendWelcomeEmail(user.email)
+        # return user
+
+        raise NotImplementedError("Implement this workflow")

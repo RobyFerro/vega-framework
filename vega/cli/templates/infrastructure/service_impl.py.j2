@@ -1,0 +1,10 @@
+"""{{ impl_class }} implementation"""
+from ...domain.services.{{ interface_file_name }} import {{ interface_class_name }}
+
+
+class {{ impl_class }}({{ interface_class_name }}):
+    """{{ impl_class }} concrete implementation."""
+
+    async def execute(self, data: dict) -> dict:
+        """Execute service operation"""
+        raise NotImplementedError("Implement service logic")

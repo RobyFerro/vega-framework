@@ -7,10 +7,12 @@ import click
 
 from vega.cli.templates import (
     render_fastapi_app,
-    render_fastapi_dependencies,
     render_fastapi_health_route,
     render_fastapi_main,
     render_fastapi_routes_init,
+    render_fastapi_user_route,
+    render_pydantic_models_init,
+    render_pydantic_user_models,
     render_web_package_init,
 )
 
@@ -29,18 +31,22 @@ def create_fastapi_scaffold(
     created: list[Path] = []
     web_dir = project_root / "presentation" / "web"
     routes_dir = web_dir / "routes"
+    models_dir = web_dir / "models"
 
     files: Iterable[tuple[Path, str]] = (
         (web_dir / "__init__.py", render_web_package_init()),
         (web_dir / "app.py", render_fastapi_app(project_name)),
         (web_dir / "main.py", render_fastapi_main(project_name)),
-        (web_dir / "dependencies.py", render_fastapi_dependencies()),
         (routes_dir / "__init__.py", render_fastapi_routes_init()),
         (routes_dir / "health.py", render_fastapi_health_route()),
+        (routes_dir / "users.py", render_fastapi_user_route()),
+        (models_dir / "__init__.py", render_pydantic_models_init()),
+        (models_dir / "user_models.py", render_pydantic_user_models()),
     )
 
     web_dir.mkdir(parents=True, exist_ok=True)
     routes_dir.mkdir(parents=True, exist_ok=True)
+    models_dir.mkdir(parents=True, exist_ok=True)
 
     for path, content in files:
         rel_path = path.relative_to(project_root)
