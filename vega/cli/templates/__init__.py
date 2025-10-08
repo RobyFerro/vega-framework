@@ -26,6 +26,8 @@ from .components import (
     render_sqlalchemy_model,
     render_cli_command,
     render_cli_command_simple,
+    render_cli_commands_init,
+    render_fastapi_routes_init_autodiscovery,
 )
 from .loader import render_template
 
@@ -57,5 +59,7 @@ __all__ = [
     "render_sqlalchemy_model",
     "render_cli_command",
     "render_cli_command_simple",
+    "render_cli_commands_init",
+    "render_fastapi_routes_init_autodiscovery",
     "render_template",
 ]

@@ -237,3 +237,13 @@ def render_cli_command_simple(
         params_signature=params_signature,
         params_list=params_list,
     )
+
+
+def render_cli_commands_init() -> str:
+    """Return the template for cli/commands/__init__.py with auto-discovery"""
+    return render_template("commands_init.py.j2", subfolder="cli")
+
+
+def render_fastapi_routes_init_autodiscovery() -> str:
+    """Return the template for web/routes/__init__.py with auto-discovery"""
+    return render_template("routes_init_autodiscovery.py.j2", subfolder="web")

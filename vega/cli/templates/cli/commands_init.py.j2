@@ -1,0 +1,12 @@
+"""Custom CLI commands auto-discovery"""
+from vega.discovery import discover_commands
+
+
+def get_commands():
+    """
+    Auto-discover Click commands in this directory.
+
+    Returns:
+        list: List of Click command objects found in this directory
+    """
+    return discover_commands(__package__)

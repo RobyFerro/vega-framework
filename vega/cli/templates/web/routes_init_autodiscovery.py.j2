@@ -1,0 +1,12 @@
+"""API routers auto-discovery"""
+from vega.discovery import discover_routers
+
+
+def get_api_router():
+    """
+    Auto-discover and register FastAPI routers in this directory.
+
+    Returns:
+        APIRouter: Main API router with all discovered routers included
+    """
+    return discover_routers(__package__)

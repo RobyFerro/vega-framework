@@ -16,7 +16,8 @@
       "Bash(timeout 5 poetry run python main.py web)",
       "Bash(poetry:*)",
       "Bash(Select-Object -Skip 1)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(Select-Object -First 30)"
     ],
     "deny": [],
     "ask": []

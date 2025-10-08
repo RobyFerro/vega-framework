@@ -424,10 +424,11 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
     routes_path = web_path / "routes"
     routes_path.mkdir(exist_ok=True)
 
-    # Check if __init__.py exists
+    # Check if __init__.py exists, create with auto-discovery if not
     init_file = routes_path / "__init__.py"
     if not init_file.exists():
-        init_file.write_text('"""API Routes"""\n')
+        from vega.cli.templates import render_fastapi_routes_init_autodiscovery
+        init_file.write_text(render_fastapi_routes_init_autodiscovery())
         click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
 
     # Generate router file
@@ -442,14 +443,12 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
 
     click.echo(f"+ Created {click.style(str(router_file.relative_to(project_root)), fg='green')}")
 
-    # Register the router in routes/__init__.py
-    _register_router_in_init(project_root, resource_file, resource_name)
-
     # Instructions for next steps
     click.echo(f"\nNext steps:")
     click.echo(f"   1. Create Pydantic models in presentation/web/models/{resource_file}_models.py")
     click.echo(f"   2. Implement domain interactors for {resource_name} operations")
     click.echo(f"   3. Replace in-memory storage with actual use cases")
+    click.echo(click.style(f"   (Router auto-discovered from web/routes/)", fg='dim'))
 
 
 def _generate_middleware(project_root: Path, project_name: str, class_name: str, file_name: str) -> None:
@@ -688,11 +687,12 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
     # Create commands directory if it doesn't exist
     commands_path = cli_path / "commands"
     commands_path.mkdir(exist_ok=True)
-    
-    # Check if __init__.py exists
+
+    # Check if __init__.py exists, create with auto-discovery if not
     init_file = commands_path / "__init__.py"
     if not init_file.exists():
-        init_file.write_text('"""CLI Commands"""\n')
+        from vega.cli.templates import render_cli_commands_init
+        init_file.write_text(render_cli_commands_init())
         click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
     
     # Convert name to snake_case for command and file
@@ -803,8 +803,7 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
     # Instructions for next steps
     click.echo(f"\nNext steps:")
     click.echo(f"   1. Implement your command logic in {command_file.relative_to(project_root)}")
-    click.echo(f"   2. Import and register in main.py:")
-    click.echo(click.style(f"      from presentation.cli.commands.{file_name} import {file_name}", fg='cyan'))
-    click.echo(click.style(f"      cli.add_command({file_name})", fg='cyan'))
+    click.echo(f"   2. Run your command: python main.py {command_name}")
+    click.echo(click.style(f"      (Commands are auto-discovered from cli/commands/)", fg='dim'))
     if with_interactor:
         click.echo(f"   3. Create interactor: vega generate interactor {interactor_name}")

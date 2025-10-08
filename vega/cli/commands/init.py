@@ -47,7 +47,15 @@ def init_project(project_name: str, template: str, parent_path: str):
     for directory in directories:
         dir_path = project_path / directory
         dir_path.mkdir(parents=True, exist_ok=True)
-        (dir_path / "__init__.py").write_text("")
+
+        # Use auto-discovery template for cli/commands
+        if "cli" in directory and "commands" in directory:
+            from vega.cli.templates import render_cli_commands_init
+            content = render_cli_commands_init()
+            (dir_path / "__init__.py").write_text(content)
+        else:
+            (dir_path / "__init__.py").write_text("")
+
         click.echo(f"  + Created {directory}/")
 
     # Create __init__.py files

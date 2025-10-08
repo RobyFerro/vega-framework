@@ -35,7 +35,14 @@ def hello():
     click.echo("Add your CLI commands in presentation/cli/commands/")
 
 
-# Add more CLI commands here or import them from presentation/cli/commands/
+# Auto-register custom commands from presentation/cli/commands/
+try:
+    from presentation.cli.commands import get_commands
+    for cmd in get_commands():
+        cli.add_command(cmd)
+except ImportError:
+    # cli/commands/ not created yet
+    pass
 
 
 if __name__ == "__main__":
@@ -88,7 +95,14 @@ def greet(name: str):
 #     )
 
 
-# Add more CLI commands here or import them from presentation/cli/commands/
+# Auto-register custom commands from presentation/cli/commands/
+try:
+    from presentation.cli.commands import get_commands
+    for cmd in get_commands():
+        cli.add_command(cmd)
+except ImportError:
+    # cli/commands/ not created yet
+    pass
 
 
 if __name__ == "__main__":
