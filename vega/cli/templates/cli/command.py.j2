@@ -9,12 +9,12 @@ import config  # noqa: F401 - Initialize DI container
 {% endif %}
 
 @click.command()
-{%- for option in options %}
+{% for option in options %}
 @click.option('{{ option.flag }}', {{ option.params }})
-{%- endfor %}
-{%- for argument in arguments %}
+{% endfor %}
+{% for argument in arguments %}
 @click.argument('{{ argument.name }}'{{ argument.params }})
-{%- endfor %}
+{% endfor %}
 @async_command
 async def {{ command_name }}({{ params_signature }}):
     """

@@ -3,12 +3,12 @@ import click
 
 
 @click.command()
-{%- for option in options %}
+{% for option in options %}
 @click.option('{{ option.flag }}', {{ option.params }})
-{%- endfor %}
-{%- for argument in arguments %}
+{% endfor %}
+{% for argument in arguments %}
 @click.argument('{{ argument.name }}'{{ argument.params }})
-{%- endfor %}
+{% endfor %}
 def {{ command_name }}({{ params_signature }}):
     """{{ description }}"""
     click.echo("{{ command_name }} executed!")
