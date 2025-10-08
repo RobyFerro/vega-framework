@@ -1,0 +1,18 @@
+from pydantic import BaseModel, Field
+from typing import Optional
+
+
+class {{ model_name }}(BaseModel):
+    """{{ description }}"""
+    # Add your fields here
+    # Example:
+    # name: str = Field(..., min_length=1, max_length=100, description="Name field")
+    # email: str = Field(..., description="Email address")
+    # age: Optional[int] = Field(None, ge=0, description="Age field")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                # Add example values here
+            }
+        }

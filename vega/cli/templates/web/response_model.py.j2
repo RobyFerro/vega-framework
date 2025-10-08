@@ -1,0 +1,18 @@
+from pydantic import BaseModel, Field
+from typing import Optional
+
+
+class {{ model_name }}(BaseModel):
+    """{{ description }}"""
+    # Add your fields here
+    # Example:
+    # id: str = Field(..., description="Unique identifier")
+    # name: str = Field(..., description="Name field")
+    # created_at: str = Field(..., description="Creation timestamp")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                # Add example values here
+            }
+        }

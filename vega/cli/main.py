@@ -56,12 +56,14 @@ def init(project_name, template, path):
 
 @cli.command()
 @click.argument('component_type', type=click.Choice([
-    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'router', 'middleware', 'model', 'command'
+    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'router', 'middleware', 'webmodel', 'model', 'command'
 ]))
 @click.argument('name')
 @click.option('--path', default='.', help='Project root path')
 @click.option('--impl', default=None, help='Generate infrastructure implementation for repository/service (e.g., memory, sql) or command type (async, sync)')
-def generate(component_type, name, path, impl):
+@click.option('--request', is_flag=True, help='Generate request model (for webmodel)')
+@click.option('--response', is_flag=True, help='Generate response model (for webmodel)')
+def generate(component_type, name, path, impl, request, response):
     """
     Generate a component in your Vega project.
 
@@ -74,6 +76,7 @@ def generate(component_type, name, path, impl):
         mediator    - Workflow (orchestrates use cases)
         router      - FastAPI router (requires web module)
         middleware  - FastAPI middleware (requires web module)
+        webmodel    - Pydantic request/response models (requires web module)
         model       - SQLAlchemy model (requires sqlalchemy module)
         command     - CLI command (async by default)
 
@@ -85,6 +88,8 @@ def generate(component_type, name, path, impl):
         vega generate mediator CheckoutFlow
         vega generate router Product
         vega generate middleware Logging
+        vega generate webmodel CreateUserRequest --request
+        vega generate webmodel UserResponse --response
         vega generate model User
         vega generate command CreateUser
         vega generate command ListUsers --impl sync
@@ -93,7 +98,7 @@ def generate(component_type, name, path, impl):
     if component_type == 'repo':
         component_type = 'repository'
 
-    generate_component(component_type, name, path, impl)
+    generate_component(component_type, name, path, impl, request, response)
 
 
 @cli.command()

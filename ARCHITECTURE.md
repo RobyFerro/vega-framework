@@ -488,6 +488,77 @@ vega doctor
 
 For complete documentation, see the [README](README.md#cli-commands).
 
+## Auto-Discovery
+
+Vega Framework provides **automatic component discovery** for routers and commands, eliminating manual registration boilerplate.
+
+### How It Works
+
+The framework automatically scans specific directories and registers components at runtime:
+
+**CLI Commands Discovery:**
+- Location: `presentation/cli/commands/`
+- Discovers: All `click.Command` instances
+- Convention: Export commands in module files
+
+**Router Discovery:**
+- Location: `presentation/web/routes/`
+- Discovers: All `APIRouter` instances named `router`
+- Convention: Each file exports a `router = APIRouter()`
+
+### Usage Example
+
+**Creating a new router:**
+```bash
+vega generate router Product
+```
+
+This creates `presentation/web/routes/product.py`:
+```python
+from fastapi import APIRouter
+
+router = APIRouter()  # MUST be named 'router'
+
+@router.get("/")
+async def list_products():
+    return {"products": []}
+```
+
+The router is **automatically**:
+- ✅ Discovered by scanning the routes directory
+- ✅ Registered with prefix `/product`
+- ✅ Tagged as "Product"
+- ✅ Available at `/api/product`
+
+**No manual registration needed!**
+
+### Framework Implementation
+
+The discovery system is centralized in the framework:
+
+```python
+# In presentation/web/routes/__init__.py (auto-generated)
+from vega.discovery import discover_routers
+
+def get_api_router():
+    return discover_routers(__package__)
+```
+
+```python
+# In presentation/cli/commands/__init__.py (auto-generated)
+from vega.discovery import discover_commands
+
+def get_commands():
+    return discover_commands(__package__)
+```
+
+### Benefits
+
+- **Zero Boilerplate**: No need to manually import and register components
+- **Convention Over Configuration**: Follow naming conventions, get automatic registration
+- **Maintainability**: Add/remove components without touching configuration files
+- **Consistency**: Same pattern as dependency injection (`@bind`, `@injectable`)
+
 ## Dependency Injection
 
 Vega provides automatic dependency injection through decorators and a container.

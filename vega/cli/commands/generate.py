@@ -16,6 +16,7 @@ from vega.cli.templates import (
     render_sqlalchemy_model,
     render_cli_command,
     render_cli_command_simple,
+    render_template,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
 
@@ -69,6 +70,8 @@ def generate_component(
     name: str,
     project_path: str,
     implementation: str | None = None,
+    is_request: bool = False,
+    is_response: bool = False,
 ):
     """Generate a component in the Vega project"""
 
@@ -126,6 +129,8 @@ def generate_component(
         _generate_middleware(project_root, project_name, class_name, file_name)
     elif component_type == 'model':
         _generate_sqlalchemy_model(project_root, project_name, class_name, file_name)
+    elif component_type == 'webmodel':
+        _generate_web_models(project_root, project_name, name, is_request, is_response)
     elif component_type == 'command':
         _generate_command(project_root, project_name, name, implementation)
 
@@ -449,6 +454,97 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
     click.echo(f"   2. Implement domain interactors for {resource_name} operations")
     click.echo(f"   3. Replace in-memory storage with actual use cases")
     click.echo(click.style(f"   (Router auto-discovered from web/routes/)", fg='bright_black'))
+
+
+def _generate_web_models(project_root: Path, project_name: str, name: str, is_request: bool, is_response: bool) -> None:
+    """Generate Pydantic request or response model for FastAPI"""
+
+    # Check if web folder exists
+    web_path = project_root / "presentation" / "web"
+    if not web_path.exists():
+        click.echo(click.style("ERROR: Web module not found", fg='red'))
+        click.echo("   Model generation requires FastAPI web module")
+        click.echo("   Install it with: vega add web")
+        return
+
+    # Validate flags
+    if not is_request and not is_response:
+        click.echo(click.style("ERROR: Must specify either --request or --response", fg='red'))
+        click.echo("   Examples:")
+        click.echo("      vega generate webmodel CreateUserRequest --request")
+        click.echo("      vega generate webmodel UserResponse --response")
+        return
+
+    if is_request and is_response:
+        click.echo(click.style("ERROR: Cannot specify both --request and --response", fg='red'))
+        click.echo("   Use separate commands to generate both types")
+        return
+
+    # Ensure models directory exists
+    models_path = web_path / "models"
+    models_path.mkdir(exist_ok=True)
+
+    # Ensure __init__.py exists
+    init_file = models_path / "__init__.py"
+    if not init_file.exists():
+        init_file.write_text('"""Pydantic models for API validation"""\n')
+
+    # Convert name to PascalCase for class names
+    model_name = to_pascal_case(name)
+    model_file = to_snake_case(model_name)
+
+    # Determine model type
+    if is_request:
+        template_file = "request_model.py.j2"
+        description = "Request model for API validation"
+        model_type = "request"
+    else:
+        template_file = "response_model.py.j2"
+        description = "Response model for API data"
+        model_type = "response"
+
+    # Generate model file
+    file_path = models_path / f"{model_file}.py"
+
+    if file_path.exists():
+        # Append to existing file
+        click.echo(click.style(f"WARNING: {file_path.relative_to(project_root)} already exists", fg='yellow'))
+        click.echo(f"   Appending {model_name} to existing file...")
+
+        content = render_template(
+            template_file,
+            subfolder="web",
+            model_name=model_name,
+            description=description
+        )
+
+        # Remove imports from template since they're already in the file
+        lines = content.split('\n')
+        class_start = next((i for i, line in enumerate(lines) if line.startswith('class ')), 0)
+        content_to_append = '\n\n' + '\n'.join(lines[class_start:])
+
+        with file_path.open('a', encoding='utf-8') as f:
+            f.write(content_to_append)
+
+        click.echo(click.style("+ ", fg='green', bold=True) + f"Added {model_name} to {file_path.relative_to(project_root)}")
+    else:
+        # Create new file
+        content = render_template(
+            template_file,
+            subfolder="web",
+            model_name=model_name,
+            description=description
+        )
+        file_path.write_text(content, encoding='utf-8')
+
+        click.echo(click.style("+ ", fg='green', bold=True) + f"Created {file_path.relative_to(project_root)}")
+
+    # Instructions for next steps
+    click.echo(f"\nNext steps:")
+    click.echo(f"   1. Add fields to {model_name} in {file_path.relative_to(project_root)}")
+    click.echo(f"   2. Update the Config.json_schema_extra with example values")
+    click.echo(f"   3. Import in your router:")
+    click.echo(f"      from presentation.web.models.{model_file} import {model_name}")
 
 
 def _generate_middleware(project_root: Path, project_name: str, class_name: str, file_name: str) -> None:
