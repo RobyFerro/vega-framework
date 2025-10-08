@@ -448,7 +448,7 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
     click.echo(f"   1. Create Pydantic models in presentation/web/models/{resource_file}_models.py")
     click.echo(f"   2. Implement domain interactors for {resource_name} operations")
     click.echo(f"   3. Replace in-memory storage with actual use cases")
-    click.echo(click.style(f"   (Router auto-discovered from web/routes/)", fg='dim'))
+    click.echo(click.style(f"   (Router auto-discovered from web/routes/)", fg='bright_black'))
 
 
 def _generate_middleware(project_root: Path, project_name: str, class_name: str, file_name: str) -> None:
@@ -804,6 +804,6 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
     click.echo(f"\nNext steps:")
     click.echo(f"   1. Implement your command logic in {command_file.relative_to(project_root)}")
     click.echo(f"   2. Run your command: python main.py {command_name}")
-    click.echo(click.style(f"      (Commands are auto-discovered from cli/commands/)", fg='dim'))
+    click.echo(click.style(f"      (Commands are auto-discovered from cli/commands/)", fg='bright_black'))
     if with_interactor:
         click.echo(f"   3. Create interactor: vega generate interactor {interactor_name}")

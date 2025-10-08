@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.1.20"
+version = "0.1.22"
 description = "Enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
@@ -28,7 +28,12 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 packages = [{ include = "vega", from = "." }]
-include = ["vega/cli/templates/project/*", "vega/cli/templates/web/*"]
+include = [
+    "vega/cli/templates/project/*",
+    "vega/cli/templates/web/*",
+    "vega/cli/templates/cli/*",
+    "vega/discovery/*",
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
