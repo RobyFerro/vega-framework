@@ -113,28 +113,50 @@ def add_sqlalchemy_feature(project_path: Path, project_name: str):
 
 def _create_user_example_repository(project_path: Path, project_name: str):
     """Create example User entity, repository, and SQLAlchemy implementation"""
-    from vega.cli.commands.generate import generate_component
+    from vega.cli.commands.generate import _generate_entity, _generate_repository, _generate_sqlalchemy_model, _generate_infrastructure_repository
+    from vega.cli.utils import to_pascal_case, to_snake_case
+
+    # Suppress verbose output temporarily by redirecting
+    import sys
+    from io import StringIO
 
     # Generate User entity
-    click.echo("  + Generating User entity...")
-    generate_component('entity', 'User', str(project_path))
+    click.echo("  + Creating User entity...")
+    _generate_entity(project_path, project_name, 'User', 'user')
 
-    # Generate UserRepository interface
-    click.echo("  + Generating UserRepository interface...")
-    generate_component('repository', 'UserRepository', str(project_path))
+    # Generate UserRepository interface (without next steps)
+    click.echo("  + Creating UserRepository interface...")
+    original_stdout = sys.stdout
+    sys.stdout = StringIO()  # Suppress "Next steps" output
+
+    try:
+        _generate_repository(project_path, project_name, 'UserRepository', 'user_repository', implementation=None)
+    finally:
+        sys.stdout = original_stdout
 
     # Generate SQLAlchemy UserModel
-    click.echo("  + Generating UserModel (SQLAlchemy)...")
-    generate_component('model', 'User', str(project_path))
+    click.echo("  + Creating UserModel (SQLAlchemy)...")
+    sys.stdout = StringIO()  # Suppress verbose output
+    try:
+        _generate_sqlalchemy_model(project_path, project_name, 'User', 'user')
+    finally:
+        sys.stdout = original_stdout
 
     # Generate SQLAlchemy repository implementation
-    click.echo("  + Generating SQLAlchemyUserRepository implementation...")
-    generate_component('repository', 'UserRepository', str(project_path), implementation='sql')
+    click.echo("  + Creating SQLAlchemyUserRepository implementation...")
+    _generate_infrastructure_repository(
+        project_path,
+        'UserRepository',
+        'user_repository',
+        'User',
+        'user',
+        'sql'
+    )
 
     click.echo(click.style("\n  ✓ Example User repository created!", fg='green'))
     click.echo("\nGenerated files:")
     click.echo("  - domain/entities/user.py")
     click.echo("  - domain/repositories/user_repository.py")
-    click.echo("  - infrastructure/models/user_model.py")
+    click.echo("  - infrastructure/models/user.py")
     click.echo("  - infrastructure/repositories/sqlalchemy_user_repository.py")
-    click.echo("\nDon't forget to update config.py to register SQLAlchemyUserRepository!")
+    click.echo("\nNext step: Update config.py to register SQLAlchemyUserRepository in SERVICES dict")
