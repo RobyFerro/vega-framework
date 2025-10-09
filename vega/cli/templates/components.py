@@ -247,3 +247,24 @@ def render_cli_commands_init() -> str:
 def render_fastapi_routes_init_autodiscovery() -> str:
     """Return the template for web/routes/__init__.py with auto-discovery"""
     return render_template("routes_init_autodiscovery.py.j2", subfolder="web")
+
+
+def render_event(class_name: str, fields: list[dict]) -> str:
+    """Return the template for a domain event"""
+    return render_template(
+        "event.py.j2",
+        subfolder="domain",
+        class_name=class_name,
+        fields=fields,
+    )
+
+
+def render_event_handler(class_name: str, event_name: str, event_file: str) -> str:
+    """Return the template for an event handler"""
+    return render_template(
+        "event_handler.py.j2",
+        subfolder="domain",
+        class_name=class_name,
+        event_name=event_name,
+        event_file=event_file,
+    )
