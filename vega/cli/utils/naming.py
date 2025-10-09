@@ -2,6 +2,26 @@
 import re
 
 
+def to_snake_case(name: str) -> str:
+    """Convert CamelCase/PascalCase to snake_case (standalone function for convenience)"""
+    return NamingConverter.to_snake_case(name)
+
+
+def to_pascal_case(name: str) -> str:
+    """Convert any format to PascalCase (standalone function for convenience)"""
+    return NamingConverter.to_pascal_case(name)
+
+
+def to_camel_case(name: str) -> str:
+    """Convert any format to camelCase (standalone function for convenience)"""
+    return NamingConverter.to_camel_case(name)
+
+
+def to_kebab_case(name: str) -> str:
+    """Convert any format to kebab-case (standalone function for convenience)"""
+    return NamingConverter.to_kebab_case(name)
+
+
 class NamingConverter:
     """Utility class for converting between naming conventions"""
 

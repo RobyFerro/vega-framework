@@ -1,6 +1,5 @@
 """Generate command - Create components in Vega project"""
 import click
-import re
 from pathlib import Path
 
 from vega.cli.templates import (
@@ -19,34 +18,7 @@ from vega.cli.templates import (
     render_template,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
-
-
-
-def to_snake_case(name: str) -> str:
-    """Convert CamelCase to snake_case"""
-    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
-
-
-def to_pascal_case(name: str) -> str:
-    """Convert strings to PascalCase, handling separators and camelCase input"""
-    cleaned = name.strip()
-    if not cleaned:
-        return ""
-
-    # Normalize common separators to spaces
-    normalized = cleaned.replace('-', ' ').replace('_', ' ')
-    if ' ' in normalized:
-        parts = normalized.split()
-    else:
-        parts = re.findall(r'[A-Z]+(?=$|[A-Z][a-z0-9])|[A-Z]?[a-z0-9]+|[0-9]+', cleaned)
-        if not parts:
-            parts = [cleaned]
-
-    def _pascal_piece(piece: str) -> str:
-        return piece if piece.isupper() else piece[:1].upper() + piece[1:].lower()
-
-    return ''.join(_pascal_piece(part) for part in parts if part)
+from vega.cli.utils import to_snake_case, to_pascal_case
 
 
 def _resolve_implementation_names(class_name: str, implementation: str) -> tuple[str, str]:

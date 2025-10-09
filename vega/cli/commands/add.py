@@ -114,9 +114,6 @@ def add_sqlalchemy_feature(project_path: Path, project_name: str):
 def _create_user_example_repository(project_path: Path, project_name: str):
     """Create example User entity, repository, and SQLAlchemy implementation"""
     from vega.cli.commands.generate import _generate_entity, _generate_repository, _generate_sqlalchemy_model, _generate_infrastructure_repository
-    from vega.cli.utils import to_pascal_case, to_snake_case
-
-    # Suppress verbose output temporarily by redirecting
     import sys
     from io import StringIO
 
@@ -153,7 +150,7 @@ def _create_user_example_repository(project_path: Path, project_name: str):
         'sql'
     )
 
-    click.echo(click.style("\n  ✓ Example User repository created!", fg='green'))
+    click.echo(click.style("\n  [OK] Example User repository created!", fg='green'))
     click.echo("\nGenerated files:")
     click.echo("  - domain/entities/user.py")
     click.echo("  - domain/repositories/user_repository.py")
