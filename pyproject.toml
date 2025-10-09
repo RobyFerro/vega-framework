@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.1.24"
+version = "0.1.25"
 description = "Enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
@@ -42,6 +42,8 @@ pydantic-settings = "^2.0"
 click = "^8.0"
 jinja2 = "^3.1"
 toml = "^0.10"
+uvicorn = "^0.27"
+fastapi = "^0.109"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"

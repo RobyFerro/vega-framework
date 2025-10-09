@@ -53,18 +53,9 @@ def init_project(project_name: str, template: str, parent_path: str):
             from vega.cli.templates import render_cli_commands_init
             content = render_cli_commands_init()
             (dir_path / "__init__.py").write_text(content)
-        else:
-            (dir_path / "__init__.py").write_text("")
 
         click.echo(f"  + Created {directory}/")
 
-    # Create __init__.py files
-    (project_path / "__init__.py").write_text("")
-    (project_path / "domain" / "__init__.py").write_text("")
-    (project_path / "application" / "__init__.py").write_text("")
-    (project_path / "infrastructure" / "__init__.py").write_text("")
-    (project_path / "presentation" / "__init__.py").write_text("")
-    (project_path / "tests" / "__init__.py").write_text("")
 
     # Create config.py
     config_content = render_template("config.py.j2", project_name=project_name)
@@ -131,8 +122,8 @@ def init_project(project_name: str, template: str, parent_path: str):
 
     if template == "fastapi":
         click.echo(f"\nRun commands:")
-        click.echo(f"  python main.py web          # Start FastAPI server (http://localhost:8000)")
-        click.echo(f"  python main.py web --reload # Start with auto-reload")
+        click.echo(f"  vega web run                # Start FastAPI server (http://localhost:8000)")
+        click.echo(f"  vega web run --reload       # Start with auto-reload")
         click.echo(f"  python main.py hello        # Run CLI command")
         click.echo(f"  python main.py --help       # Show all commands")
     else:

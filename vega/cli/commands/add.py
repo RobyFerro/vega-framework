@@ -58,39 +58,18 @@ def add_web_feature(project_path: Path, project_name: str):
     presentation_dir = project_path / "presentation"
     if not presentation_dir.exists():
         presentation_dir.mkdir(parents=True, exist_ok=True)
-        (presentation_dir / "__init__.py").write_text("")
         click.echo(f"  + Created presentation/")
 
     # Create FastAPI scaffold
     create_fastapi_scaffold(project_path, project_name, overwrite=overwrite)
 
-    # Update main.py to use web command
-    main_file = project_path / "main.py"
-    if main_file.exists():
-        click.echo("\n[!] Update main.py to add web command:")
-        click.echo("    Add the following to your main.py CLI group:\n")
-        click.echo(click.style('''
-@cli.command()
-@click.option('--host', default='0.0.0.0', help='Host to bind')
-@click.option('--port', default=8000, help='Port to bind')
-@click.option('--reload', is_flag=True, help='Enable auto-reload')
-def web(host: str, port: int, reload: bool):
-    """Start FastAPI web server"""
-    import uvicorn
-    from presentation.web.main import app
-
-    click.echo(f"Starting web server on http://{host}:{port}")
-    uvicorn.run(app, host=host, port=port, reload=reload)
-''', fg='cyan'))
-
     click.echo(f"\n{click.style('SUCCESS: FastAPI web scaffold added!', fg='green', bold=True)}\n")
     click.echo("Next steps:")
     click.echo("  1. Add FastAPI dependencies:")
     click.echo("     poetry add fastapi uvicorn[standard]")
-    click.echo("  2. Update your main.py with the web command (see above)")
-    click.echo("  3. Run the server:")
-    click.echo("     python main.py web --reload")
-    click.echo("  4. Visit http://localhost:8000/api/health/status")
+    click.echo("  2. Run the server:")
+    click.echo("     vega web run --reload")
+    click.echo("  3. Visit http://localhost:8000/api/health/status")
 
 
 def add_sqlalchemy_feature(project_path: Path, project_name: str):
@@ -111,6 +90,13 @@ def add_sqlalchemy_feature(project_path: Path, project_name: str):
     # Create SQLAlchemy scaffold
     create_sqlalchemy_scaffold(project_path, project_name, overwrite=overwrite)
 
+    # Ask if user wants an example repository
+    create_example = click.confirm("\nDo you want to create an example User repository with SQLAlchemy implementation?", default=True)
+
+    if create_example:
+        click.echo("\n[*] Creating example User repository...")
+        _create_user_example_repository(project_path, project_name)
+
     click.echo(f"\n{click.style('SUCCESS: SQLAlchemy database support added!', fg='green', bold=True)}\n")
     click.echo("Next steps:")
     click.echo("  1. Add DATABASE_URL to your settings.py:")
@@ -123,3 +109,32 @@ def add_sqlalchemy_feature(project_path: Path, project_name: str):
     click.echo('     vega migrate create -m "Initial migration"')
     click.echo("  5. Apply migrations:")
     click.echo("     vega migrate upgrade")
+
+
+def _create_user_example_repository(project_path: Path, project_name: str):
+    """Create example User entity, repository, and SQLAlchemy implementation"""
+    from vega.cli.commands.generate import generate_component
+
+    # Generate User entity
+    click.echo("  + Generating User entity...")
+    generate_component('entity', 'User', str(project_path))
+
+    # Generate UserRepository interface
+    click.echo("  + Generating UserRepository interface...")
+    generate_component('repository', 'UserRepository', str(project_path))
+
+    # Generate SQLAlchemy UserModel
+    click.echo("  + Generating UserModel (SQLAlchemy)...")
+    generate_component('model', 'User', str(project_path))
+
+    # Generate SQLAlchemy repository implementation
+    click.echo("  + Generating SQLAlchemyUserRepository implementation...")
+    generate_component('repository', 'UserRepository', str(project_path), implementation='sql')
+
+    click.echo(click.style("\n  ✓ Example User repository created!", fg='green'))
+    click.echo("\nGenerated files:")
+    click.echo("  - domain/entities/user.py")
+    click.echo("  - domain/repositories/user_repository.py")
+    click.echo("  - infrastructure/models/user_model.py")
+    click.echo("  - infrastructure/repositories/sqlalchemy_user_repository.py")
+    click.echo("\nDon't forget to update config.py to register SQLAlchemyUserRepository!")
