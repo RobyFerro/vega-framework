@@ -60,6 +60,15 @@ def run(host: str, port: int, reload: bool, path: str):
         click.echo(click.style("  poetry add fastapi uvicorn[standard]", fg='cyan', bold=True))
         sys.exit(1)
 
+    # Initialize DI container first
+    try:
+        import config  # noqa: F401
+    except ImportError as e:
+        click.echo(click.style("ERROR: Failed to load DI container", fg='red'))
+        click.echo(f"\nDetails: {e}")
+        click.echo("\nMake sure config.py exists in the project root")
+        sys.exit(1)
+
     # Try to import the app
     try:
         from presentation.web.main import app
