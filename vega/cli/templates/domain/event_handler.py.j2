@@ -1,10 +1,10 @@
 """{{ class_name }} event handler"""
 from vega.events import subscribe
-from domain.events.{{ event_file }} import {{ event_name }}
+from {{ event_module }} import {{ event_name }}
 
 
-@subscribe({{ event_name }})
-async def {{ class_name|lower }}(event: {{ event_name }}):
+@subscribe({{ decorator_args }})
+async def {{ handler_func_name }}(event: {{ event_name }}):
     """
     Handle {{ event_name }} event.
 

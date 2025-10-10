@@ -15,16 +15,62 @@ class InteractorMeta(ABCMeta):
     Instead of:
         interactor = CreateUser(name="John", email="john@example.com")
         result = await interactor.call()
+
+    Also supports @trigger decorator to automatically publish events after call() completes.
     """
 
     def __call__(cls, *args, **kwargs):
         """
         Create instance and call the call() method.
 
+        If @trigger decorator is used, wraps call() to publish event after completion.
+
         Returns the result of call() method (usually a coroutine).
         """
         instance = super(InteractorMeta, cls).__call__(*args, **kwargs)
-        return instance.call()
+        call_result = instance.call()
+
+        # Check if @trigger decorator was used
+        if hasattr(cls, '_trigger_event'):
+            # Wrap the coroutine to trigger event after completion
+            return cls._wrap_with_event_trigger(call_result, cls._trigger_event)
+
+        return call_result
+
+    @staticmethod
+    async def _wrap_with_event_trigger(call_coroutine, event_class):
+        """
+        Wrap call() coroutine to trigger event after it completes.
+
+        Args:
+            call_coroutine: The coroutine returned by call()
+            event_class: The event class to instantiate and publish
+
+        Returns:
+            The result of call()
+        """
+        # Execute the call() method
+        result = await call_coroutine
+
+        # Trigger the event with the result
+        try:
+            # If result is a dict, unpack as kwargs
+            if isinstance(result, dict):
+                await event_class(**result)
+            # If result is None, create event with no args
+            elif result is None:
+                await event_class()
+            # Otherwise, pass result as first argument
+            else:
+                await event_class(result)
+        except Exception as e:
+            # Log but don't fail the interactor if event publishing fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to trigger event {event_class.__name__}: {e}")
+
+        # Return the original result
+        return result
 
 
 class Interactor(Generic[T], metaclass=InteractorMeta):

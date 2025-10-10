@@ -259,12 +259,25 @@ def render_event(class_name: str, fields: list[dict]) -> str:
     )
 
 
-def render_event_handler(class_name: str, event_name: str, event_file: str) -> str:
+def render_event_handler(
+    class_name: str,
+    handler_func_name: str,
+    event_name: str,
+    event_module: str,
+    decorator_args: str,
+) -> str:
     """Return the template for an event handler"""
     return render_template(
         "event_handler.py.j2",
         subfolder="domain",
         class_name=class_name,
+        handler_func_name=handler_func_name,
         event_name=event_name,
-        event_file=event_file,
+        event_module=event_module,
+        decorator_args=decorator_args,
     )
+
+
+def render_events_init() -> str:
+    """Return the template for events/__init__.py with auto-discovery"""
+    return render_template("events_init.py.j2", subfolder="project")

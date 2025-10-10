@@ -15,6 +15,8 @@ from vega.cli.templates import (
     render_sqlalchemy_model,
     render_cli_command,
     render_cli_command_simple,
+    render_event,
+    render_event_handler,
     render_template,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
@@ -61,6 +63,11 @@ def generate_component(
     class_name = to_pascal_case(name)
     implementation = implementation.strip() if implementation else None
 
+    if component_type == 'repo':
+        component_type = 'repository'
+    if component_type in {'event-handler', 'subscriber'}:
+        component_type = 'event_handler'
+
     suffixes = {
         "repository": "Repository",
         "service": "Service",
@@ -105,6 +112,10 @@ def generate_component(
         _generate_web_models(project_root, project_name, name, is_request, is_response)
     elif component_type == 'command':
         _generate_command(project_root, project_name, name, implementation)
+    elif component_type == 'event':
+        _generate_event(project_root, project_name, class_name, file_name)
+    elif component_type == 'event_handler':
+        _generate_event_handler(project_root, project_name, class_name, file_name)
 
 
 def _generate_entity(project_root: Path, project_name: str, class_name: str, file_name: str):
@@ -875,3 +886,106 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
     click.echo(click.style(f"      (Commands are auto-discovered from cli/commands/)", fg='bright_black'))
     if with_interactor:
         click.echo(f"   3. Create interactor: vega generate interactor {interactor_name}")
+
+
+def _generate_event(project_root: Path, project_name: str, class_name: str, file_name: str):
+    """Generate a domain event."""
+
+    events_path = project_root / "domain" / "events"
+    events_path.mkdir(parents=True, exist_ok=True)
+
+    init_file = events_path / "__init__.py"
+    if not init_file.exists():
+        init_file.write_text("")
+
+    file_path = events_path / f"{file_name}.py"
+    if file_path.exists():
+        click.echo(click.style(f"ERROR: Error: {file_path.relative_to(project_root)} already exists", fg='red'))
+        return
+
+    click.echo("\nDefine event payload fields (press Enter to skip):")
+    fields: list[dict[str, str]] = []
+    while True:
+        field_name = click.prompt("Field name", default="", show_default=False)
+        if not field_name:
+            break
+        snake_name = to_snake_case(field_name)
+        type_hint = click.prompt("Type hint", default="str")
+        description = click.prompt(
+            "Description",
+            default=f"{snake_name.replace('_', ' ').capitalize()} value",
+        )
+        fields.append(
+            {
+                "name": snake_name,
+                "type_hint": type_hint,
+                "description": description,
+            }
+        )
+
+    content = render_event(class_name, fields)
+    file_path.write_text(content)
+    click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
+
+    click.echo("\nNext steps:")
+    click.echo("   1. Publish the event from your domain logic.")
+    click.echo("   2. Generate subscribers: vega generate subscriber <HandlerName>")
+
+
+def _generate_event_handler(project_root: Path, project_name: str, class_name: str, file_name: str):
+    """Generate an application-level event handler/subscriber."""
+
+    handlers_path = project_root / "application" / "events"
+    handlers_path.mkdir(parents=True, exist_ok=True)
+
+    init_file = handlers_path / "__init__.py"
+    if not init_file.exists():
+        init_file.write_text("")
+
+    handler_file = handlers_path / f"{file_name}.py"
+    if handler_file.exists():
+        click.echo(click.style(f"ERROR: Error: {handler_file.relative_to(project_root)} already exists", fg='red'))
+        return
+
+    default_event_class = class_name
+    if default_event_class.lower().endswith("handler"):
+        default_event_class = default_event_class[:-7] or class_name
+
+    event_class = click.prompt("Event class name", default=default_event_class)
+    event_module_default = f"domain.events.{to_snake_case(event_class)}"
+    event_module = click.prompt("Event module path", default=event_module_default)
+
+    priority = click.prompt("Handler priority (higher runs first)", default=0, type=int)
+    retry_on_error = click.confirm("Retry on failure?", default=False)
+    max_retries = None
+    if retry_on_error:
+        max_retries = click.prompt("Max retries", default=3, type=int)
+
+    decorator_args = event_class
+    options: list[str] = []
+    if priority:
+        options.append(f"priority={priority}")
+    if retry_on_error:
+        options.append("retry_on_error=True")
+        if max_retries is not None:
+            options.append(f"max_retries={max_retries}")
+    if options:
+        decorator_args = f"{event_class}, " + ", ".join(options)
+
+    handler_func_name = to_snake_case(class_name)
+
+    content = render_event_handler(
+        class_name=class_name,
+        handler_func_name=handler_func_name,
+        event_name=event_class,
+        event_module=event_module,
+        decorator_args=decorator_args,
+    )
+
+    handler_file.write_text(content)
+    click.echo(f"+ Created {click.style(str(handler_file.relative_to(project_root)), fg='green')}")
+
+    click.echo("\nNext steps:")
+    click.echo(f"   1. Implement your handler in {handler_file.relative_to(project_root)}")
+    click.echo("   2. Ensure the module is imported during application bootstrap (autodiscovery or manual import).")
+    click.echo("   3. Run your workflow and verify the subscriber reacts to the event.")

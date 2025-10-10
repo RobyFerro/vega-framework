@@ -8,7 +8,7 @@ class PublishableEventMeta(type):
     """
     Metaclass for auto-publishing events.
 
-    When enabled, automatically publishes the event after instantiation,
+    Automatically publishes the event after instantiation,
     allowing ultra-clean syntax:
 
         await UserCreated(user_id="123", email="test@test.com")
@@ -20,16 +20,16 @@ class PublishableEventMeta(type):
 
     def __call__(cls, *args, **kwargs):
         """
-        Create instance and return publish() coroutine if auto_publish is enabled.
+        Create instance and return publish() coroutine (auto-publish is always enabled).
 
-        To enable auto-publish on an event class:
-            class UserCreated(Event, auto_publish=True):
+        To disable auto-publish on an event class (rare):
+            class UserCreated(Event, auto_publish=False):
                 ...
         """
         instance = super().__call__(*args, **kwargs)
 
-        # Check if auto_publish is enabled for this class
-        if getattr(cls, '_auto_publish', False):
+        # Auto-publish is enabled by default, can be disabled with auto_publish=False
+        if getattr(cls, '_auto_publish', True):  # Default is True now!
             return instance.publish()
 
         return instance
@@ -47,8 +47,9 @@ class Event(metaclass=PublishableEventMeta):
     - Named in past tense (UserCreated, OrderPlaced, PaymentProcessed)
     - Contains all data needed by handlers
     - Auto-generates event_id and timestamp
+    - Auto-publishes by default (like Interactors!)
 
-    Example 1 - Manual publish (default):
+    Example - Auto-publish (default, ultra-clean syntax):
         from vega.events import Event
         from dataclasses import dataclass
 
@@ -61,13 +62,12 @@ class Event(metaclass=PublishableEventMeta):
             def __post_init__(self):
                 super().__init__()
 
-        # Create and publish event
-        event = UserCreated(user_id="123", email="test@test.com", name="Test")
-        await event.publish()
+        # Event is auto-published when instantiated! Just await it!
+        await UserCreated(user_id="123", email="test@test.com", name="Test")
 
-    Example 2 - Auto-publish (ultra-clean syntax):
+    Example - Disable auto-publish (rare, when you need to inspect first):
         @dataclass(frozen=True)
-        class UserCreated(Event, auto_publish=True):
+        class UserCreated(Event, auto_publish=False):
             user_id: str
             email: str
             name: str
@@ -75,16 +75,18 @@ class Event(metaclass=PublishableEventMeta):
             def __post_init__(self):
                 super().__init__()
 
-        # Event is auto-published when instantiated!
-        await UserCreated(user_id="123", email="test@test.com", name="Test")
+        # Manual publish
+        event = UserCreated(user_id="123", email="test@test.com", name="Test")
+        # ... inspect or modify event ...
+        await event.publish()
     """
 
-    def __init_subclass__(cls, auto_publish: bool = False, **kwargs):
+    def __init_subclass__(cls, auto_publish: bool = True, **kwargs):
         """
         Hook to configure auto-publish behavior.
 
         Args:
-            auto_publish: If True, event will auto-publish when instantiated
+            auto_publish: If False, event will NOT auto-publish when instantiated (default: True)
         """
         super().__init_subclass__(**kwargs)
         cls._auto_publish = auto_publish

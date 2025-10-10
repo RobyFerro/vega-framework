@@ -1,0 +1,32 @@
+"""Event handlers auto-discovery
+
+This module automatically discovers and registers all event handlers
+decorated with @subscribe() in this directory.
+
+The auto-discovery happens when you call register_all_handlers().
+This should be called during application startup.
+"""
+from vega.discovery import discover_event_handlers
+
+
+def register_all_handlers():
+    """
+    Auto-discover and register all event handlers in this directory.
+
+    This function scans all Python modules in the events/ directory and
+    imports them to trigger @subscribe() decorator registration.
+
+    Call this function during application bootstrap to ensure all event
+    handlers are registered with the global event bus.
+
+    Example:
+        # In your main.py or application startup
+        from events import register_all_handlers
+
+        # Register all event handlers
+        register_all_handlers()
+
+        # Now events will be handled automatically
+        await UserCreated(user_id="123", email="test@test.com", name="John")
+    """
+    discover_event_handlers(__package__)

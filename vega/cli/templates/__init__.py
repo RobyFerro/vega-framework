@@ -28,6 +28,9 @@ from .components import (
     render_cli_command_simple,
     render_cli_commands_init,
     render_fastapi_routes_init_autodiscovery,
+    render_event,
+    render_event_handler,
+    render_events_init,
 )
 from .loader import render_template
 
@@ -61,5 +64,8 @@ __all__ = [
     "render_cli_command_simple",
     "render_cli_commands_init",
     "render_fastapi_routes_init_autodiscovery",
+    "render_event",
+    "render_event_handler",
+    "render_events_init",
     "render_template",
 ]

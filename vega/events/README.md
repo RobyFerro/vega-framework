@@ -6,6 +6,7 @@ The Vega Events module provides a powerful event-driven architecture for your ap
 
 - ✅ **Event Bus** - Publish/subscribe pattern for domain events
 - ✅ **Async Support** - Full async/await support for event handlers
+- ✅ **Auto-Publish** - Ultra-clean syntax with metaclass-powered instant publishing
 - ✅ **Priority Ordering** - Control handler execution order
 - ✅ **Retry Logic** - Automatic retries for failed handlers
 - ✅ **Middleware** - Cross-cutting concerns (logging, metrics, validation)
