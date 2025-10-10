@@ -1,0 +1,22 @@
+"""{{ class_name }} event handler"""
+from vega.events import subscribe
+from {{ event_module }} import {{ event_name }}
+
+
+@subscribe({{ decorator_args }})
+async def {{ handler_func_name }}(event: {{ event_name }}):
+    """
+    Handle {{ event_name }} event.
+
+    This handler is automatically called when a {{ event_name }} event is published.
+
+    Args:
+        event: The {{ event_name }} event instance
+
+    Example:
+        # Event is automatically published from domain logic
+        # This handler will be called automatically
+        pass
+    """
+    # TODO: Implement event handling logic
+    raise NotImplementedError("Implement {{ class_name }} handler")

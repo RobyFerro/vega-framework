@@ -38,6 +38,7 @@ def init_project(project_name: str, template: str, parent_path: str):
         "infrastructure/repositories",
         "infrastructure/services",
         "presentation/cli/commands",
+        "events",
         "tests/domain",
         "tests/application",
         "tests/infrastructure",
@@ -52,6 +53,11 @@ def init_project(project_name: str, template: str, parent_path: str):
         if "cli" in directory and "commands" in directory:
             from vega.cli.templates import render_cli_commands_init
             content = render_cli_commands_init()
+            (dir_path / "__init__.py").write_text(content)
+        # Use auto-discovery template for events/
+        elif directory == "events":
+            from vega.cli.templates import render_events_init
+            content = render_events_init()
             (dir_path / "__init__.py").write_text(content)
 
         click.echo(f"  + Created {directory}/")

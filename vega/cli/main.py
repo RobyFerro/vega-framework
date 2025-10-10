@@ -57,7 +57,20 @@ def init(project_name, template, path):
 
 @cli.command()
 @click.argument('component_type', type=click.Choice([
-    'entity', 'repository', 'repo', 'service', 'interactor', 'mediator', 'router', 'middleware', 'webmodel', 'model', 'command'
+    'entity',
+    'repository',
+    'repo',
+    'service',
+    'interactor',
+    'mediator',
+    'router',
+    'middleware',
+    'webmodel',
+    'model',
+    'command',
+    'event',
+    'event-handler',
+    'subscriber',
 ]))
 @click.argument('name')
 @click.option('--path', default='.', help='Project root path')
@@ -80,6 +93,8 @@ def generate(component_type, name, path, impl, request, response):
         webmodel    - Pydantic request/response models (requires web module)
         model       - SQLAlchemy model (requires sqlalchemy module)
         command     - CLI command (async by default)
+        event       - Domain event (immutable dataclass + metadata)
+        event-handler/subscriber - Application-level event subscriber
 
     Examples:
         vega generate entity Product
@@ -94,6 +109,8 @@ def generate(component_type, name, path, impl, request, response):
         vega generate model User
         vega generate command CreateUser
         vega generate command ListUsers --impl sync
+        vega generate event UserCreated
+        vega generate subscriber SendWelcomeEmail --name UserCreated
     """
     # Normalize 'repo' to 'repository'
     if component_type == 'repo':

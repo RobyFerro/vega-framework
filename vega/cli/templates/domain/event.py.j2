@@ -1,0 +1,23 @@
+"""{{ class_name }} domain event"""
+from dataclasses import dataclass
+from vega.events import Event
+
+
+@dataclass(frozen=True)
+class {{ class_name }}(Event):
+    """
+    {{ class_name }} event.
+
+    This event is published when {{ class_name|lower|replace('created', 'is created')|replace('updated', 'is updated')|replace('deleted', 'is deleted') }}.
+
+    Attributes:
+{% for field in fields %}        {{ field.name }}: {{ field.type_hint }} - {{ field.description }}
+{% endfor %}
+    """
+{% for field in fields %}
+    {{ field.name }}: {{ field.type_hint }}
+{% endfor %}
+
+    def __post_init__(self):
+        """Initialize event metadata"""
+        super().__init__()
