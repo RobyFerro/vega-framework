@@ -933,9 +933,9 @@ def _generate_event(project_root: Path, project_name: str, class_name: str, file
 
 
 def _generate_event_handler(project_root: Path, project_name: str, class_name: str, file_name: str):
-    """Generate an application-level event handler/subscriber."""
+    """Generate an application-level event handler/subscriber in events/ for auto-discovery."""
 
-    handlers_path = project_root / "application" / "events"
+    handlers_path = project_root / "events"
     handlers_path.mkdir(parents=True, exist_ok=True)
 
     init_file = handlers_path / "__init__.py"
@@ -987,5 +987,5 @@ def _generate_event_handler(project_root: Path, project_name: str, class_name: s
 
     click.echo("\nNext steps:")
     click.echo(f"   1. Implement your handler in {handler_file.relative_to(project_root)}")
-    click.echo("   2. Ensure the module is imported during application bootstrap (autodiscovery or manual import).")
+    click.echo("   2. Call events.register_all_handlers() during startup so auto-discovery loads it.")
     click.echo("   3. Run your workflow and verify the subscriber reacts to the event.")

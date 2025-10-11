@@ -87,6 +87,51 @@ class CreateUser(Interactor[Result]):
         pass
 ```
 
+### Events
+
+#### event - Domain Event
+
+```bash
+vega generate event UserCreated
+```
+
+Creates immutable domain event in `domain/events/`.
+
+**Generated file**:
+```python
+from dataclasses import dataclass
+from vega.events import Event
+
+@dataclass(frozen=True)
+class UserCreated(Event):
+    user_id: str
+    email: str
+
+    def __post_init__(self):
+        super().__init__()
+```
+
+#### subscriber - Event Handler
+
+```bash
+vega generate subscriber SendWelcomeEmail --name UserCreated
+```
+
+Creates async event handler in `events/` (project root) so auto-discovery can import it.
+
+**Generated file**:
+```python
+from vega.events import subscribe
+from domain.events.user_created import UserCreated
+
+@subscribe(UserCreated)
+async def send_welcome_email(event: UserCreated):
+    # Implement handling logic
+    raise NotImplementedError("Implement SendWelcomeEmail handler")
+```
+
+Call `events.register_all_handlers()` during startup to load every module in `events/` automatically.
+
 ### Application Layer
 
 #### mediator - Workflow
@@ -305,6 +350,18 @@ def create_user():
 
 # Automatically discovered and registered
 ```
+
+### Event Subscribers
+
+```python
+# events/__init__.py
+from events import register_all_handlers
+
+def bootstrap():
+    register_all_handlers()  # Loads every @subscribe handler in events/
+```
+
+Handlers live in `events/` and are imported automatically once `register_all_handlers()` runs.
 
 ## Tips
 

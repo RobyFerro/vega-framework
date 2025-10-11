@@ -64,34 +64,11 @@ def create_fastapi_scaffold(
         created.append(rel_path)
         echo(f"+ Created {click.style(str(rel_path), fg='green')}")
 
-    if _ensure_fastapi_dependencies(project_root):
-        echo(f"+ Updated {click.style('pyproject.toml', fg='green')} with FastAPI dependencies")
-
     echo("\n[TIP] FastAPI scaffold ready:")
     echo("   1. poetry install  # sync dependencies (or poetry update)")
     echo("   2. poetry run uvicorn presentation.web.main:app --reload")
 
     return created
-
-
-def _ensure_fastapi_dependencies(project_root: Path) -> bool:
-    """Ensure FastAPI dependencies exist in pyproject.toml; return True if modified."""
-    pyproject_path = project_root / "pyproject.toml"
-    if not pyproject_path.exists():
-        return False
-
-    content = pyproject_path.read_text(encoding="utf-8")
-    lines = content.splitlines(keepends=True)
-
-    changed = False
-    changed |= _ensure_dependency_line(lines, "fastapi", "^0.111")
-    changed |= _ensure_dependency_line(lines, "uvicorn", "^0.30")
-
-    if changed:
-        pyproject_path.write_text("".join(lines), encoding="utf-8")
-
-    return changed
-
 
 def _ensure_dependency_line(lines: list[str], name: str, spec: str) -> bool:
     """Insert dependency assignment into [tool.poetry.dependencies] if missing."""
