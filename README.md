@@ -2,451 +2,315 @@
 
 An enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications.
 
-## Features
+## Why Vega?
 
-- ✅ **Automatic Dependency Injection** - Zero boilerplate, type-safe DI
-- ✅ **Clean Architecture Patterns** - Interactor, Mediator, Repository, Service
-- ✅ **Async/Await Support** - Full async support for CLI and web
-- ✅ **Scope Management** - Singleton, Scoped, Transient lifetimes
-- ✅ **Type-Safe** - Full type hints support
-- ✅ **Framework-Agnostic** - Works with any domain (web, AI, IoT, fintech, etc.)
-- ✅ **CLI Scaffolding** - Generate projects and components instantly
-- ✅ **FastAPI Integration** - Built-in web scaffold with routing and middleware
-- ✅ **SQLAlchemy Support** - Database management with async support and migrations
-- ✅ **Lightweight** - No unnecessary dependencies
+Traditional Python frameworks show you **how to build** but don't enforce **how to architect**. Vega provides:
 
-## Installation
+- ✅ **Clean Architecture** - Enforced separation of concerns
+- ✅ **Dependency Injection** - Zero boilerplate, type-safe DI
+- ✅ **Business Logic First** - Pure, testable, framework-independent
+- ✅ **CLI Scaffolding** - Generate entire projects and components
+- ✅ **Async Support** - Full async/await for CLI and web
+- ✅ **FastAPI & SQLAlchemy** - Built-in integrations when needed
+
+**[Read the Philosophy →](docs/explanation/philosophy.md)** to understand why architecture matters.
+
+## Quick Start
+
+### Installation
 
 ```bash
 pip install vega-framework
 ```
 
-## Quick Start
+### Create Your First Project
 
 ```bash
-# Create new project
+# Create project
 vega init my-app
+cd my-app
+
+# Install dependencies
+poetry install
 
 # Generate components
 vega generate entity User
-vega generate repository UserRepository
+vega generate repository UserRepository --impl memory
 vega generate interactor CreateUser
 
-# Create FastAPI project
-vega init my-api --template fastapi
+# Run your app
+poetry run python main.py
 ```
+
+### Your First Use Case
+
+```python
+# domain/interactors/create_user.py
+from vega.patterns import Interactor
+from vega.di import bind
+
+class CreateUser(Interactor[User]):
+    def __init__(self, name: str, email: str):
+        self.name = name
+        self.email = email
+
+    @bind
+    async def call(self, repository: UserRepository) -> User:
+        # Pure business logic - no framework code!
+        user = User(name=self.name, email=self.email)
+        return await repository.save(user)
+
+# Usage - clean and simple
+user = await CreateUser(name="John", email="john@example.com")
+```
+
+**[See Full Quick Start →](docs/tutorials/quickstart.md)**
+
+## Key Concepts
+
+### Clean Architecture Layers
+
+```
+┌─────────────────────────────────────┐
+│      Presentation (CLI, Web)        │  User interfaces
+├─────────────────────────────────────┤
+│      Application (Workflows)        │  Multi-step operations
+├─────────────────────────────────────┤
+│      Domain (Business Logic)        │  Core business rules
+├─────────────────────────────────────┤
+│      Infrastructure (Technical)     │  Databases, APIs
+└─────────────────────────────────────┘
+```
+
+**[Learn Clean Architecture →](docs/explanation/architecture/clean-architecture.md)**
+
+### Core Patterns
+
+- **[Interactor](docs/explanation/patterns/interactor.md)** - Single-purpose use case
+- **[Mediator](docs/explanation/patterns/mediator.md)** - Complex workflow orchestration
+- **[Repository](docs/explanation/patterns/repository.md)** - Data persistence abstraction
+- **[Service](docs/explanation/patterns/service.md)** - External service abstraction
+
+### Dependency Injection
+
+```python
+# Define what you need (domain)
+class UserRepository(Repository[User]):
+    async def save(self, user: User) -> User:
+        pass
+
+# Implement how it works (infrastructure)
+@injectable(scope=Scope.SINGLETON)
+class PostgresUserRepository(UserRepository):
+    async def save(self, user: User) -> User:
+        # PostgreSQL implementation
+        pass
+
+# Wire it together (config)
+container = Container({
+    UserRepository: PostgresUserRepository
+})
+```
+
+**[Learn Dependency Injection →](docs/explanation/core/dependency-injection.md)**
 
 ## CLI Commands
 
-Vega Framework provides a comprehensive CLI for scaffolding and managing Clean Architecture projects.
-
 ### Project Management
 
-#### `vega init` - Initialize New Project
-
-Create a new Vega project with Clean Architecture structure.
-
 ```bash
-vega init <project_name> [OPTIONS]
+vega init my-app                      # Create new project
+vega init my-api --template fastapi   # Create with FastAPI
+vega doctor                           # Validate architecture
+vega update                           # Update framework
 ```
-
-**Options:**
-- `--template <type>` - Project template (default: `basic`)
-  - `basic` - Standard Clean Architecture project with CLI support
-  - `fastapi` - Project with FastAPI web scaffold included
-  - `ai-rag` - AI/RAG application template (coming soon)
-- `--path <directory>` - Parent directory for project (default: current directory)
-
-**Examples:**
-```bash
-vega init my-app
-vega init my-api --template fastapi
-vega init my-ai --template ai-rag --path ./projects
-```
-
-**Creates:**
-- `domain/` - Entities, repositories, services, interactors
-- `application/` - Mediators and workflows
-- `infrastructure/` - Repository and service implementations
-- `presentation/` - CLI and web interfaces
-- `config.py` - DI container configuration
-- `settings.py` - Application settings
-- `pyproject.toml` - Dependencies and project metadata
-
----
-
-#### `vega doctor` - Validate Project
-
-Validate your Vega project structure and architecture compliance.
-
-```bash
-vega doctor [--path .]
-```
-
-**Options:**
-- `--path <directory>` - Project path to validate (default: current directory)
-
-**Checks:**
-- Correct folder structure
-- DI container configuration
-- Import dependencies
-- Architecture violations
-
-**Example:**
-```bash
-vega doctor
-vega doctor --path ./my-app
-```
-
----
-
-#### `vega update` - Update Framework
-
-Update Vega Framework to the latest version.
-
-```bash
-vega update [OPTIONS]
-```
-
-**Options:**
-- `--check` - Check for updates without installing
-- `--force` - Force reinstall even if up to date
-
-**Examples:**
-```bash
-vega update              # Update to latest version
-vega update --check      # Check for updates only
-vega update --force      # Force reinstall
-```
-
----
 
 ### Code Generation
 
-#### `vega generate` - Generate Components
-
-Generate Clean Architecture components in your project.
-
-```bash
-vega generate <component_type> <name> [OPTIONS]
-```
-
-**Component Types:**
-
-##### Domain Layer
-
-**`entity`** - Domain Entity (dataclass)
-```bash
-vega generate entity Product
-```
-Creates a domain entity in `domain/entities/`
-
-**`repository`** - Repository Interface
-```bash
-vega generate repository ProductRepository
-vega generate repository Product --impl memory    # With in-memory implementation
-vega generate repository Product --impl sql       # With SQL implementation
-```
-Creates repository interface in `domain/repositories/` and optionally an implementation in `infrastructure/repositories/`
-
-**Alias:** `repo` can be used instead of `repository`
-
-**`service`** - Service Interface
-```bash
-vega generate service EmailService
-vega generate service Email --impl smtp          # With SMTP implementation
-```
-Creates service interface in `domain/services/` and optionally an implementation in `infrastructure/services/`
-
-**`interactor`** - Use Case / Interactor
-```bash
-vega generate interactor CreateProduct
-vega generate interactor GetUserById
-```
-Creates interactor (use case) in `domain/interactors/`
-
-##### Application Layer
-
-**`mediator`** - Workflow / Mediator
-```bash
-vega generate mediator CheckoutFlow
-vega generate mediator OrderProcessing
-```
-Creates mediator (workflow orchestrator) in `application/mediators/`
-
-##### Infrastructure Layer
-
-**`model`** - SQLAlchemy Model *(requires SQLAlchemy)*
-```bash
-vega generate model User
-vega generate model ProductCategory
-```
-Creates SQLAlchemy model in `infrastructure/models/` and registers it in Alembic
-
-##### Presentation Layer
-
-**`router`** - FastAPI Router *(requires FastAPI)*
-```bash
-vega generate router Product
-vega generate router User
-```
-Creates FastAPI router in `presentation/web/routes/` and auto-registers it
-
-**`middleware`** - FastAPI Middleware *(requires FastAPI)*
-```bash
-vega generate middleware Logging
-vega generate middleware Authentication
-```
-Creates FastAPI middleware in `presentation/web/middleware/` and auto-registers it
-
-**`command`** - CLI Command
-```bash
-vega generate command CreateUser                 # Async command (default)
-vega generate command ListUsers --impl sync      # Synchronous command
-```
-Creates CLI command in `presentation/cli/commands/`
-
-The generator will prompt for:
-- Command description
-- Options and arguments
-- Whether it will use interactors
-
-**Options:**
-- `--path <directory>` - Project root path (default: current directory)
-- `--impl <type>` - Generate infrastructure implementation
-  - For `repository`: `memory`, `sql`, or custom name
-  - For `service`: custom implementation name
-  - For `command`: `sync` or `async` (default: async)
-
-**Examples:**
 ```bash
 # Domain layer
 vega generate entity Product
-vega generate repository ProductRepository --impl memory
-vega generate service EmailService --impl smtp
+vega generate repository ProductRepository --impl sql
 vega generate interactor CreateProduct
 
 # Application layer
-vega generate mediator CheckoutFlow
+vega generate mediator CheckoutWorkflow
 
-# Presentation layer (web)
-vega generate router Product
-vega generate middleware Logging
+# Presentation layer
+vega generate router Product          # FastAPI (requires: vega add web)
+vega generate command create-product  # CLI
 
-# Presentation layer (CLI)
-vega generate command CreateUser
-vega generate command ListUsers --impl sync
-
-# Infrastructure layer
-vega generate model User
+# Infrastructure
+vega generate model Product           # SQLAlchemy (requires: vega add db)
 ```
 
----
-
-### Feature Management
-
-#### `vega add` - Add Features to Project
-
-Add additional features to an existing Vega project.
+### Add Features
 
 ```bash
-vega add <feature> [OPTIONS]
+vega add web         # Add FastAPI web support
+vega add sqlalchemy  # Add database support
 ```
 
-**Features:**
-
-**`web`** - Add FastAPI Web Scaffold
-```bash
-vega add web
-```
-Adds FastAPI web scaffold to your project:
-- `presentation/web/` - Web application structure
-- `presentation/web/routes/` - API routes
-- `presentation/web/middleware/` - Middleware components
-- `presentation/web/app.py` - FastAPI app factory
-
-**`sqlalchemy` / `db`** - Add SQLAlchemy Database Support
-```bash
-vega add sqlalchemy
-vega add db              # Alias
-```
-Adds SQLAlchemy database support:
-- `infrastructure/database_manager.py` - Database connection manager
-- `infrastructure/models/` - SQLAlchemy models directory
-- `alembic/` - Database migration system
-- `alembic.ini` - Alembic configuration
-
-**Options:**
-- `--path <directory>` - Path to Vega project (default: current directory)
-
-**Examples:**
-```bash
-vega add web
-vega add sqlalchemy
-vega add db --path ./my-project
-```
-
----
-
-### Database Management
-
-#### `vega migrate` - Database Migration Commands
-
-Manage database schema migrations with Alembic *(requires SQLAlchemy)*.
-
-**`init`** - Initialize Database
-```bash
-vega migrate init
-```
-Creates all database tables based on current models. Use this for initial setup.
-
-**`create`** - Create New Migration
-```bash
-vega migrate create -m "migration message"
-```
-Generates a new migration file by auto-detecting model changes.
-
-**Options:**
-- `-m, --message <text>` - Migration description (required)
-
-**`upgrade`** - Apply Migrations
-```bash
-vega migrate upgrade [--revision head]
-```
-Apply pending migrations to the database.
-
-**Options:**
-- `--revision <id>` - Target revision (default: `head` - latest)
-
-**`downgrade`** - Rollback Migrations
-```bash
-vega migrate downgrade [--revision -1]
-```
-Rollback database migrations.
-
-**Options:**
-- `--revision <id>` - Target revision (default: `-1` - previous)
-
-**`current`** - Show Current Revision
-```bash
-vega migrate current
-```
-Display the current database migration revision.
-
-**`history`** - Show Migration History
-```bash
-vega migrate history
-```
-Display complete migration history with details.
-
-**Examples:**
-```bash
-# Initialize database
-vega migrate init
-
-# Create migration after changing models
-vega migrate create -m "Add user table"
-vega migrate create -m "Add email field to users"
-
-# Apply all pending migrations
-vega migrate upgrade
-
-# Apply migrations up to specific revision
-vega migrate upgrade --revision abc123
-
-# Rollback last migration
-vega migrate downgrade
-
-# Rollback to specific revision
-vega migrate downgrade --revision xyz789
-
-# Check current status
-vega migrate current
-
-# View history
-vega migrate history
-```
-
----
-
-### Getting Help
-
-**Show Version:**
-```bash
-vega --version
-```
-
-**Show Help:**
-```bash
-vega --help                    # Main help
-vega <command> --help          # Command-specific help
-vega generate --help           # Generate command help
-vega migrate --help            # Migrate command help
-```
-
-**Examples:**
-```bash
-vega init --help
-vega generate --help
-vega add --help
-vega migrate upgrade --help
-```
-
-## Async CLI Commands
-
-Vega provides seamless async/await support in CLI commands, allowing you to execute interactors directly.
-
-### Generate a CLI Command
+### Database Migrations
 
 ```bash
-# Generate an async command (default)
-vega generate command CreateUser
-
-# Generate a synchronous command
-vega generate command ListUsers --impl sync
+vega migrate init                    # Initialize database
+vega migrate create -m "add users"   # Create migration
+vega migrate upgrade                 # Apply migrations
+vega migrate downgrade              # Rollback
 ```
 
-The generator will prompt you for:
-- Command description
-- Options and arguments
-- Whether it will use interactors
+**[See All CLI Commands →](docs/reference/cli/overview.md)**
 
-### Manual Command Example
+## Event System
+
+Built-in event-driven architecture support:
 
 ```python
-import click
-from vega.cli.utils import async_command
+from vega.events import Event, subscribe
 
-@click.command()
-@click.option('--name', required=True)
-@async_command
-async def create_user(name: str):
-    """Create a user using an interactor"""
-    import config  # Initialize DI container
-    from domain.interactors.create_user import CreateUser
+# Define event
+@dataclass(frozen=True)
+class UserCreated(Event):
+    user_id: str
+    email: str
 
-    user = await CreateUser(name=name)
-    click.echo(f"Created: {user.name}")
+# Subscribe to event
+@subscribe(UserCreated)
+async def send_welcome_email(event: UserCreated):
+    await email_service.send(event.email, "Welcome!")
+
+# Publish event
+await UserCreated(user_id="123", email="test@test.com").publish()
 ```
 
-This enables the same async business logic to work in both CLI and web (FastAPI) contexts.
+**[Learn Event System →](docs/explanation/events/overview.md)**
 
-## Use Cases
+## Documentation
 
-Perfect for:
+### Getting Started
+- [Installation](docs/how-to/install.md)
+- [Quick Start](docs/tutorials/quickstart.md)
+- [Project Structure](docs/explanation/project-structure.md)
 
-- AI/RAG applications
+### Core Concepts
+- [Philosophy](docs/explanation/philosophy.md) - Why Vega exists
+- [Clean Architecture](docs/explanation/architecture/clean-architecture.md) - Architecture principles
+- [Dependency Injection](docs/explanation/core/dependency-injection.md) - DI system
+- [Patterns](docs/explanation/patterns/interactor.md) - Interactor, Mediator, Repository, Service
+
+### Guides
+- [Building Domain Layer](docs/how-to/build-domain-layer.md) - Business logic first
+- [CLI Reference](docs/reference/cli/overview.md) - All CLI commands
+- [Events System](docs/explanation/events/overview.md) - Event-driven architecture
+
+### Reference
+- [Changelog](docs/reference/CHANGELOG.md)
+- [Roadmap](docs/reference/ROADMAP.md)
+
+**[Browse All Documentation →](docs/README.md)**
+
+## Perfect For
+
 - E-commerce platforms
-- Fintech systems
-- Mobile backends
-- Microservices
-- CLI tools
-- Any Python application requiring clean architecture
+- Financial systems
+- Enterprise SaaS applications
+- AI/RAG applications
+- Complex workflow systems
+- Multi-tenant applications
+- Any project requiring clean architecture
 
-## License
+## Example Project
 
-MIT
+```
+my-app/
+├── domain/                    # Business logic
+│   ├── entities/             # Business objects
+│   ├── repositories/         # Data interfaces
+│   ├── services/             # External service interfaces
+│   └── interactors/          # Use cases
+├── application/              # Workflows
+│   └── mediators/            # Complex orchestrations
+├── infrastructure/           # Implementations
+│   ├── repositories/         # Database code
+│   └── services/             # API integrations
+├── presentation/             # User interfaces
+│   ├── cli/                  # CLI commands
+│   └── web/                  # FastAPI routes
+├── config.py                 # Dependency injection
+├── settings.py               # Configuration
+└── main.py                   # Entry point
+```
+
+## Why Clean Architecture?
+
+**Without Vega:**
+```python
+# ❌ Business logic mixed with framework code
+@app.post("/orders")
+async def create_order(request: Request):
+    data = await request.json()
+    order = OrderModel(**data)  # SQLAlchemy
+    session.add(order)
+    stripe.Charge.create(...)   # Stripe
+    return {"id": order.id}
+```
+
+**Problems:**
+- Can't test without FastAPI, database, and Stripe
+- Can't reuse for CLI or other interfaces
+- Business rules are unclear
+- Tightly coupled to specific technologies
+
+**With Vega:**
+```python
+# ✅ Pure business logic (Domain)
+class PlaceOrder(Interactor[Order]):
+    @bind
+    async def call(
+        self,
+        order_repo: OrderRepository,
+        payment_service: PaymentService
+    ) -> Order:
+        # Pure business logic - testable, reusable
+        order = Order(...)
+        await payment_service.charge(...)
+        return await order_repo.save(order)
+
+# ✅ FastAPI route (Presentation) - just wiring
+@router.post("/orders")
+async def create_order_api(request: CreateOrderRequest):
+    return await PlaceOrder(...)
+
+# ✅ CLI command (Presentation) - same logic
+@click.command()
+async def create_order_cli(...):
+    return await PlaceOrder(...)
+```
+
+**Benefits:**
+- ✅ Test business logic without any infrastructure
+- ✅ Same logic works for Web, CLI, GraphQL, etc.
+- ✅ Swap databases without changing business code
+- ✅ Clear business rules and operations
+
+## Community & Support
+
+- **GitHub Issues**: [Report bugs and request features](https://github.com/RobyFerro/vega-framework/issues)
+- **Documentation**: [Complete guides and API reference](docs/README.md)
+- **Examples**: Check `examples/` directory for working code
 
 ## Contributing
 
-Contributions welcome! This framework is extracted from production code and battle-tested.
+Contributions are welcome! This framework is extracted from production code and battle-tested in real-world applications.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+**Built with ❤️ for developers who care about architecture.**
+
+[Get Started →](docs/tutorials/quickstart.md) | [Read Philosophy →](docs/explanation/philosophy.md) | [View Documentation →](docs/README.md)
+

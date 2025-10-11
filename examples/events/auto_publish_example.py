@@ -2,9 +2,9 @@
 Auto-Publish Example
 
 This example demonstrates the auto-publish feature using metaclass.
-With auto_publish=True, events are automatically published when instantiated!
+Auto-publish is ENABLED BY DEFAULT - just like Interactors!
 
-This is the CLEANEST syntax possible - just like Interactors!
+This is the CLEANEST syntax possible out of the box!
 """
 import asyncio
 import sys
@@ -16,10 +16,10 @@ if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
 
-# Example 1: Manual publish (default)
+# Example 1: Auto-publish (ENABLED BY DEFAULT!)
 @dataclass(frozen=True)
-class OrderPlaced(Event):
-    """Order placed event - requires manual .publish()"""
+class OrderPlaced(Event):  # Auto-publish is the default!
+    """Order placed event - auto-publishes when created (default behavior)"""
     order_id: str
     amount: float
 
@@ -27,9 +27,9 @@ class OrderPlaced(Event):
         super().__init__()
 
 
-# Example 2: Auto-publish enabled (ultra-clean!)
+# Example 2: More auto-publish events (still using defaults!)
 @dataclass(frozen=True)
-class PaymentReceived(Event, auto_publish=True):
+class PaymentReceived(Event):  # No need for auto_publish=True - it's the default!
     """Payment event - auto-publishes when created!"""
     payment_id: str
     order_id: str
@@ -40,10 +40,22 @@ class PaymentReceived(Event, auto_publish=True):
 
 
 @dataclass(frozen=True)
-class OrderShipped(Event, auto_publish=True):
+class OrderShipped(Event):  # Auto-publish is default!
     """Shipping event - auto-publishes when created!"""
     order_id: str
     tracking_number: str
+
+    def __post_init__(self):
+        super().__init__()
+
+
+# Example 3: Manual publish - DISABLE auto-publish when you need control
+@dataclass(frozen=True)
+class RefundProcessed(Event, auto_publish=False):  # ← Explicitly disable auto-publish
+    """Refund event - requires manual .publish() because auto_publish=False"""
+    refund_id: str
+    order_id: str
+    amount: float
 
     def __post_init__(self):
         super().__init__()
@@ -76,55 +88,51 @@ async def send_tracking_email(event: OrderShipped):
     print(f"   ✅ Tracking email sent")
 
 
+@subscribe(RefundProcessed)
+async def process_refund(event: RefundProcessed):
+    """Process refund"""
+    print(f"💸 Processing refund {event.refund_id} for order {event.order_id}")
+    await asyncio.sleep(0.05)
+    print(f"   ✅ Refund processed: ${event.amount}")
+
+
 async def main():
     """Run the auto-publish example"""
     print("=" * 80)
     print("🚀 Vega Events - Auto-Publish Example")
     print("=" * 80)
     print()
-    print("This demonstrates the CLEANEST syntax possible - like Interactors!")
+    print("⭐ AUTO-PUBLISH IS ENABLED BY DEFAULT - just like Interactors!")
     print()
 
-    # Example 1: Manual publish (traditional way)
-    print("📝 Example 1: Manual Publish (default behavior)")
+    # Example 1: Auto-publish (default behavior!)
+    print("📝 Example 1: Auto-Publish (ENABLED BY DEFAULT)")
     print("-" * 80)
     print()
     print("Code:")
-    print("  event = OrderPlaced(order_id='ORD-001', amount=99.99)")
-    print("  await event.publish()")
-    print()
-
-    event = OrderPlaced(order_id="ORD-001", amount=99.99)
-    await event.publish()
-
-    print()
-
-    # Example 2: Auto-publish (ultra-clean!)
-    print("📝 Example 2: Auto-Publish (enabled with auto_publish=True)")
-    print("-" * 80)
-    print()
-    print("Code:")
-    print("  @dataclass(frozen=True)")
-    print("  class PaymentReceived(Event, auto_publish=True):")
+    print("  class OrderPlaced(Event):  # Auto-publish is default!")
     print("      ...")
     print()
     print("  # Just await the constructor - that's it!")
-    print("  await PaymentReceived(payment_id='PAY-001', order_id='ORD-001', amount=99.99)")
+    print("  await OrderPlaced(order_id='ORD-001', amount=99.99)")
     print()
 
-    # Auto-publish in action!
+    # Auto-publishes automatically!
+    await OrderPlaced(order_id="ORD-001", amount=99.99)
+
+    print()
+
+    # Example 2: More auto-publish events
+    print("📝 Example 2: Multiple Auto-Publish Events (Default Behavior)")
+    print("-" * 80)
+    print()
+
+    # All auto-publish by default!
     await PaymentReceived(
         payment_id="PAY-001",
         order_id="ORD-001",
         amount=99.99
     )
-
-    print()
-
-    # Example 3: Multiple auto-publish events
-    print("📝 Example 3: Multiple Auto-Publish Events")
-    print("-" * 80)
-    print()
 
     await OrderShipped(
         order_id="ORD-001",
@@ -133,44 +141,52 @@ async def main():
 
     print()
 
-    # Example 4: In a workflow (like Interactors)
-    print("📝 Example 4: In a Workflow (similar to Interactors)")
+    # Example 3: Manual publish (when you need control)
+    print("📝 Example 3: Manual Publish (auto_publish=False)")
+    print("-" * 80)
+    print()
+    print("Code:")
+    print("  class RefundProcessed(Event, auto_publish=False):  # Disable!")
+    print("      ...")
+    print()
+    print("  event = RefundProcessed(...)")
+    print("  event.add_metadata('reason', 'customer_request')")
+    print("  await event.publish()  # Manual publish")
+    print()
+
+    # Manual publish - requires auto_publish=False
+    event = RefundProcessed(
+        refund_id="REF-001",
+        order_id="ORD-001",
+        amount=99.99
+    )
+    event.add_metadata('reason', 'customer_request')
+    event.add_metadata('processed_by', 'admin')
+    await event.publish()
+
+    print()
+
+    # Example 4: In a workflow (all auto-publish by default!)
+    print("📝 Example 4: In a Workflow (all auto-publish by default!)")
     print("-" * 80)
     print()
     print("Code:")
     print("  async def process_order_workflow(order_id, amount):")
-    print("      # Step 1: Place order")
-    print("      order = OrderPlaced(order_id=order_id, amount=amount)")
-    print("      await order.publish()")
-    print()
-    print("      # Step 2: Process payment (auto-publish)")
-    print("      await PaymentReceived(")
-    print("          payment_id='PAY-002',")
-    print("          order_id=order_id,")
-    print("          amount=amount")
-    print("      )")
-    print()
-    print("      # Step 3: Ship order (auto-publish)")
-    print("      await OrderShipped(")
-    print("          order_id=order_id,")
-    print("          tracking_number='TRACK-67890'")
-    print("      )")
+    print("      # All events auto-publish - ultra-clean!")
+    print("      await OrderPlaced(order_id=order_id, amount=amount)")
+    print("      await PaymentReceived(...)")
+    print("      await OrderShipped(...)")
     print()
 
     async def process_order_workflow(order_id, amount):
-        """Complete order workflow with mixed publish styles"""
-        # Manual publish
-        order = OrderPlaced(order_id=order_id, amount=amount)
-        await order.publish()
-
-        # Auto-publish
+        """Complete order workflow - all auto-publish!"""
+        # All events auto-publish by default!
+        await OrderPlaced(order_id=order_id, amount=amount)
         await PaymentReceived(
             payment_id="PAY-002",
             order_id=order_id,
             amount=amount
         )
-
-        # Auto-publish
         await OrderShipped(
             order_id=order_id,
             tracking_number="TRACK-67890"
@@ -186,38 +202,40 @@ async def main():
     print("=" * 80)
     print()
 
-    print("❌ Old verbose syntax:")
-    print("   from vega.events import get_event_bus")
-    print("   bus = get_event_bus()")
-    print("   event = UserCreated(...)")
-    print("   await bus.publish(event)")
-    print()
-
-    print("✅ Simple syntax:")
-    print("   event = UserCreated(...)")
-    print("   await event.publish()")
-    print()
-
-    print("🌟 Ultra-clean syntax (auto-publish):")
-    print("   class UserCreated(Event, auto_publish=True):")
+    print("🌟 Auto-publish (DEFAULT - recommended!):")
+    print("   class UserCreated(Event):  # Auto-publish is default!")
     print("       ...")
     print()
     print("   await UserCreated(user_id='123', email='test@test.com')")
+    print()
+
+    print("✅ Manual publish (when you need control):")
+    print("   class UserCreated(Event, auto_publish=False):  # Disable")
+    print("       ...")
+    print()
+    print("   event = UserCreated(...)")
+    print("   event.add_metadata('source', 'api')")
+    print("   await event.publish()")
+    print()
+
+    print("❌ Verbose syntax (avoid):")
+    print("   bus = get_event_bus()")
+    print("   await bus.publish(event)")
     print()
 
     print("=" * 80)
     print("💡 When to Use Each:")
     print("-" * 80)
     print()
-    print("Manual publish (.publish()):")
-    print("  - When you need to inspect/modify event before publishing")
-    print("  - When publishing conditionally")
-    print("  - Default, safe choice")
+    print("Auto-publish (default) - 95% of cases:")
+    print("  ✅ Ultra-clean syntax - just await Event(...)")
+    print("  ✅ Consistent with Interactor pattern")
+    print("  ✅ No configuration needed")
     print()
-    print("Auto-publish (auto_publish=True):")
-    print("  - In workflows where event should ALWAYS be published")
-    print("  - For fire-and-forget events")
-    print("  - Cleanest syntax - like Interactors!")
+    print("Manual publish (auto_publish=False) - rare cases:")
+    print("  ⚠️ When you need to inspect/modify event before publishing")
+    print("  ⚠️ When publishing conditionally")
+    print("  ⚠️ When you need the event instance")
     print()
 
     print("=" * 80)
