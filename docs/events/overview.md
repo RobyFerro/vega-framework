@@ -6,7 +6,9 @@ The Vega Events module provides a powerful event-driven architecture for your ap
 
 - ✅ **Event Bus** - Publish/subscribe pattern for domain events
 - ✅ **Async Support** - Full async/await support for event handlers
-- ✅ **Auto-Publish** - Ultra-clean syntax with metaclass-powered instant publishing
+- ✅ **Auto-Publish** - Ultra-clean syntax with metaclass-powered instant publishing (enabled by default!)
+- ✅ **Auto-Discovery** - Automatically discover and register event handlers from your package
+- ✅ **@trigger Decorator** - Automatically trigger events after Interactor completion
 - ✅ **Priority Ordering** - Control handler execution order
 - ✅ **Retry Logic** - Automatic retries for failed handlers
 - ✅ **Middleware** - Cross-cutting concerns (logging, metrics, validation)
@@ -58,42 +60,235 @@ async def create_audit_log(event: UserCreated):
 
 ### 3. Publish Events
 
-**Simple Syntax (Recommended)** - Just call `.publish()` on the event:
+**Auto-Publish Syntax (Default - Recommended)** - Events publish themselves automatically:
 
 ```python
 async def create_user(name: str, email: str):
     # Create user logic...
     user = User(id="123", name=name, email=email)
 
-    # Publish event - Simple and clean!
+    # Publish event - Ultra-clean syntax!
+    # The event is automatically published when instantiated!
+    await UserCreated(
+        user_id=user.id,
+        email=user.email,
+        name=user.name
+    )
+
+    return user
+```
+
+**Manual Publish Syntax** - When you need to inspect/modify the event first:
+
+```python
+async def create_user(name: str, email: str):
+    user = User(id="123", name=name, email=email)
+
+    # Disable auto-publish for this event class
+    @dataclass(frozen=True)
+    class UserCreated(Event, auto_publish=False):  # Disable auto-publish
+        user_id: str
+        email: str
+        name: str
+
+        def __post_init__(self):
+            super().__init__()
+
+    # Create event
     event = UserCreated(
         user_id=user.id,
         email=user.email,
         name=user.name
     )
-    await event.publish()  # That's it!
+
+    # Add metadata or inspect before publishing
+    event.add_metadata('source', 'api')
+
+    # Manually publish
+    await event.publish()
 
     return user
 ```
 
-**Alternative Syntax** - Using the event bus directly:
+**Note**: Auto-publish is enabled by default. Only use `auto_publish=False` when you need to inspect or modify the event before publishing.
+
+## Auto-Discovery
+
+Vega Events provides automatic discovery and registration of event handlers from your package.
+
+### Basic Auto-Discovery
 
 ```python
-from vega.events import get_event_bus
+from vega.discovery import discover_event_handlers
 
-async def create_user(name: str, email: str):
-    user = User(id="123", name=name, email=email)
-
-    # Publish via event bus
-    bus = get_event_bus()
-    await bus.publish(UserCreated(
-        user_id=user.id,
-        email=user.email,
-        name=user.name
-    ))
-
-    return user
+# In your application startup (e.g., main.py or __init__.py)
+def setup_events():
+    """Automatically discover and register all event handlers"""
+    # Discovers handlers in 'myproject.events' package
+    discover_event_handlers("myproject")
 ```
+
+### Custom Configuration
+
+```python
+from vega.discovery import discover_event_handlers
+
+def setup_events():
+    """Discover handlers from custom location"""
+    # Specify custom events subpackage
+    discover_event_handlers(
+        base_package="myproject",
+        events_subpackage="application.events"
+    )
+```
+
+### Project Structure
+
+```
+myproject/
+├── events/
+│   ├── __init__.py
+│   ├── user_handlers.py    # @subscribe(UserCreated)
+│   ├── order_handlers.py   # @subscribe(OrderPlaced)
+│   └── payment_handlers.py # @subscribe(PaymentProcessed)
+└── main.py
+```
+
+```python
+# main.py
+from vega.discovery import discover_event_handlers
+
+def main():
+    # This will import all modules in myproject/events/
+    # and trigger @subscribe decorator registration
+    discover_event_handlers("myproject")
+
+    # Now all handlers are registered and ready!
+    # You can start publishing events
+```
+
+### How It Works
+
+1. `discover_event_handlers()` scans the events directory for Python modules
+2. Imports each module (except `__init__.py`)
+3. The `@subscribe()` decorators in those modules automatically register handlers
+4. All handlers are now subscribed to the global event bus
+
+### Benefits
+
+- No manual imports required
+- Automatic handler registration
+- Clean separation of concerns
+- Easy to add new handlers (just create a new file)
+
+## @trigger Decorator
+
+The `@trigger` decorator automatically publishes events after an Interactor completes, providing seamless integration between use cases and domain events.
+
+### Basic Usage
+
+```python
+from vega.patterns import Interactor
+from vega.events import Event, trigger
+from vega.di import bind
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class UserCreated(Event):
+    user_id: str
+    email: str
+    name: str
+
+    def __post_init__(self):
+        super().__init__()
+
+@trigger(UserCreated)  # Automatically trigger event after completion
+class CreateUser(Interactor[dict]):
+    def __init__(self, name: str, email: str):
+        self.name = name
+        self.email = email
+
+    @bind
+    async def call(self, repository: UserRepository) -> dict:
+        user = await repository.create(name=self.name, email=self.email)
+
+        # Return dict that matches UserCreated constructor
+        return {
+            "user_id": user.id,
+            "email": user.email,
+            "name": user.name
+        }
+
+# Usage
+result = await CreateUser(name="John", email="john@test.com")
+# After call() completes:
+# 1. Returns result to caller
+# 2. Automatically publishes UserCreated event with result as input
+# 3. All @subscribe(UserCreated) handlers are triggered
+```
+
+### How It Works
+
+1. Interactor executes and returns a result
+2. The `@trigger` decorator intercepts the result
+3. Creates an event instance using the result:
+   - If result is a `dict`: `event(**result)`
+   - If result is an object: `event(result)`
+4. Publishes the event automatically (using auto-publish)
+5. All subscribed handlers receive the event
+
+### Workflow Integration
+
+Perfect for domain events that should always be triggered after a use case:
+
+```python
+@dataclass(frozen=True)
+class OrderPlaced(Event):
+    order_id: str
+    customer_id: str
+    total_amount: float
+
+    def __post_init__(self):
+        super().__init__()
+
+@trigger(OrderPlaced)
+class PlaceOrder(Interactor[dict]):
+    def __init__(self, customer_id: str, items: list):
+        self.customer_id = customer_id
+        self.items = items
+
+    @bind
+    async def call(self, repository: OrderRepository) -> dict:
+        order = await repository.create_order(
+            customer_id=self.customer_id,
+            items=self.items
+        )
+
+        return {
+            "order_id": order.id,
+            "customer_id": order.customer_id,
+            "total_amount": order.total_amount
+        }
+
+# Handlers automatically receive the event
+@subscribe(OrderPlaced)
+async def send_order_confirmation(event: OrderPlaced):
+    await email_service.send_confirmation(event.customer_id, event.order_id)
+
+@subscribe(OrderPlaced)
+async def update_inventory(event: OrderPlaced):
+    await inventory_service.reserve_items(event.order_id)
+
+# Execute - handlers run automatically!
+result = await PlaceOrder(customer_id="123", items=[...])
+```
+
+### Benefits
+
+- Clean separation between business logic and events
+- No manual event publishing in Interactor code
+- Consistent pattern across use cases
+- Works seamlessly with auto-publish
 
 ## Advanced Usage
 
@@ -266,10 +461,38 @@ bus.add_middleware(enrichment)
 
 ### In Interactors
 
+**Option 1: Using @trigger decorator (Recommended)**
+
 ```python
 from vega.patterns import Interactor
 from vega.di import bind
-from vega.events import get_event_bus
+from vega.events import trigger
+
+@trigger(UserCreated)  # Automatically publishes event after completion
+class CreateUser(Interactor[dict]):
+    def __init__(self, name: str, email: str):
+        self.name = name
+        self.email = email
+
+    @bind
+    async def call(self, repository: UserRepository) -> dict:
+        # Domain logic
+        user = User(name=self.name, email=self.email)
+        user = await repository.save(user)
+
+        # Return data for event - auto-published by @trigger!
+        return {
+            "user_id": user.id,
+            "email": user.email,
+            "name": user.name
+        }
+```
+
+**Option 2: Manual publishing (when you need more control)**
+
+```python
+from vega.patterns import Interactor
+from vega.di import bind
 
 class CreateUser(Interactor[User]):
     def __init__(self, name: str, email: str):
@@ -282,13 +505,12 @@ class CreateUser(Interactor[User]):
         user = User(name=self.name, email=self.email)
         user = await repository.save(user)
 
-        # Publish domain event
-        bus = get_event_bus()
-        await bus.publish(UserCreated(
+        # Publish domain event (auto-publish enabled by default)
+        await UserCreated(
             user_id=user.id,
             email=user.email,
             name=user.name
-        ))
+        )
 
         return user
 ```
@@ -297,7 +519,6 @@ class CreateUser(Interactor[User]):
 
 ```python
 from vega.patterns import Mediator
-from vega.events import get_event_bus
 
 class UserRegistrationWorkflow(Mediator[User]):
     def __init__(self, name: str, email: str, password: str):
@@ -306,18 +527,17 @@ class UserRegistrationWorkflow(Mediator[User]):
         self.password = password
 
     async def call(self) -> User:
-        # Create user
+        # Create user (auto-publishes UserCreated via @trigger)
         user = await CreateUser(self.name, self.email)
 
         # Set password
         await SetUserPassword(user.id, self.password)
 
-        # Publish workflow completion event
-        bus = get_event_bus()
-        await bus.publish(UserRegistrationCompleted(
+        # Publish workflow completion event (auto-publish is default)
+        await UserRegistrationCompleted(
             user_id=user.id,
             email=user.email
-        ))
+        )
 
         return user
 ```
@@ -418,18 +638,16 @@ Avoid publishing events from within event handlers to prevent cascading complexi
 # ❌ Bad - publishing from handler
 @subscribe(UserCreated)
 async def on_user_created(event: UserCreated):
-    bus = get_event_bus()
-    await bus.publish(WelcomeEmailSent(...))  # ❌ Cascading events
+    await WelcomeEmailSent(...)  # ❌ Cascading events
 
 # ✅ Good - publish from domain logic
 class CreateUser(Interactor[User]):
     async def call(self, ...):
         user = await repository.save(user)
 
-        # Publish all related events here
-        bus = get_event_bus()
-        await bus.publish(UserCreated(...))
-        await bus.publish(WelcomeEmailScheduled(...))
+        # Publish all related events here (auto-publish is default)
+        await UserCreated(...)
+        await WelcomeEmailScheduled(...)
 ```
 
 ## Testing
@@ -528,6 +746,16 @@ Subscribe function to event on global bus.
 **`@event_handler(event_type, bus=None, priority=0, retry_on_error=False, max_retries=3)`**
 
 Mark method as event handler with optional custom bus.
+
+**`@trigger(event_class)`**
+
+Decorator for Interactor classes to automatically trigger an event after call() completes. The event is constructed with the return value of call() and auto-published.
+
+### Discovery Functions
+
+**`discover_event_handlers(base_package, events_subpackage="events")`**
+
+Auto-discover and register event handlers from a package. Scans the specified package for Python modules containing event handlers decorated with @subscribe() and automatically imports them to trigger registration.
 
 ### Middleware
 

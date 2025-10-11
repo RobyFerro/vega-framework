@@ -1,88 +1,44 @@
 # Event Publishing Syntax Guide
 
-Vega Events offers **three different syntaxes** for publishing events, from verbose to ultra-clean. Choose the one that best fits your use case!
+Vega Events offers **two main syntaxes** for publishing events. **Auto-publish is enabled by default** (like Interactors!), providing ultra-clean syntax out of the box.
 
 ---
 
 ## 📊 Syntax Comparison
 
-### ❌ Verbose Syntax (Not Recommended)
+### 🌟 Auto-Publish Syntax (Default - Recommended)
 
-```python
-from vega.events import get_event_bus
-
-# Create event
-event = UserCreated(user_id="123", email="test@test.com", name="Test")
-
-# Get bus and publish
-bus = get_event_bus()
-await bus.publish(event)
-```
-
-**When to use**: Almost never. Only when you need a custom event bus.
-
----
-
-### ✅ Simple Syntax (Recommended Default)
-
-```python
-# Create event
-event = UserCreated(user_id="123", email="test@test.com", name="Test")
-
-# Publish
-await event.publish()
-```
-
-**When to use**:
-- Default choice for most scenarios
-- When you need to inspect/modify the event before publishing
-- When publishing conditionally
-- When you want explicit control
-
-**Advantages**:
-- Clean and intuitive
-- No need to import `get_event_bus()`
-- Event can be inspected before publishing
-- Can add metadata before publishing
-
----
-
-### 🌟 Ultra-Clean Syntax (Auto-Publish)
-
-**Step 1: Enable auto-publish on event class**
+**Auto-publish is ENABLED BY DEFAULT!** Just await the event constructor:
 
 ```python
 from dataclasses import dataclass
 from vega.events import Event
 
 @dataclass(frozen=True)
-class UserCreated(Event, auto_publish=True):  # ← Enable auto-publish
+class UserCreated(Event):  # Auto-publish is enabled by default!
     user_id: str
     email: str
     name: str
 
     def __post_init__(self):
         super().__init__()
-```
 
-**Step 2: Just await the constructor!**
-
-```python
 # Event is automatically published when instantiated!
 await UserCreated(user_id="123", email="test@test.com", name="Test")
 ```
 
 **When to use**:
-- In workflows where the event should ALWAYS be published immediately
+- **Default choice for 95% of scenarios**
+- In workflows where the event should be published immediately
 - For fire-and-forget events
-- In Interactor/Mediator patterns (similar to how they work)
-- When you want the cleanest possible syntax
+- In Interactor/Mediator patterns (consistent syntax!)
+- When you want the cleanest possible code
 
 **Advantages**:
-- Cleanest syntax - just like Interactors!
-- No `.publish()` call needed
-- Perfect for event-driven workflows
-- Enforces immediate publishing
+- ✅ Cleanest syntax - just like Interactors!
+- ✅ No `.publish()` call needed
+- ✅ Perfect for event-driven workflows
+- ✅ **Enabled by default** - no configuration needed!
 
 **Limitations**:
 - Cannot inspect/modify event before publishing
@@ -91,16 +47,120 @@ await UserCreated(user_id="123", email="test@test.com", name="Test")
 
 ---
 
+### ✅ Manual Publish Syntax (When You Need Control)
+
+**Disable auto-publish** when you need to inspect/modify the event first:
+
+```python
+from dataclasses import dataclass
+from vega.events import Event
+
+@dataclass(frozen=True)
+class UserCreated(Event, auto_publish=False):  # ← Disable auto-publish
+    user_id: str
+    email: str
+    name: str
+
+    def __post_init__(self):
+        super().__init__()
+
+# Create event but don't publish yet
+event = UserCreated(user_id="123", email="test@test.com", name="Test")
+
+# Add metadata or inspect
+event.add_metadata('source', 'api')
+
+# Manually publish when ready
+await event.publish()
+```
+
+**When to use**:
+- When you need to inspect/modify the event before publishing
+- When publishing conditionally
+- When you need the event instance for testing or logging
+
+**Advantages**:
+- Full control over when event is published
+- Can add metadata before publishing
+- Can inspect event properties
+- Can publish conditionally
+
+---
+
+### ❌ Verbose Syntax (Not Recommended)
+
+Using the event bus directly - only needed for custom bus instances:
+
+```python
+from vega.events import get_event_bus
+
+# Create event (with auto_publish=False)
+event = UserCreated(user_id="123", email="test@test.com", name="Test")
+
+# Get bus and publish
+bus = get_event_bus()
+await bus.publish(event)
+```
+
+**When to use**: Almost never. Only when you need a custom event bus instance.
+
+---
+
 ## 🎯 Detailed Examples
 
-### Example 1: Simple Syntax with Conditional Publishing
+### Example 1: Auto-Publish in Workflows (Default Behavior)
 
 ```python
 from vega.events import Event
 from dataclasses import dataclass
 
+# Auto-publish is enabled by default!
 @dataclass(frozen=True)
-class OrderPlaced(Event):
+class PaymentProcessed(Event):
+    payment_id: str
+    order_id: str
+    amount: float
+
+    def __post_init__(self):
+        super().__init__()
+
+@dataclass(frozen=True)
+class OrderShipped(Event):
+    order_id: str
+    tracking_number: str
+
+    def __post_init__(self):
+        super().__init__()
+
+
+async def complete_order_workflow(order_id: str, amount: float):
+    """Complete order processing workflow"""
+
+    # Process payment - auto-publishes (default behavior)!
+    await PaymentProcessed(
+        payment_id=generate_payment_id(),
+        order_id=order_id,
+        amount=amount
+    )
+
+    # Ship order - auto-publishes!
+    await OrderShipped(
+        order_id=order_id,
+        tracking_number=generate_tracking_number()
+    )
+
+    # Clean, sequential workflow!
+```
+
+### Example 2: Manual Publish with Conditional Logic
+
+```python
+from vega.events import Event
+from dataclasses import dataclass
+
+# Disable auto-publish when you need control
+@dataclass(frozen=True)
+class OrderPlaced(Event, auto_publish=False):  # ← Disable auto-publish
     order_id: str
     amount: float
     customer_email: str
@@ -115,7 +175,7 @@ async def place_order(order_id: str, amount: float, customer_email: str):
     # Create order...
     order = save_order(order_id, amount, customer_email)
 
-    # Create event
+    # Create event (doesn't auto-publish because auto_publish=False)
     event = OrderPlaced(
         order_id=order.id,
         amount=order.amount,
@@ -133,68 +193,24 @@ async def place_order(order_id: str, amount: float, customer_email: str):
     return order
 ```
 
-### Example 2: Auto-Publish in Workflows
-
-```python
-from vega.events import Event
-from dataclasses import dataclass
-
-# Enable auto-publish for workflow events
-@dataclass(frozen=True)
-class PaymentProcessed(Event, auto_publish=True):
-    payment_id: str
-    order_id: str
-    amount: float
-
-    def __post_init__(self):
-        super().__init__()
-
-@dataclass(frozen=True)
-class OrderShipped(Event, auto_publish=True):
-    order_id: str
-    tracking_number: str
-
-    def __post_init__(self):
-        super().__init__()
-
-
-async def complete_order_workflow(order_id: str, amount: float):
-    """Complete order processing workflow"""
-
-    # Process payment - auto-publishes!
-    await PaymentProcessed(
-        payment_id=generate_payment_id(),
-        order_id=order_id,
-        amount=amount
-    )
-
-    # Ship order - auto-publishes!
-    await OrderShipped(
-        order_id=order_id,
-        tracking_number=generate_tracking_number()
-    )
-
-    # Clean, sequential workflow!
-```
-
 ### Example 3: Mixed Approach
 
 ```python
 from vega.events import Event
 from dataclasses import dataclass
 
-# Manual publish for main events
+# Disable auto-publish for events that need metadata
 @dataclass(frozen=True)
-class UserRegistered(Event):
+class UserRegistered(Event, auto_publish=False):
     user_id: str
     email: str
 
     def __post_init__(self):
         super().__init__()
 
-# Auto-publish for side-effect events
+# Keep auto-publish for simple fire-and-forget events (default)
 @dataclass(frozen=True)
-class WelcomeEmailSent(Event, auto_publish=True):
+class WelcomeEmailScheduled(Event):  # auto-publish is default!
     user_id: str
     email: str
 
@@ -208,13 +224,13 @@ async def register_user(email: str, password: str):
     # Create user...
     user = create_user(email, password)
 
-    # Main event - manual publish with metadata
+    # Main event - manual publish with metadata (auto_publish=False)
     event = UserRegistered(user_id=user.id, email=user.email)
     event.add_metadata('registration_source', 'web')
     await event.publish()
 
-    # Side-effect event - auto-publish
-    await WelcomeEmailSent(user_id=user.id, email=user.email)
+    # Side-effect event - auto-publishes (default behavior)!
+    await WelcomeEmailScheduled(user_id=user.id, email=user.email)
 
     return user
 ```
@@ -227,9 +243,9 @@ from vega.di import bind
 from vega.events import Event
 from dataclasses import dataclass
 
-# Auto-publish for Interactor events
+# Auto-publish is default - consistent with Interactor syntax!
 @dataclass(frozen=True)
-class UserCreated(Event, auto_publish=True):
+class UserCreated(Event):  # No auto_publish=True needed!
     user_id: str
     email: str
     name: str
@@ -251,7 +267,7 @@ class CreateUser(Interactor[User]):
         user = User(name=self.name, email=self.email)
         user = await repository.save(user)
 
-        # Publish event - auto-publishes!
+        # Publish event - auto-publishes by default!
         await UserCreated(
             user_id=user.id,
             email=user.email,
@@ -277,17 +293,17 @@ Do you need a custom event bus?
 └─ NO
     ↓
     Do you need to modify the event before publishing?
-    ├─ YES → Use: event.publish()
+    ├─ YES → Use: auto_publish=False + event.publish()
     └─ NO
         ↓
         Do you need conditional publishing?
-        ├─ YES → Use: event.publish()
+        ├─ YES → Use: auto_publish=False + event.publish()
         └─ NO
             ↓
-            Is this a workflow/always-publish scenario?
-            ├─ YES → Use: auto_publish=True
-            └─ NO → Use: event.publish() (default)
+            ✅ Use default auto-publish (await Event(...))
 ```
+
+**Key Point**: Auto-publish is **enabled by default**. Only use `auto_publish=False` when you need control over when/if the event is published.
 
 ---
 
@@ -307,12 +323,19 @@ All three syntaxes have identical performance:
 ### ✅ DO
 
 ```python
-# Use auto-publish for workflow events
+# Use default auto-publish for most events (cleanest!)
 @dataclass(frozen=True)
-class StepCompleted(Event, auto_publish=True):
+class StepCompleted(Event):  # Auto-publish is default!
     ...
 
-# Use manual publish for events that need metadata
+# Usage - ultra-clean syntax!
+await StepCompleted(step_id="123")
+
+# Disable auto-publish only when you need metadata or conditional logic
+@dataclass(frozen=True)
+class UserCreated(Event, auto_publish=False):
+    ...
+
 event = UserCreated(...)
 event.add_metadata('source', 'api')
 await event.publish()
@@ -323,31 +346,39 @@ await event.publish()
 ### ❌ DON'T
 
 ```python
-# Don't mix styles unnecessarily
-await UserCreated(...)  # auto-publish
-await event.publish()   # manual publish
-# Pick one approach per event type!
+# Don't unnecessarily disable auto-publish
+@dataclass(frozen=True)
+class SimpleEvent(Event, auto_publish=False):  # ❌ Unnecessary!
+    ...
 
-# Don't use auto-publish if you need the event object
-event = UserCreated(...)  # Won't work with auto_publish=True!
-# auto_publish returns a coroutine, not the event
+event = SimpleEvent(...)
+await event.publish()
+# Just use default auto-publish: await SimpleEvent(...)
+
+# Don't try to get the event object with auto-publish enabled (default)
+event = UserCreated(...)  # ❌ This returns a coroutine, not the event!
+# Use auto_publish=False if you need the event instance
 
 # Don't use verbose syntax unless absolutely necessary
 bus = get_event_bus()
-await bus.publish(event)  # Prefer: await event.publish()
+await bus.publish(event)  # ❌ Prefer: await event.publish() or just await Event(...)
 ```
 
 ---
 
 ## 📚 Summary
 
-| Syntax | Code | Use Case |
-|--------|------|----------|
-| **Verbose** | `await bus.publish(event)` | Custom event bus |
-| **Simple** | `await event.publish()` | Default choice ✅ |
-| **Auto-Publish** | `await EventName(...)` | Workflows, always-publish 🌟 |
+| Syntax | Code | Use Case | Auto-Publish? |
+|--------|------|----------|---------------|
+| **Auto-Publish (Default)** | `await EventName(...)` | 95% of scenarios 🌟 | ✅ Enabled by default |
+| **Manual Publish** | `event.publish()` | When you need control | ❌ Use `auto_publish=False` |
+| **Verbose** | `bus.publish(event)` | Custom event bus | ❌ Use `auto_publish=False` |
 
-**Recommendation**: Start with **Simple syntax** as default, use **Auto-Publish** for workflow events.
+**Key Takeaway**: Auto-publish is **enabled by default**, giving you the cleanest syntax out of the box. Only use `auto_publish=False` when you specifically need to inspect/modify events before publishing or publish conditionally.
+
+**Recommendation**:
+- ✅ **Default**: Use auto-publish (just `await Event(...)`) for most events
+- ⚠️ **Rare**: Use `auto_publish=False` only when you need conditional logic or metadata
 
 ---
 
