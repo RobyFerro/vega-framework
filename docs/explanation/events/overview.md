@@ -266,7 +266,7 @@ async def log_event_errors(event, exception, handler_name):
     await sentry.capture_exception(exception)
 ```
 
-### Middleware
+### Middlewareso
 
 Add cross-cutting concerns with middleware:
 
@@ -457,6 +457,7 @@ Events should be named in **past tense** to indicate something that happened:
 - `InventoryUpdated`
 
 x **Bad**:
+
 - `CreateUser` (this is a command/action, not an event)
 - `PlaceOrder` (command)
 - `SendEmail` (command)
@@ -612,8 +613,7 @@ async def test_interactor_publishes_event():
 ```
 
 ## Related Resources
+
 - Follow the tutorial in ../../tutorials/events/getting-started.md
 - Apply publishing patterns from ../../how-to/events/publish-events.md
 - Consult the API reference at ../../reference/events/api.md
-
-
