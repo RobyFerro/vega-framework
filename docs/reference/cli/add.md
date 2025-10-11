@@ -39,10 +39,14 @@ vega add web
 
 Creates FastAPI boilerplate:
 
+- `presentation/web/__init__.py`
 - `presentation/web/app.py`
 - `presentation/web/main.py`
 - `presentation/web/routes/__init__.py`
 - `presentation/web/routes/health.py`
+- `presentation/web/routes/users.py`
+- `presentation/web/models/__init__.py`
+- `presentation/web/models/user_models.py`
 - Auto-discovery support for new routers
 
 **Next steps**
@@ -60,9 +64,13 @@ vega add sqlalchemy
 Creates SQLAlchemy helpers and Alembic configuration:
 
 - `infrastructure/database_manager.py`
-- `alembic.ini` and `alembic/` folder
-- Base SQLAlchemy model template
-- Optional example repository (entity, interface, implementation, model)
+- `alembic.ini`
+- `alembic/env.py`
+- `alembic/script.py.mako`
+- `alembic/versions/.gitkeep`
+- Updates `config.py` to expose a `DatabaseManager` instance if missing
+- Injects `sqlalchemy`, `alembic`, and `aiosqlite` into `pyproject.toml`
+- Optional example repository (entity, interface, SQLAlchemy implementation, model)
 
 **Next steps**
 
@@ -84,7 +92,14 @@ Creates SQLAlchemy helpers and Alembic configuration:
    vega migrate upgrade
    ```
 
-Update `config.py` to bind repositories (e.g., `SQLAlchemyUserRepository`) to their interfaces.
+6. Wire infrastructure into `config.py` (e.g., bind `SQLAlchemyUserRepository` to `UserRepository`).
+
+If you accept the example repository prompt, the CLI also generates:
+
+- `domain/entities/user.py`
+- `domain/repositories/user_repository.py`
+- `infrastructure/models/user.py`
+- `infrastructure/repositories/sqlalchemy_user_repository.py`
 
 ## Example Workflow
 

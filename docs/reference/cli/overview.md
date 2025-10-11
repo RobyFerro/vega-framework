@@ -1,6 +1,6 @@
 # CLI Overview
 
-Vega Framework provides a comprehensive CLI for scaffolding and managing Clean Architecture projects.
+Vega Framework ships with a CLI for scaffolding, extending, and maintaining Clean Architecture projects.
 
 ## Installation
 
@@ -12,12 +12,15 @@ pip install vega-framework
 
 | Command | Purpose |
 |---------|---------|
-| `vega init <name>` | Create new project |
-| `vega generate <type> <name>` | Generate component |
-| `vega add <feature>` | Add feature to project |
-| `vega migrate <command>` | Manage database migrations |
-| `vega doctor` | Validate project architecture |
-| `vega update` | Update framework |
+| `vega init <name>` | Scaffold a new project (templates: `basic`, `fastapi`, `ai-rag`) |
+| `vega generate <type> <name>` | Create domain, application, infrastructure, or presentation components |
+| `vega add <feature>` | Enable optional scaffolds such as FastAPI (`web`) or SQLAlchemy (`sqlalchemy`/`db`) |
+| `vega web <command>` | Run or manage the FastAPI server once the web scaffold is present |
+| `vega migrate <command>` | Proxy Alembic to manage database migrations |
+| `vega update` | Check for and install CLI/framework updates |
+| `vega doctor` | Planned architecture diagnostics (command reserved; implementation pending) |
+
+Use `--help` on any command to inspect options.
 
 ## Common Workflows
 
@@ -29,10 +32,11 @@ vega init my-app
 cd my-app
 poetry install
 
-# Web project with FastAPI
+# FastAPI-ready project
 vega init my-api --template fastapi
 cd my-api
 poetry install
+vega web run --reload
 ```
 
 ### Generate Components
@@ -40,82 +44,71 @@ poetry install
 ```bash
 # Domain layer
 vega generate entity User
-vega generate repository UserRepository
+vega generate repository UserRepository --impl memory
 vega generate interactor CreateUser
 
+# Application layer
+vega generate mediator CheckoutFlow
+
 # Presentation layer
-vega generate command create-user
-vega generate router User  # Requires web
+vega add web
+vega generate router User
+vega generate webmodel CreateUserRequest --request
+
+# Infrastructure layer
+vega add sqlalchemy
+vega generate model User
+vega generate repository UserRepository --impl sql
 ```
 
 ### Add Features
 
 ```bash
-# Add web support
-vega add web
-
-# Add database support
-vega add sqlalchemy
-
-# Then generate database models
-vega generate model User
+vega add web            # FastAPI scaffold
+vega add sqlalchemy     # SQLAlchemy + Alembic
+vega add db             # Alias for sqlalchemy
 ```
 
 ### Database Management
 
 ```bash
-# Initialize database
-vega migrate init
-
-# Create migration
-vega migrate create -m "add users table"
-
-# Apply migrations
-vega migrate upgrade
-
-# Rollback
-vega migrate downgrade
-```
-
-### Validate Project
-
-```bash
-# Check architecture compliance
-vega doctor
-
-# Check if project is a valid Vega project
-vega doctor --path ./my-project
+vega migrate init                        # Create tables from current models
+vega migrate create -m "add users table" # Generate Alembic revision
+vega migrate upgrade                     # Apply migrations
+vega migrate downgrade                   # Roll back
+vega migrate history                     # Inspect revision log
 ```
 
 ## Command Categories
 
 ### Project Management
-- [vega init](init.md) - Initialize new project
-- [vega doctor](doctor.md) - Validate project
-- [vega update](update.md) - Update framework
+- [vega init](init.md) – Bootstrap a new project structure.
+- [vega update](update.md) – Keep the CLI and framework up to date.
+- [vega doctor](doctor.md) – Track roadmap status and planned checks.
 
 ### Code Generation
-- [vega generate](generate.md) - Generate components
+- [vega generate](generate.md) – Create components across all layers.
 
 ### Feature Management
-- [vega add](add.md) - Add features
+- [vega add](add.md) – Add FastAPI or database scaffolds.
+- [vega web](web.md) – Run the FastAPI app after adding the web scaffold.
 
 ### Database Management
-- [vega migrate](migrate.md) - Database migrations
+- [vega migrate](migrate.md) – Run Alembic commands through the Vega CLI.
 
 ## Help
-
-Get help for any command:
 
 ```bash
 vega --help
 vega init --help
 vega generate --help
 vega migrate --help
+vega web --help
 ```
 
 ## Next Steps
 
-- [vega init](init.md) - Create your first project
-- [vega generate](generate.md) - Learn all component types
-- [vega add](add.md) - Add features to existing projects
+- [vega init](init.md) – Create your first project.
+- [vega add](add.md) – Add web or database capabilities.
+- [vega generate](generate.md) – Explore every generator and option.
+- [vega migrate](migrate.md) – Manage your schema once SQLAlchemy is enabled.

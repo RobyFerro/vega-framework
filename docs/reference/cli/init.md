@@ -1,0 +1,84 @@
+# vega init
+
+Scaffold a new Vega project with a Clean Architecture layout.
+
+## Usage
+
+```bash
+vega init <project_name> [OPTIONS]
+```
+
+Run the command in the directory where you want the project folder to be created.
+
+## Options
+
+### --template <basic|fastapi|ai-rag>
+
+```bash
+vega init my-service --template fastapi
+```
+
+- `basic` (default) – CLI-first layout with a ready-to-use `main.py`.
+- `fastapi` – Adds the FastAPI web scaffold under `presentation/web/` and writes a FastAPI-specific `main.py`. Run `vega web run` to start the server after installing dependencies.
+- `ai-rag` – Reserved template name for future AI/RAG tooling. For now it produces the same structure as `basic` so you can migrate seamlessly when the dedicated scaffold lands.
+
+### --path PATH
+
+```bash
+vega init billing --path ./apps
+```
+
+Creates the project under `PATH/project_name` instead of the current working directory.
+
+## Generated Structure
+
+```
+project_name/
+├── domain/
+│   ├── entities/
+│   ├── repositories/
+│   ├── services/
+│   └── interactors/
+├── application/mediators/
+├── infrastructure/
+│   ├── repositories/
+│   └── services/
+├── presentation/
+│   └── cli/commands/__init__.py  # auto-discovers CLI commands
+├── events/__init__.py            # auto-registers event handlers
+├── tests/(domain|application|infrastructure|presentation)/
+├── config.py                     # dependency injection container
+├── settings.py                   # pydantic-based settings
+├── .env.example                  # starter environment variables
+├── .gitignore
+├── pyproject.toml                # Poetry configuration (pinning current vega version)
+├── README.md                     # project overview
+├── ARCHITECTURE.md               # layer responsibilities
+└── main.py                       # CLI entry point (FastAPI-specific when template=fastapi)
+```
+
+When `--template fastapi` is used, the command also runs `vega add web` internally to create:
+
+- `presentation/web/app.py`
+- `presentation/web/main.py`
+- `presentation/web/routes/{__init__.py,health.py,users.py}`
+- `presentation/web/models/{__init__.py,user_models.py}`
+
+## Next Steps
+
+```bash
+cd project_name
+poetry install
+cp .env.example .env
+```
+
+- Add infrastructure implementations and bind them in `config.py`.
+- Generate new components with `vega generate ...`.
+- When using the FastAPI template:
+  ```bash
+  poetry add fastapi uvicorn[standard]
+  vega web run --reload
+  ```
+- For database support run `vega add sqlalchemy` and follow the prompts.
+
+The generated `README.md` contains a quick reference tailored to the chosen template, so keep it handy for onboarding teammates.

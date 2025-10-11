@@ -1,6 +1,6 @@
 # vega generate
 
-Generate Clean Architecture components in your project.
+Create Clean Architecture components for an existing Vega project.
 
 ## Usage
 
@@ -8,422 +8,176 @@ Generate Clean Architecture components in your project.
 vega generate <component_type> <name> [OPTIONS]
 ```
 
-## Component Types
+The command must run from the project root (where `config.py` lives) unless you pass `--path`.
 
-### Domain Layer
+## Component Matrix
 
-#### entity - Domain Entity
+| Type | Aliases | Output location | Requirements |
+|------|---------|-----------------|--------------|
+| `entity` | – | `domain/entities/` | – |
+| `repository` | `repo` | `domain/repositories/` (+ optional infrastructure) | – |
+| `service` | – | `domain/services/` (+ optional infrastructure) | – |
+| `interactor` | – | `domain/interactors/` | – |
+| `mediator` | – | `application/mediators/` | – |
+| `model` | – | `infrastructure/models/` | `vega add sqlalchemy` |
+| `router` | – | `presentation/web/routes/` | `vega add web` |
+| `middleware` | – | `presentation/web/middleware/` | `vega add web` |
+| `webmodel` | – | `presentation/web/models/` | `vega add web`; `--request` or `--response` |
+| `command` | – | `presentation/cli/commands/` | – |
+| `event` | – | `domain/events/` | – |
+| `event-handler` | `subscriber` | `events/` | – |
+
+## Domain Layer Generators
+
+### Entities (`entity`)
 
 ```bash
 vega generate entity User
-vega generate entity Product
 ```
 
-Creates a domain entity (dataclass) in `domain/entities/`.
+Produces a dataclass under `domain/entities/user.py`. The generator scaffolds the class and leaves placeholders for your fields.
 
-**Generated file**:
-```python
-from dataclasses import dataclass
-
-@dataclass
-class User:
-    id: str
-    # Add your fields here
-```
-
-#### repository - Repository Interface
+### Repositories (`repository`, `repo`)
 
 ```bash
 vega generate repository UserRepository
-vega generate repository Product  # Auto-adds "Repository" suffix
+vega generate repository User --impl memory
 ```
 
-Creates repository interface in `domain/repositories/`.
+Creates an abstract repository in `domain/repositories/`. If the corresponding entity does not exist, the CLI offers to create it automatically.
 
-**With implementation**:
-```bash
-vega generate repository User --impl memory    # In-memory
-vega generate repository User --impl sql       # SQL implementation
-```
+Use `--impl <name>` to also scaffold an infrastructure implementation in `infrastructure/repositories/`. Vega derives PascalCase and snake_case names for the implementation (e.g., `SqlUserRepository` → `sql_user_repository.py`).
 
-Creates both interface and implementation.
-
-#### service - Service Interface
+### Services (`service`)
 
 ```bash
 vega generate service EmailService
-vega generate service Email --impl smtp
-```
-
-Creates service interface in `domain/services/`.
-
-**With implementation**:
-```bash
 vega generate service Email --impl sendgrid
 ```
 
-#### interactor - Use Case
+Similar to repositories, services live in `domain/services/`. The optional `--impl` flag creates an implementation under `infrastructure/services/`.
+
+### Interactors (`interactor`)
 
 ```bash
 vega generate interactor CreateUser
-vega generate interactor GetUserById
-vega generate interactor UpdateUserEmail
 ```
 
-Creates interactor in `domain/interactors/`.
+Interactors go to `domain/interactors/` and follow the Vega `Interactor` base class. The generator infers the target entity from common prefixes such as `Create`, `Update`, or `Get`.
 
-**Generated file**:
-```python
-from vega.patterns import Interactor
-from vega.di import bind
+## Application Layer Generators
 
-class CreateUser(Interactor[Result]):
-    def __init__(self):
-        pass
+### Mediators (`mediator`)
 
-    @bind
-    async def call(self) -> Result:
-        # Implement your use case here
-        pass
+```bash
+vega generate mediator CheckoutWorkflow
 ```
 
-### Events
+Creates a skeleton under `application/mediators/` for orchestrating multiple interactors.
 
-#### event - Domain Event
+## Events
+
+### Domain Events (`event`)
 
 ```bash
 vega generate event UserCreated
 ```
 
-Creates immutable domain event in `domain/events/`.
+Outputs an immutable dataclass in `domain/events/`. The CLI prompts you for payload fields (name, type hint, description) and fills in the base `Event` plumbing.
 
-**Generated file**:
-```python
-from dataclasses import dataclass
-from vega.events import Event
-
-@dataclass(frozen=True)
-class UserCreated(Event):
-    user_id: str
-    email: str
-
-    def __post_init__(self):
-        super().__init__()
-```
-
-#### subscriber - Event Handler
+### Event Handlers (`event-handler`, `subscriber`)
 
 ```bash
-vega generate subscriber SendWelcomeEmail --name UserCreated
+vega generate subscriber SendWelcomeEmail
 ```
 
-Creates async event handler in `events/` (project root) so auto-discovery can import it.
+Writes an async handler in the top-level `events/` package so auto-discovery can import it. You will be prompted for the event class/module, handler priority, and retry configuration. Remember to call `events.register_all_handlers()` during application startup so Vega loads every subscriber.
 
-**Generated file**:
-```python
-from vega.events import subscribe
-from domain.events.user_created import UserCreated
+## Presentation Layer Generators
 
-@subscribe(UserCreated)
-async def send_welcome_email(event: UserCreated):
-    # Implement handling logic
-    raise NotImplementedError("Implement SendWelcomeEmail handler")
-```
-
-Call `events.register_all_handlers()` during startup to load every module in `events/` automatically.
-
-> Tip: Projects generated with newer versions of Vega invoke `register_all_handlers()` from `main.py`. If you created your project before this change, add:
-> ```python
-> try:
->     from events import register_all_handlers
-> except ImportError:
->     pass
-> else:
->     register_all_handlers()
-> ```
-> right after `import config` in your `main.py`.
-
-### Application Layer
-
-#### mediator - Workflow
+### FastAPI Router (`router`)
 
 ```bash
-vega generate mediator UserRegistrationFlow
-vega generate mediator CheckoutWorkflow
-```
-
-Creates mediator in `application/mediators/`.
-
-**Generated file**:
-```python
-from vega.patterns import Mediator
-
-class UserRegistrationFlow(Mediator[Result]):
-    def __init__(self):
-        pass
-
-    async def call(self) -> Result:
-        # Orchestrate multiple interactors here
-        pass
-```
-
-### Infrastructure Layer
-
-#### model - SQLAlchemy Model
-
-```bash
-vega generate model User
-vega generate model Product
-```
-
-**Requires**: SQLAlchemy support (`vega add sqlalchemy`)
-
-Creates SQLAlchemy model in `infrastructure/models/` and registers it with Alembic.
-
-### Presentation Layer
-
-#### router - FastAPI Router
-
-```bash
+vega add web
 vega generate router User
-vega generate router Product
 ```
 
-**Requires**: Web support (`vega add web`)
+Requires the FastAPI scaffold. Generates `presentation/web/routes/user.py`, adds the router to `routes/__init__.py`, and reminds you to build request/response models and interactors.
 
-Creates FastAPI router in `presentation/web/routes/` and auto-registers it.
-
-**Generated file**:
-```python
-from fastapi import APIRouter
-
-router = APIRouter()
-
-@router.get("/")
-async def list_users():
-    return {"users": []}
-
-@router.get("/{id}")
-async def get_user(id: str):
-    return {"user": {}}
-```
-
-#### middleware - FastAPI Middleware
+### FastAPI Middleware (`middleware`)
 
 ```bash
 vega generate middleware Logging
-vega generate middleware Authentication
 ```
 
-**Requires**: Web support (`vega add web`)
+Creates `presentation/web/middleware/logging.py` and registers the import in the middleware package if it exists.
 
-Creates middleware in `presentation/web/middleware/` and auto-registers it.
-
-#### command - CLI Command
+### Pydantic Models (`webmodel`)
 
 ```bash
-vega generate command CreateUser                # Async (default)
-vega generate command ListUsers --impl sync     # Synchronous
+vega generate webmodel CreateUserRequest --request
+vega generate webmodel UserResponse --response
 ```
 
-Creates CLI command in `presentation/cli/commands/`.
+Also requires the FastAPI scaffold. Generates (or appends to) files under `presentation/web/models/`. You must specify one of `--request` or `--response`. If the target file already exists, Vega appends the new class instead of overwriting the file.
 
-The generator will prompt for:
-- Command description
-- Options and arguments
-- Whether it uses interactors
+## Infrastructure Layer Generators
 
-**Generated async command**:
-```python
-import click
-from vega.cli.utils import async_command
+### SQLAlchemy Models (`model`)
 
-@click.command()
-@click.option('--name', required=True)
-@async_command
-async def create_user(name: str):
-    """Create a user"""
-    import config  # Initialize DI
-    # Your logic here
-    click.echo(f"Created user: {name}")
+```bash
+vega add sqlalchemy
+vega generate model Order
 ```
+
+Places a SQLAlchemy model under `infrastructure/models/order.py`, auto-pluralises the table name, and attempts to import the model in `alembic/env.py` so Alembic can discover it. If the env file could not be updated automatically, the CLI prints the import snippet you need to add manually.
+
+## CLI Command Generators
+
+### Commands (`command`)
+
+```bash
+vega generate command CreateUser
+vega generate command ReportMetrics --impl sync
+```
+
+Creates an interactive command generator under `presentation/cli/commands/`. By default the command is async and wraps the function with `@async_command`. Passing `--impl sync` (or `--impl simple`) produces a synchronous template.
+
+During generation Vega asks for:
+
+- Description text (used as the docstring/help).
+- Optional options/arguments (name, type, requirement).
+- Whether the command will call an interactor.
+
+The generator also lays down `presentation/cli/commands/__init__.py` with auto-discovery utilities if it does not already exist.
 
 ## Options
 
-### --path
+- `--path PATH` – Run the generator against a project located somewhere else.
+- `--impl NAME` – Valid for `repository`, `service`, and `command`. Adds an infrastructure implementation or switches the command template to synchronous mode.
+- `--request`, `--response` – Required flags for `webmodel` to pick the correct template.
 
-Specify project path (default: current directory):
+Attempting to use `--impl` on unsupported component types results in a warning and the flag is ignored.
 
-```bash
-vega generate entity User --path ./my-project
-```
+## Auto-Discovery Highlights
 
-### --impl
-
-Generate implementation along with interface:
-
-```bash
-# Repository implementations
-vega generate repository User --impl memory
-vega generate repository User --impl sql
-vega generate repository User --impl postgres
-
-# Service implementations
-vega generate service Email --impl sendgrid
-vega generate service Payment --impl stripe
-
-# Command types
-vega generate command MyCommand --impl sync    # Synchronous
-vega generate command MyCommand --impl async   # Asynchronous (default)
-```
+- **Routers** are auto-imported from `presentation/web/routes/` via `routes/__init__.py`.
+- **CLI commands** are auto-registered by iterating over `presentation/cli/commands/`.
+- **Event handlers** are loaded when `events.register_all_handlers()` runs, which imports every module in the `events/` package.
+- **SQLAlchemy models** receive an import in `alembic/env.py` so autogeneration sees them.
 
 ## Examples
 
-### Complete Feature Generation
-
 ```bash
-# 1. Generate entity
-vega generate entity Product
-
-# 2. Generate repository with implementation
-vega generate repository Product --impl memory
-
-# 3. Generate interactors
-vega generate interactor CreateProduct
-vega generate interactor GetProductById
-vega generate interactor UpdateProduct
-vega generate interactor DeleteProduct
-
-# 4. Generate mediator for complex workflow
-vega generate mediator ProductCatalogSync
-
-# 5. Generate API endpoints
-vega generate router Product
-
-# 6. Generate CLI commands
-vega generate command create-product
-vega generate command list-products
-```
-
-### E-commerce Example
-
-```bash
-# Entities
+# Full user flow
 vega generate entity User
-vega generate entity Product
-vega generate entity Order
-
-# Repositories
 vega generate repository User --impl sql
-vega generate repository Product --impl sql
-vega generate repository Order --impl sql
-
-# Use cases
 vega generate interactor CreateUser
-vega generate interactor PurchaseProduct
-vega generate interactor CreateOrder
-vega generate interactor ProcessPayment
-
-# Workflows
-vega generate mediator CheckoutWorkflow
-vega generate mediator OrderFulfillment
-
-# API
+vega generate interactor GetUser
+vega generate mediator UserLifecycle
+vega add web
+vega generate webmodel CreateUserRequest --request
+vega generate webmodel UserResponse --response
 vega generate router User
-vega generate router Product
-vega generate router Order
-
-# CLI
 vega generate command create-user
-vega generate command list-orders
 ```
-
-## Auto-Registration
-
-Some components are auto-discovered:
-
-### Routers (FastAPI)
-
-```python
-# presentation/web/routes/user_routes.py
-router = APIRouter()  # Must be named 'router'
-
-# Automatically registered at /api/user
-```
-
-### Commands (CLI)
-
-```python
-# presentation/cli/commands/user_commands.py
-@click.command()
-def create_user():
-    pass
-
-# Automatically discovered and registered
-```
-
-### Event Subscribers
-
-```python
-# events/__init__.py
-from events import register_all_handlers
-
-def bootstrap():
-    register_all_handlers()  # Loads every @subscribe handler in events/
-```
-
-Handlers live in `events/` and are imported automatically once `register_all_handlers()` runs.
-
-## Tips
-
-### Naming Conventions
-
-```bash
-# Entity: Singular, PascalCase
-vega generate entity User
-vega generate entity Product
-
-# Repository: EntityName + Repository
-vega generate repository UserRepository
-vega generate repository User  # Auto-adds Repository
-
-# Interactor: Verb + Entity
-vega generate interactor CreateUser
-vega generate interactor UpdateProduct
-
-# Mediator: Workflow name + Flow/Workflow
-vega generate mediator UserRegistrationFlow
-vega generate mediator CheckoutWorkflow
-
-# Router: Entity name (creates /entity routes)
-vega generate router User  # Creates /user endpoints
-
-# Command: Verb + noun (kebab-case)
-vega generate command create-user
-vega generate command list-products
-```
-
-### Order of Generation
-
-1. **Entities** first (domain objects)
-2. **Repositories** (data access)
-3. **Services** (external dependencies)
-4. **Interactors** (use cases)
-5. **Mediators** (workflows)
-6. **Routers/Commands** (presentation)
-
-### Batch Generation
-
-```bash
-# Use shell loop for multiple similar components
-for entity in User Product Order; do
-    vega generate entity $entity
-    vega generate repository $entity --impl sql
-done
-```
-
-## Next Steps
-
-- [vega add](add.md) - Add features before generating components
-- [vega doctor](doctor.md) - Validate generated code
-- [Patterns](../patterns/interactor.md) - Understand the patterns

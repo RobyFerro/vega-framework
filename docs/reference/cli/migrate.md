@@ -46,7 +46,7 @@ Runs `db_manager.create_tables()` to create all tables defined by your SQLAlchem
 vega migrate create -m "Add orders table"
 ```
 
-Generates a new migration revision using Alembic autogeneration. Provide a descriptive message with `-m/--message`.
+Generates a new migration revision using Alembic autogeneration. The `-m/--message` flag is required.
 
 ### upgrade
 
@@ -64,7 +64,7 @@ vega migrate downgrade -1
 vega migrate downgrade base
 ```
 
-Rolls back migrations. By default it applies one step (`-1`).
+Rolls back migrations. The default target is `-1`, which reverts one step.
 
 ### current
 
@@ -80,7 +80,7 @@ Shows the currently applied revision.
 vega migrate history
 ```
 
-Displays the migration timeline produced by Alembic (including branch details when present).
+Displays the migration timeline produced by Alembic using the verbose output that includes branch and dependency information.
 
 ## Recommended Workflow
 
