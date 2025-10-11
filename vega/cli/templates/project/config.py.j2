@@ -25,11 +25,3 @@ SERVICES = {
 # Create and set container
 container = Container(SERVICES)
 set_container(container)
-
-# Auto-discover event subscribers so @subscribe handlers are registered
-try:
-    from events import register_all_handlers
-except ImportError:
-    pass
-else:
-    register_all_handlers()

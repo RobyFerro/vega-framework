@@ -1,5 +1,14 @@
 """FastAPI ASGI entrypoint for {{ project_name }}"""
 from fastapi import FastAPI
+import config  # noqa: F401 - Import to initialize DI container
+
+# Auto-discover event subscribers so @subscribe handlers are ready
+try:
+    from events import register_all_handlers
+except ImportError:
+    pass
+else:
+    register_all_handlers()
 
 from .app import create_app
 

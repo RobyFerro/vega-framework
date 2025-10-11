@@ -17,7 +17,10 @@
       "Bash(poetry:*)",
       "Bash(Select-Object -Skip 1)",
       "Bash(dir:*)",
-      "Bash(Select-Object -First 30)"
+      "Bash(Select-Object -First 30)",
+      "Read(//tmp/test-autodiscovery/presentation/web/**)",
+      "Read(//tmp/test-autodiscovery/**)",
+      "Bash(timeout 5 poetry run python -m uvicorn presentation.web.main:app --host 127.0.0.1 --port 8765)"
     ],
     "deny": [],
     "ask": []

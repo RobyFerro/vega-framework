@@ -3,6 +3,14 @@ import click
 from vega.cli.utils import async_command
 import config  # noqa: F401 - Import to initialize DI container
 
+# Auto-discover event subscribers so @subscribe handlers are ready
+try:
+    from events import register_all_handlers
+except ImportError:
+    pass
+else:
+    register_all_handlers()
+
 # Import your use cases here
 # from domain.interactors.create_user import CreateUser
 

@@ -132,7 +132,7 @@ async def send_welcome_email(event: UserCreated):
 
 Call `events.register_all_handlers()` during startup to load every module in `events/` automatically.
 
-> Tip: Projects generated with newer versions of Vega invoke `register_all_handlers()` from `config.py`. If you created your project before this change, add:
+> Tip: Projects generated with newer versions of Vega invoke `register_all_handlers()` from `main.py`. If you created your project before this change, add:
 > ```python
 > try:
 >     from events import register_all_handlers
@@ -141,7 +141,7 @@ Call `events.register_all_handlers()` during startup to load every module in `ev
 > else:
 >     register_all_handlers()
 > ```
-> near the bottom of your `config.py`.
+> right after `import config` in your `main.py`.
 
 ### Application Layer
 
