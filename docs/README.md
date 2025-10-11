@@ -5,7 +5,7 @@ Welcome to the Vega Framework documentation set. The content now follows the Di�
 ## Quick Links
 - Tutorials: [Project quickstart](tutorials/quickstart.md), [Getting started with events](tutorials/events/getting-started.md)
 - How-to guides: [Install Vega](how-to/install.md), [Build the domain layer](how-to/build-domain-layer.md), [Publish events](how-to/events/publish-events.md)
-- Reference: [CLI overview](reference/cli/overview.md), [CLI generate command](reference/cli/generate.md), [Events API](reference/events/api.md), [Changelog](reference/CHANGELOG.md)
+- Reference: [CLI overview](reference/cli/overview.md), [CLI generate command](reference/cli/generate.md), [CLI add command](reference/cli/add.md), [CLI migrate command](reference/cli/migrate.md), [Events API](reference/events/api.md), [Changelog](reference/CHANGELOG.md)
 - Explanations: [Philosophy](explanation/philosophy.md), [Project structure](explanation/project-structure.md), [Architecture](explanation/architecture/clean-architecture.md), [Patterns](explanation/patterns/interactor.md), [Event concepts](explanation/events/overview.md)
 
 ## Tutorials
@@ -19,6 +19,8 @@ Welcome to the Vega Framework documentation set. The content now follows the Di�
 
 ## Reference
 - [CLI overview](reference/cli/overview.md) – available commands and workflows.
+- [CLI add command](reference/cli/add.md) – enable FastAPI or SQLAlchemy scaffolds.
+- [CLI migrate command](reference/cli/migrate.md) – manage Alembic migrations from the CLI.
 - [CLI generate command](reference/cli/generate.md) – supported component generators and options.
 - [Events API](reference/events/api.md) – classes, decorators, and middleware exposed by `vega.events`.
 - [Changelog](reference/CHANGELOG.md) – release history.
