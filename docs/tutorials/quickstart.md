@@ -140,7 +140,7 @@ asyncio.run(main())
 
 ## What's Next?
 
-- [Project Structure](project-structure.md) - Understand the architecture
-- [Architecture Guide](../architecture/clean-architecture.md) - Learn Clean Architecture principles
-- [Patterns](../patterns/interactor.md) - Deep dive into patterns
-- [CLI Commands](../cli/overview.md) - Learn all CLI commands
+- [Project Structure](../explanation/project-structure.md) - Understand the default layout
+- [Architecture Guide](../explanation/architecture/clean-architecture.md) - Learn Clean Architecture principles
+- [Patterns](../explanation/patterns/interactor.md) - Deep dive into core patterns
+- [CLI Commands](../reference/cli/overview.md) - Learn all CLI commands

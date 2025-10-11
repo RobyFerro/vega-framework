@@ -4,9 +4,9 @@ Vega Events offers **two main syntaxes** for publishing events. **Auto-publish i
 
 ---
 
-## 📊 Syntax Comparison
+## Syntax Comparison
 
-### 🌟 Auto-Publish Syntax (Default - Recommended)
+### Auto-Publish Syntax (Default - Recommended)
 
 **Auto-publish is ENABLED BY DEFAULT!** Just await the event constructor:
 
@@ -35,10 +35,10 @@ await UserCreated(user_id="123", email="test@test.com", name="Test")
 - When you want the cleanest possible code
 
 **Advantages**:
-- ✅ Cleanest syntax - just like Interactors!
-- ✅ No `.publish()` call needed
-- ✅ Perfect for event-driven workflows
-- ✅ **Enabled by default** - no configuration needed!
+- [OK] Cleanest syntax - just like Interactors!
+- [OK] No `.publish()` call needed
+- [OK] Perfect for event-driven workflows
+- [OK] **Enabled by default** - no configuration needed!
 
 **Limitations**:
 - Cannot inspect/modify event before publishing
@@ -47,7 +47,7 @@ await UserCreated(user_id="123", email="test@test.com", name="Test")
 
 ---
 
-### ✅ Manual Publish Syntax (When You Need Control)
+### Manual Publish Syntax (When You Need Control)
 
 **Disable auto-publish** when you need to inspect/modify the event first:
 
@@ -56,7 +56,7 @@ from dataclasses import dataclass
 from vega.events import Event
 
 @dataclass(frozen=True)
-class UserCreated(Event, auto_publish=False):  # ← Disable auto-publish
+class UserCreated(Event, auto_publish=False):  # <- Disable auto-publish
     user_id: str
     email: str
     name: str
@@ -87,7 +87,7 @@ await event.publish()
 
 ---
 
-### ❌ Verbose Syntax (Not Recommended)
+### Verbose Syntax (Not Recommended)
 
 Using the event bus directly - only needed for custom bus instances:
 
@@ -106,7 +106,7 @@ await bus.publish(event)
 
 ---
 
-## 🎯 Detailed Examples
+## Detailed Examples
 
 ### Example 1: Auto-Publish in Workflows (Default Behavior)
 
@@ -160,7 +160,7 @@ from dataclasses import dataclass
 
 # Disable auto-publish when you need control
 @dataclass(frozen=True)
-class OrderPlaced(Event, auto_publish=False):  # ← Disable auto-publish
+class OrderPlaced(Event, auto_publish=False):  # <- Disable auto-publish
     order_id: str
     amount: float
     customer_email: str
@@ -283,31 +283,31 @@ user = await CreateUser(name="John", email="john@example.com")
 
 ---
 
-## 🤔 Decision Guide
+## Decision Guide
 
 Use this flowchart to decide which syntax to use:
 
 ```
 Do you need a custom event bus?
-├─ YES → Use: bus.publish(event)
-└─ NO
-    ↓
+-- YES -> Use: bus.publish(event)
+-- NO
+    v
     Do you need to modify the event before publishing?
-    ├─ YES → Use: auto_publish=False + event.publish()
-    └─ NO
-        ↓
+    -- YES -> Use: auto_publish=False + event.publish()
+    -- NO
+        v
         Do you need conditional publishing?
-        ├─ YES → Use: auto_publish=False + event.publish()
-        └─ NO
-            ↓
-            ✅ Use default auto-publish (await Event(...))
+        -- YES -> Use: auto_publish=False + event.publish()
+        -- NO
+            v
+            [OK] Use default auto-publish (await Event(...))
 ```
 
 **Key Point**: Auto-publish is **enabled by default**. Only use `auto_publish=False` when you need control over when/if the event is published.
 
 ---
 
-## ⚡ Performance Notes
+## Performance Notes
 
 All three syntaxes have identical performance:
 - Auto-publish uses metaclass (zero runtime overhead)
@@ -318,9 +318,9 @@ All three syntaxes have identical performance:
 
 ---
 
-## 🎨 Best Practices
+## Best Practices
 
-### ✅ DO
+### DO
 
 ```python
 # Use default auto-publish for most events (cleanest!)
@@ -343,12 +343,12 @@ await event.publish()
 # Use consistent style within a module
 ```
 
-### ❌ DON'T
+### DON'T
 
 ```python
 # Don't unnecessarily disable auto-publish
 @dataclass(frozen=True)
-class SimpleEvent(Event, auto_publish=False):  # ❌ Unnecessary!
+class SimpleEvent(Event, auto_publish=False):  # [Avoid] Unnecessary!
     ...
 
 event = SimpleEvent(...)
@@ -356,33 +356,33 @@ await event.publish()
 # Just use default auto-publish: await SimpleEvent(...)
 
 # Don't try to get the event object with auto-publish enabled (default)
-event = UserCreated(...)  # ❌ This returns a coroutine, not the event!
+event = UserCreated(...)  # [Avoid] This returns a coroutine, not the event!
 # Use auto_publish=False if you need the event instance
 
 # Don't use verbose syntax unless absolutely necessary
 bus = get_event_bus()
-await bus.publish(event)  # ❌ Prefer: await event.publish() or just await Event(...)
+await bus.publish(event)  # [Avoid] Prefer: await event.publish() or just await Event(...)
 ```
 
 ---
 
-## 📚 Summary
+## Summary
 
 | Syntax | Code | Use Case | Auto-Publish? |
 |--------|------|----------|---------------|
-| **Auto-Publish (Default)** | `await EventName(...)` | 95% of scenarios 🌟 | ✅ Enabled by default |
-| **Manual Publish** | `event.publish()` | When you need control | ❌ Use `auto_publish=False` |
-| **Verbose** | `bus.publish(event)` | Custom event bus | ❌ Use `auto_publish=False` |
+| **Auto-Publish (Default)** | `await EventName(...)` | 95% of scenarios (recommended) | [OK] Enabled by default |
+| **Manual Publish** | `event.publish()` | When you need control | [Avoid] Use `auto_publish=False` |
+| **Verbose** | `bus.publish(event)` | Custom event bus | [Avoid] Use `auto_publish=False` |
 
 **Key Takeaway**: Auto-publish is **enabled by default**, giving you the cleanest syntax out of the box. Only use `auto_publish=False` when you specifically need to inspect/modify events before publishing or publish conditionally.
 
 **Recommendation**:
-- ✅ **Default**: Use auto-publish (just `await Event(...)`) for most events
-- ⚠️ **Rare**: Use `auto_publish=False` only when you need conditional logic or metadata
+- [OK] **Default**: Use auto-publish (just `await Event(...)`) for most events
+- [Warning] **Rare**: Use `auto_publish=False` only when you need conditional logic or metadata
 
 ---
 
-## 🔗 See Also
+## See Also
 
 - [README.md](README.md) - Full event system documentation
 - [EVENT_BUS_SUMMARY.md](../../EVENT_BUS_SUMMARY.md) - Implementation summary

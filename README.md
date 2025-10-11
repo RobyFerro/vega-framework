@@ -13,7 +13,7 @@ Traditional Python frameworks show you **how to build** but don't enforce **how 
 - ✅ **Async Support** - Full async/await for CLI and web
 - ✅ **FastAPI & SQLAlchemy** - Built-in integrations when needed
 
-**[Read the Philosophy →](docs/philosophy.md)** to understand why architecture matters.
+**[Read the Philosophy →](docs/explanation/philosophy.md)** to understand why architecture matters.
 
 ## Quick Start
 
@@ -64,7 +64,7 @@ class CreateUser(Interactor[User]):
 user = await CreateUser(name="John", email="john@example.com")
 ```
 
-**[See Full Quick Start →](docs/getting-started/quick-start.md)**
+**[See Full Quick Start →](docs/tutorials/quickstart.md)**
 
 ## Key Concepts
 
@@ -82,14 +82,14 @@ user = await CreateUser(name="John", email="john@example.com")
 └─────────────────────────────────────┘
 ```
 
-**[Learn Clean Architecture →](docs/architecture/clean-architecture.md)**
+**[Learn Clean Architecture →](docs/explanation/architecture/clean-architecture.md)**
 
 ### Core Patterns
 
-- **[Interactor](docs/patterns/interactor.md)** - Single-purpose use case
-- **[Mediator](docs/patterns/mediator.md)** - Complex workflow orchestration
-- **[Repository](docs/patterns/repository.md)** - Data persistence abstraction
-- **[Service](docs/patterns/service.md)** - External service abstraction
+- **[Interactor](docs/explanation/patterns/interactor.md)** - Single-purpose use case
+- **[Mediator](docs/explanation/patterns/mediator.md)** - Complex workflow orchestration
+- **[Repository](docs/explanation/patterns/repository.md)** - Data persistence abstraction
+- **[Service](docs/explanation/patterns/service.md)** - External service abstraction
 
 ### Dependency Injection
 
@@ -112,7 +112,7 @@ container = Container({
 })
 ```
 
-**[Learn Dependency Injection →](docs/core/dependency-injection.md)**
+**[Learn Dependency Injection →](docs/explanation/core/dependency-injection.md)**
 
 ## CLI Commands
 
@@ -160,7 +160,7 @@ vega migrate upgrade                 # Apply migrations
 vega migrate downgrade              # Rollback
 ```
 
-**[See All CLI Commands →](docs/cli/overview.md)**
+**[See All CLI Commands →](docs/reference/cli/overview.md)**
 
 ## Event System
 
@@ -184,25 +184,25 @@ async def send_welcome_email(event: UserCreated):
 await UserCreated(user_id="123", email="test@test.com").publish()
 ```
 
-**[Learn Event System →](docs/events/overview.md)**
+**[Learn Event System →](docs/explanation/events/overview.md)**
 
 ## Documentation
 
 ### Getting Started
-- [Installation](docs/getting-started/installation.md)
-- [Quick Start](docs/getting-started/quick-start.md)
-- [Project Structure](docs/getting-started/project-structure.md)
+- [Installation](docs/how-to/install.md)
+- [Quick Start](docs/tutorials/quickstart.md)
+- [Project Structure](docs/explanation/project-structure.md)
 
 ### Core Concepts
-- [Philosophy](docs/philosophy.md) - Why Vega exists
-- [Clean Architecture](docs/architecture/clean-architecture.md) - Architecture principles
-- [Dependency Injection](docs/core/dependency-injection.md) - DI system
-- [Patterns](docs/patterns/interactor.md) - Interactor, Mediator, Repository, Service
+- [Philosophy](docs/explanation/philosophy.md) - Why Vega exists
+- [Clean Architecture](docs/explanation/architecture/clean-architecture.md) - Architecture principles
+- [Dependency Injection](docs/explanation/core/dependency-injection.md) - DI system
+- [Patterns](docs/explanation/patterns/interactor.md) - Interactor, Mediator, Repository, Service
 
 ### Guides
-- [Building Domain Layer](docs/guides/building-domain-layer.md) - Business logic first
-- [CLI Reference](docs/cli/overview.md) - All CLI commands
-- [Events System](docs/events/overview.md) - Event-driven architecture
+- [Building Domain Layer](docs/how-to/build-domain-layer.md) - Business logic first
+- [CLI Reference](docs/reference/cli/overview.md) - All CLI commands
+- [Events System](docs/explanation/events/overview.md) - Event-driven architecture
 
 ### Reference
 - [Changelog](docs/reference/CHANGELOG.md)
@@ -312,4 +312,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **Built with ❤️ for developers who care about architecture.**
 
-[Get Started →](docs/getting-started/quick-start.md) | [Read Philosophy →](docs/philosophy.md) | [View Documentation →](docs/README.md)
+[Get Started →](docs/tutorials/quickstart.md) | [Read Philosophy →](docs/explanation/philosophy.md) | [View Documentation →](docs/README.md)
+

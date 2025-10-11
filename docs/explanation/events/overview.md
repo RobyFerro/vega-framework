@@ -1,116 +1,19 @@
-# Vega Events - Domain Events & Event Bus
+# Vega Events Concepts
 
-The Vega Events module provides a powerful event-driven architecture for your applications, enabling loose coupling and reactive programming patterns.
+Use this guide to understand the principles and architectural decisions behind Vega's event-driven subsystem.
 
 ## Features
 
-- ✅ **Event Bus** - Publish/subscribe pattern for domain events
-- ✅ **Async Support** - Full async/await support for event handlers
-- ✅ **Auto-Publish** - Ultra-clean syntax with metaclass-powered instant publishing (enabled by default!)
-- ✅ **Auto-Discovery** - Automatically discover and register event handlers from your package
-- ✅ **@trigger Decorator** - Automatically trigger events after Interactor completion
-- ✅ **Priority Ordering** - Control handler execution order
-- ✅ **Retry Logic** - Automatic retries for failed handlers
-- ✅ **Middleware** - Cross-cutting concerns (logging, metrics, validation)
-- ✅ **Event Inheritance** - Handlers for base events receive derived events
-- ✅ **Type-Safe** - Full type hints support
-
-## Quick Start
-
-### 1. Define an Event
-
-Events are immutable data classes that represent something that happened:
-
-```python
-from dataclasses import dataclass
-from vega.events import Event
-
-@dataclass(frozen=True)
-class UserCreated(Event):
-    user_id: str
-    email: str
-    name: str
-
-    def __post_init__(self):
-        super().__init__()
-```
-
-### 2. Subscribe to Events
-
-Use the `@subscribe` decorator to register event handlers:
-
-```python
-from vega.events import subscribe
-
-@subscribe(UserCreated)
-async def send_welcome_email(event: UserCreated):
-    """Send welcome email when user is created"""
-    print(f"Sending welcome email to {event.email}")
-    await email_service.send(
-        to=event.email,
-        subject="Welcome!",
-        body=f"Hello {event.name}, welcome to our platform!"
-    )
-
-@subscribe(UserCreated)
-async def create_audit_log(event: UserCreated):
-    """Log user creation for audit trail"""
-    await audit_service.log(f"User {event.user_id} created at {event.timestamp}")
-```
-
-### 3. Publish Events
-
-**Auto-Publish Syntax (Default - Recommended)** - Events publish themselves automatically:
-
-```python
-async def create_user(name: str, email: str):
-    # Create user logic...
-    user = User(id="123", name=name, email=email)
-
-    # Publish event - Ultra-clean syntax!
-    # The event is automatically published when instantiated!
-    await UserCreated(
-        user_id=user.id,
-        email=user.email,
-        name=user.name
-    )
-
-    return user
-```
-
-**Manual Publish Syntax** - When you need to inspect/modify the event first:
-
-```python
-async def create_user(name: str, email: str):
-    user = User(id="123", name=name, email=email)
-
-    # Disable auto-publish for this event class
-    @dataclass(frozen=True)
-    class UserCreated(Event, auto_publish=False):  # Disable auto-publish
-        user_id: str
-        email: str
-        name: str
-
-        def __post_init__(self):
-            super().__init__()
-
-    # Create event
-    event = UserCreated(
-        user_id=user.id,
-        email=user.email,
-        name=user.name
-    )
-
-    # Add metadata or inspect before publishing
-    event.add_metadata('source', 'api')
-
-    # Manually publish
-    await event.publish()
-
-    return user
-```
-
-**Note**: Auto-publish is enabled by default. Only use `auto_publish=False` when you need to inspect or modify the event before publishing.
+- **Event Bus** - Publish/subscribe pattern for domain events
+- **Async Support** - Full async/await support for event handlers
+- **Auto-Publish** - Ultra-clean syntax with metaclass-powered instant publishing (enabled by default!)
+- **Auto-Discovery** - Automatically discover and register event handlers from your package
+- **@trigger Decorator** - Automatically trigger events after Interactor completion
+- **Priority Ordering** - Control handler execution order
+- **Retry Logic** - Automatic retries for failed handlers
+- **Middleware** - Cross-cutting concerns (logging, metrics, validation)
+- **Event Inheritance** - Handlers for base events receive derived events
+- **Type-Safe** - Full type hints support
 
 ## Auto-Discovery
 
@@ -546,14 +449,14 @@ class UserRegistrationWorkflow(Mediator[User]):
 
 Events should be named in **past tense** to indicate something that happened:
 
-✅ **Good**:
+- **Good**:
 - `UserCreated`
 - `OrderPlaced`
 - `PaymentProcessed`
 - `EmailSent`
 - `InventoryUpdated`
 
-❌ **Bad**:
+x **Bad**:
 - `CreateUser` (this is a command/action, not an event)
 - `PlaceOrder` (command)
 - `SendEmail` (command)
@@ -565,7 +468,7 @@ Events should be named in **past tense** to indicate something that happened:
 Use `@dataclass(frozen=True)` to ensure events cannot be modified:
 
 ```python
-@dataclass(frozen=True)  # ✅ Immutable
+@dataclass(frozen=True)  # - Immutable
 class UserCreated(Event):
     user_id: str
     email: str
@@ -576,7 +479,7 @@ class UserCreated(Event):
 Events should contain all data needed by handlers:
 
 ```python
-# ✅ Good - includes all relevant data
+# - Good - includes all relevant data
 @dataclass(frozen=True)
 class OrderPlaced(Event):
     order_id: str
@@ -585,7 +488,7 @@ class OrderPlaced(Event):
     total_amount: Decimal
     currency: str
 
-# ❌ Bad - handlers need to fetch additional data
+# x Bad - handlers need to fetch additional data
 @dataclass(frozen=True)
 class OrderPlaced(Event):
     order_id: str  # Handlers must fetch order details
@@ -596,7 +499,7 @@ class OrderPlaced(Event):
 Create specific events for specific domain actions:
 
 ```python
-# ✅ Good - specific events
+# - Good - specific events
 @dataclass(frozen=True)
 class UserEmailChanged(Event):
     user_id: str
@@ -608,7 +511,7 @@ class UserPasswordChanged(Event):
     user_id: str
     changed_at: datetime
 
-# ❌ Bad - generic event
+# x Bad - generic event
 @dataclass(frozen=True)
 class UserUpdated(Event):
     user_id: str
@@ -622,7 +525,7 @@ Handlers may be called multiple times (retries), so make them idempotent:
 ```python
 @subscribe(UserCreated)
 async def send_welcome_email(event: UserCreated):
-    # ✅ Check if email already sent
+    # - Check if email already sent
     if await email_log.has_sent(event.user_id, 'welcome'):
         return
 
@@ -635,12 +538,12 @@ async def send_welcome_email(event: UserCreated):
 Avoid publishing events from within event handlers to prevent cascading complexity:
 
 ```python
-# ❌ Bad - publishing from handler
+# x Bad - publishing from handler
 @subscribe(UserCreated)
 async def on_user_created(event: UserCreated):
-    await WelcomeEmailSent(...)  # ❌ Cascading events
+    await WelcomeEmailSent(...)  # x Cascading events
 
-# ✅ Good - publish from domain logic
+# - Good - publish from domain logic
 class CreateUser(Interactor[User]):
     async def call(self, ...):
         user = await repository.save(user)
@@ -708,85 +611,9 @@ async def test_interactor_publishes_event():
     assert event.email == "test@test.com"
 ```
 
-## API Reference
+## Related Resources
+- Follow the tutorial in ../../tutorials/events/getting-started.md
+- Apply publishing patterns from ../../how-to/events/publish-events.md
+- Consult the API reference at ../../reference/events/api.md
 
-### Event
 
-Base class for all events.
-
-**Properties**:
-- `event_id: str` - Unique identifier (auto-generated UUID)
-- `timestamp: datetime` - When event was created (auto-generated)
-- `event_name: str` - Event class name
-- `metadata: Dict[str, Any]` - Additional metadata
-
-**Methods**:
-- `add_metadata(key: str, value: Any)` - Add metadata to event
-
-### EventBus
-
-Central event bus for pub/sub.
-
-**Methods**:
-- `subscribe(event_type, handler, priority=0, retry_on_error=False, max_retries=3)` - Subscribe handler
-- `unsubscribe(event_type, handler)` - Unsubscribe handler
-- `publish(event)` - Publish event to all subscribers
-- `publish_many(events)` - Publish multiple events
-- `add_middleware(middleware)` - Add middleware
-- `on_error(handler)` - Register error handler
-- `clear_subscribers(event_type=None)` - Clear subscribers
-- `get_subscriber_count(event_type)` - Get subscriber count
-
-### Decorators
-
-**`@subscribe(event_type, priority=0, retry_on_error=False, max_retries=3)`**
-
-Subscribe function to event on global bus.
-
-**`@event_handler(event_type, bus=None, priority=0, retry_on_error=False, max_retries=3)`**
-
-Mark method as event handler with optional custom bus.
-
-**`@trigger(event_class)`**
-
-Decorator for Interactor classes to automatically trigger an event after call() completes. The event is constructed with the return value of call() and auto-published.
-
-### Discovery Functions
-
-**`discover_event_handlers(base_package, events_subpackage="events")`**
-
-Auto-discover and register event handlers from a package. Scans the specified package for Python modules containing event handlers decorated with @subscribe() and automatically imports them to trigger registration.
-
-### Middleware
-
-**Built-in Middleware**:
-- `LoggingEventMiddleware` - Log all events
-- `MetricsEventMiddleware` - Collect event metrics
-- `ValidationEventMiddleware` - Validate events before publishing
-- `EnrichmentEventMiddleware` - Auto-add metadata to events
-
-**Custom Middleware**:
-
-Extend `EventMiddleware` and implement:
-- `async def before_publish(event: Event)` - Called before event is published
-- `async def after_publish(event: Event)` - Called after handlers complete
-
-## Performance Considerations
-
-- **Async Handlers**: All handlers run concurrently (not sequentially)
-- **Error Isolation**: Failed handlers don't block other handlers
-- **Retry Overhead**: Use retry sparingly - exponential backoff adds delay
-- **Middleware Order**: Middleware runs in order added - keep it lightweight
-
-## Examples
-
-See the [examples directory](../../examples/events/) for complete examples:
-- Basic event publishing
-- Event handlers with DI
-- Middleware usage
-- Testing strategies
-- Integration with Interactors/Mediators
-
-## License
-
-Part of the Vega Framework - See LICENSE for details.

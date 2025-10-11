@@ -15,7 +15,7 @@ The Domain Layer is the **heart** of your application. It contains pure business
 
 ## What Goes in the Domain Layer?
 
-### ✅ YES - Domain Layer
+### - YES - Domain Layer
 
 ```python
 # Business entities
@@ -42,23 +42,23 @@ class OrderRepository(Repository[Order]):
         pass
 ```
 
-### ❌ NO - NOT Domain Layer
+### x NO - NOT Domain Layer
 
 ```python
-# ❌ Database code
+# x Database code
 from sqlalchemy import Column, String
 class Order(Base):
     __tablename__ = 'orders'
 
-# ❌ HTTP concerns
+# x HTTP concerns
 from fastapi import HTTPException
 raise HTTPException(status_code=400)
 
-# ❌ External service details
+# x External service details
 import stripe
 stripe.Charge.create(...)
 
-# ❌ UI concerns
+# x UI concerns
 def render_order_html(order):
     return f"<div>{order.id}</div>"
 ```
@@ -107,7 +107,7 @@ class Order:
 
     Business rules:
     - Total must be positive
-    - Status transitions follow: pending → confirmed → shipped → delivered
+    - Status transitions follow: pending -> confirmed -> shipped -> delivered
     - Cancelled orders cannot be modified
     """
     id: str
@@ -287,7 +287,7 @@ class PlaceOrder(Interactor[Order]):
 ### Business Logic (Domain Layer)
 
 ```python
-# ✅ This is business logic:
+# - This is business logic:
 if order.total < minimum_order_amount:
     raise OrderTooSmallError()
 
@@ -301,7 +301,7 @@ if product.stock < quantity:
 ### Technical Logic (Infrastructure Layer)
 
 ```python
-# ❌ This is NOT business logic:
+# x This is NOT business logic:
 if response.status_code != 200:
     raise HTTPError()
 
@@ -469,10 +469,10 @@ async def test_place_order():
 
 ## Common Mistakes
 
-### ❌ Mistake 1: Putting Framework Code in Domain
+### x Mistake 1: Putting Framework Code in Domain
 
 ```python
-# ❌ WRONG
+# x WRONG
 from sqlalchemy import Column
 from fastapi import HTTPException
 
@@ -484,16 +484,16 @@ class PlaceOrder(Interactor[Order]):
         raise HTTPException(400, "Invalid")  # FastAPI in domain
 ```
 
-### ❌ Mistake 2: Not Enforcing Business Rules
+### x Mistake 2: Not Enforcing Business Rules
 
 ```python
-# ❌ WRONG - No validation
+# x WRONG - No validation
 class PlaceOrder(Interactor[Order]):
     async def call(self):
         order = Order(...)
         return await repository.save(order)  # Just saves, no validation
 
-# ✅ CORRECT - Validates business rules
+# - CORRECT - Validates business rules
 class PlaceOrder(Interactor[Order]):
     async def call(self):
         if total < 0:
@@ -504,14 +504,14 @@ class PlaceOrder(Interactor[Order]):
         return await repository.save(order)
 ```
 
-### ❌ Mistake 3: Mixing Multiple Operations
+### x Mistake 3: Mixing Multiple Operations
 
 ```python
-# ❌ WRONG - Too many responsibilities
+# x WRONG - Too many responsibilities
 class PlaceOrderAndSendEmailAndCreateInvoice(Interactor[Order]):
     pass
 
-# ✅ CORRECT - Single responsibility
+# - CORRECT - Single responsibility
 class PlaceOrder(Interactor[Order]):
     pass
 
@@ -528,6 +528,6 @@ class OrderWorkflow(Mediator[Order]):
 
 ## Next Steps
 
-- [Building Application Layer](building-application-layer.md) - Orchestrate use cases
-- [Building Infrastructure](building-infrastructure.md) - Implement abstractions
-- [Testing](testing.md) - Test your domain logic
+- [Mediator pattern](../explanation/patterns/mediator.md) - Coordinate multiple interactors
+- [Layer responsibilities](../explanation/architecture/layers.md) - Understand boundaries between layers
+- [Generate components](../reference/cli/generate.md) - Scaffold new domain pieces with the CLI

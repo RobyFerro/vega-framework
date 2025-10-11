@@ -1,89 +1,53 @@
 # Vega Framework Documentation
 
-Complete documentation for Vega Framework - an enterprise-ready Python framework enforcing Clean Architecture.
+Welcome to the Vega Framework documentation set. The content now follows the Diátaxis model so you can pick the type of material you need—tutorials for learning, how-to guides for specific goals, reference for precise lookups, and explanations for background knowledge.
 
 ## Quick Links
+- Tutorials: [Project quickstart](tutorials/quickstart.md), [Getting started with events](tutorials/events/getting-started.md)
+- How-to guides: [Install Vega](how-to/install.md), [Build the domain layer](how-to/build-domain-layer.md), [Publish events](how-to/events/publish-events.md)
+- Reference: [CLI overview](reference/cli/overview.md), [CLI generate command](reference/cli/generate.md), [Events API](reference/events/api.md), [Changelog](reference/CHANGELOG.md)
+- Explanations: [Philosophy](explanation/philosophy.md), [Project structure](explanation/project-structure.md), [Architecture](explanation/architecture/clean-architecture.md), [Patterns](explanation/patterns/interactor.md), [Event concepts](explanation/events/overview.md)
 
-- **[Philosophy](philosophy.md)** - Why Vega exists and core principles ⭐
-- [Installation](getting-started/installation.md) - Get started in minutes
-- [Quick Start](getting-started/quick-start.md) - Build your first project
-- [Architecture](architecture/clean-architecture.md) - Understand Clean Architecture
-- [CLI Commands](cli/overview.md) - Master the CLI
-- [Events System](events/overview.md) - Event-driven architecture
+## Tutorials
+- [Project quickstart](tutorials/quickstart.md) – scaffold your first Vega application and run an interactor.
+- [Getting started with events](tutorials/events/getting-started.md) – define events, subscribe handlers, and publish them end-to-end.
 
-## Documentation Structure
+## How-to Guides
+- [Install Vega](how-to/install.md) – installation using pip or Poetry.
+- [Build the domain layer](how-to/build-domain-layer.md) – craft entities, interactors, and repositories.
+- [Publish events](how-to/events/publish-events.md) – choose between auto-publish and manual publishing patterns.
 
-### Philosophy & Concepts
-- **[Philosophy](philosophy.md)** - Why Vega exists, core principles, when to use it
+## Reference
+- [CLI overview](reference/cli/overview.md) – available commands and workflows.
+- [CLI generate command](reference/cli/generate.md) – supported component generators and options.
+- [Events API](reference/events/api.md) – classes, decorators, and middleware exposed by `vega.events`.
+- [Changelog](reference/CHANGELOG.md) – release history.
+- [Roadmap](reference/ROADMAP.md) – planned capabilities.
 
-### Getting Started
-- [Installation](getting-started/installation.md)
-- [Quick Start](getting-started/quick-start.md)
-- [Project Structure](getting-started/project-structure.md)
-
-### Architecture
-- [Clean Architecture](architecture/clean-architecture.md) - Core principles
-- [Layers](architecture/layers.md) - The 4 layers explained
-- [Dependency Rule](architecture/dependency-rule.md) - Why dependencies matter
-
-### Core Concepts
-- [Dependency Injection](core/dependency-injection.md) - DI system
-- [Scopes](core/scopes.md) - Singleton, Scoped, Transient
-- [Container](core/container.md) - Container configuration
-
-### Patterns
-- [Interactor](patterns/interactor.md) - Single-purpose use cases
-- [Mediator](patterns/mediator.md) - Complex workflows
-- [Repository](patterns/repository.md) - Data persistence abstraction
-- [Service](patterns/service.md) - External service abstraction
-
-### Events
-- [Overview](events/overview.md) - Event system complete guide
-- [Publishing](events/publishing.md) - Event publishing syntax
-- [Handlers](events/handlers.md) - Event handlers
-- [Middleware](events/middleware.md) - Event middleware
-- [Best Practices](events/best-practices.md) - Events best practices
-
-### CLI
-- [Overview](cli/overview.md) - CLI introduction
-- [init](cli/init.md) - Create projects
-- [generate](cli/generate.md) - Generate components
-- [add](cli/add.md) - Add features
-- [migrate](cli/migrate.md) - Database migrations
-- [doctor](cli/doctor.md) - Validate architecture
-- [update](cli/update.md) - Update framework
-
-### Features
-- [FastAPI Integration](features/web-fastapi.md) - Web API support
-- [SQLAlchemy & Alembic](features/database-sqlalchemy.md) - Database support
-- [Async Support](features/async-support.md) - Async/await everywhere
-- [Auto-Discovery](features/auto-discovery.md) - Component auto-discovery
-
-### Guides
-- [Building Domain Layer](guides/building-domain-layer.md)
-- [Building Application Layer](guides/building-application-layer.md)
-- [Building Infrastructure](guides/building-infrastructure.md)
-- [Building Web API](guides/building-web-api.md)
-- [Building CLI](guides/building-cli.md)
-- [Testing](guides/testing.md)
-
-### Reference
-- [Changelog](reference/CHANGELOG.md)
-- [Roadmap](reference/ROADMAP.md)
+## Explanation
+- [Philosophy](explanation/philosophy.md) – guiding principles and when to reach for Vega.
+- [Project structure](explanation/project-structure.md) – layered layout and responsibilities.
+- Architecture
+  - [Clean architecture](explanation/architecture/clean-architecture.md)
+  - [Layers](explanation/architecture/layers.md)
+  - [Dependency rule](explanation/architecture/dependency-rule.md)
+- Core concepts
+  - [Dependency injection](explanation/core/dependency-injection.md)
+- Patterns
+  - [Interactor](explanation/patterns/interactor.md)
+  - [Mediator](explanation/patterns/mediator.md)
+  - [Repository](explanation/patterns/repository.md)
+  - [Service](explanation/patterns/service.md)
+- Events
+  - [Event concepts](explanation/events/overview.md)
 
 ## Examples
-
-Check the `examples/` directory in the repository for working examples:
-- Event system examples
-- Complete application examples
-- Pattern usage examples
+Browse the `examples/` directory in the repository for runnable demonstrations of domains, patterns, and the events system.
 
 ## Getting Help
-
-- GitHub Issues: Report bugs and request features
-- GitHub Discussions: Ask questions and share ideas
-- Documentation: This documentation
+- Open a GitHub issue for bugs and feature requests.
+- Join GitHub Discussions for questions or to share ideas.
+- Refer back to this documentation when you need guidance.
 
 ## Contributing
-
-Contributions are welcome! See the contributing guidelines in the repository.
+Contributions are welcome! Check the repository guidelines for details on proposing changes or submitting pull requests.

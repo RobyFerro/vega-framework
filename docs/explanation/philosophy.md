@@ -524,5 +524,5 @@ When you follow these principles, you get:
 ## Next Steps
 
 - [Clean Architecture](architecture/clean-architecture.md) - Deep dive into architecture
-- [Quick Start](getting-started/quick-start.md) - Build your first Vega project
-- [Building Domain Layer](guides/building-domain-layer.md) - Start with business logic
+- [Quick Start](../tutorials/quickstart.md) - Build your first Vega project
+- [Building Domain Layer](../how-to/build-domain-layer.md) - Start with business logic
