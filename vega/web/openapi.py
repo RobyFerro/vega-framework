@@ -93,15 +93,9 @@ def get_openapi_schema(
                 operation["parameters"] = params
 
             # Analyze request body
-            request_body = _get_request_body(route)
+            request_body = _get_request_body(route, components)
             if request_body:
                 operation["requestBody"] = request_body
-                # Add request body schemas to components
-                if PYDANTIC_AVAILABLE and "content" in request_body:
-                    for content_type, content_schema in request_body["content"].items():
-                        if "schema" in content_schema and "$ref" in content_schema["schema"]:
-                            model_name = content_schema["schema"]["$ref"].split("/")[-1]
-                            # Model will be added when processing response_model
 
             # Analyze response model
             if route.response_model:
@@ -192,7 +186,7 @@ def _get_parameters(route: Any) -> List[Dict[str, Any]]:
     return parameters
 
 
-def _get_request_body(route: Any) -> Optional[Dict[str, Any]]:
+def _get_request_body(route: Any, components: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Extract request body schema from route."""
     if not PYDANTIC_AVAILABLE:
         return None
@@ -212,8 +206,11 @@ def _get_request_body(route: Any) -> Optional[Dict[str, Any]]:
 
         # Check if it's a Pydantic model
         if param_type and isinstance(param_type, type) and issubclass(param_type, BaseModel):
-            model_schema = param_type.model_json_schema()
             model_name = param_type.__name__
+
+            # Add model schema to components
+            if model_name not in components["schemas"]:
+                components["schemas"][model_name] = param_type.model_json_schema()
 
             return {
                 "required": True,
