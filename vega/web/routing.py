@@ -6,11 +6,20 @@ from functools import wraps
 
 from starlette.routing import Route as StarletteRoute, Mount
 from starlette.requests import Request as StarletteRequest
+from pydantic import BaseModel, ValidationError
 
 from .exceptions import HTTPException
 from .request import Request
 from .response import JSONResponse, Response, create_response
 from .route_middleware import MiddlewareChain
+
+
+def _is_pydantic_model(type_hint: Any) -> bool:
+    """Check if a type hint is a Pydantic BaseModel"""
+    try:
+        return inspect.isclass(type_hint) and issubclass(type_hint, BaseModel)
+    except (TypeError, AttributeError):
+        return False
 
 
 class Route:
@@ -73,6 +82,12 @@ class Route:
                 sig = inspect.signature(self.endpoint)
                 params = sig.parameters
 
+                # Get type hints for the function
+                try:
+                    type_hints = get_type_hints(self.endpoint)
+                except Exception:
+                    type_hints = {}
+
                 # Prepare kwargs for function call
                 kwargs = {}
 
@@ -92,6 +107,37 @@ class Route:
                 for param_name, param_value in path_params.items():
                     if param_name in params:
                         kwargs[param_name] = param_value
+
+                # Check for Pydantic model parameters (body parsing)
+                # Only parse the first Pydantic model found
+                body_parsed = False
+                for param_name, param in params.items():
+                    # Skip if already processed (request or path param)
+                    if param_name in kwargs or param_name == "request":
+                        continue
+
+                    # Get type hint for this parameter
+                    param_type = type_hints.get(param_name, param.annotation)
+
+                    # If it's a Pydantic model, parse the request body (only once)
+                    if _is_pydantic_model(param_type) and not body_parsed:
+                        try:
+                            body_data = await request.json()
+                            # Validate and parse using Pydantic
+                            kwargs[param_name] = param_type(**body_data)
+                            body_parsed = True
+                        except ValidationError as e:
+                            # Return validation errors in a user-friendly format
+                            return JSONResponse(
+                                content={"detail": e.errors()},
+                                status_code=422,
+                            )
+                        except Exception as e:
+                            # Handle JSON parsing errors
+                            return JSONResponse(
+                                content={"detail": f"Invalid JSON body: {str(e)}"},
+                                status_code=400,
+                            )
 
                 # Execute middleware chain if present
                 if self.middlewares:
@@ -113,6 +159,9 @@ class Route:
                 # Handle different return types
                 if isinstance(result, (Response, JSONResponse)):
                     return result
+                elif isinstance(result, BaseModel):
+                    # Serialize Pydantic models using model_dump()
+                    return JSONResponse(content=result.model_dump(), status_code=self.status_code)
                 elif isinstance(result, dict):
                     return JSONResponse(content=result, status_code=self.status_code)
                 elif isinstance(result, (list, tuple)):

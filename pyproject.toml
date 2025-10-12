@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.2.2"
+version = "0.2.3"
 description = "Enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
@@ -102,11 +102,7 @@ addopts = [
     "--cov-report=xml",
 ]
 # Filter warnings
-filterwarnings = [
-    "error",
-    "ignore::UserWarning",
-    "ignore::DeprecationWarning",
-]
+filterwarnings = ["error", "ignore::UserWarning", "ignore::DeprecationWarning"]
 
 [tool.ruff]
 line-length = 100
