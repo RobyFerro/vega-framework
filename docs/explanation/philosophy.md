@@ -130,7 +130,7 @@ class PlaceOrder(Interactor[Order]):
 
         return order
 
-# ✅ FastAPI route (Presentation layer) - just wiring
+# ✅ Vega Web route (Presentation layer) - just wiring
 @router.post("/orders")
 async def create_order_api(request: CreateOrderRequest):
     """HTTP endpoint - just delegates to business logic"""
@@ -460,7 +460,7 @@ container = Container({
 Finally, add user interfaces (API, CLI):
 
 ```python
-# FastAPI route - just wiring
+# Vega Web route - just wiring
 @router.post("/orders")
 async def create_order(request: CreateOrderRequest):
     return await PlaceOrder(...)

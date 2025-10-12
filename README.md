@@ -11,7 +11,7 @@ Traditional Python frameworks show you **how to build** but don't enforce **how 
 - ✅ **Business Logic First** - Pure, testable, framework-independent
 - ✅ **CLI Scaffolding** - Generate entire projects and components
 - ✅ **Async Support** - Full async/await for CLI and web
-- ✅ **FastAPI & SQLAlchemy** - Built-in integrations when needed
+- ✅ **Vega Web (Starlette) & SQLAlchemy** - Built-in integrations when needed
 
 **[Read the Philosophy →](docs/explanation/philosophy.md)** to understand why architecture matters.
 
@@ -120,7 +120,7 @@ container = Container({
 
 ```bash
 vega init my-app                      # Create new project
-vega init my-api --template fastapi   # Create with FastAPI
+vega init my-api --template web       # Create with Vega Web
 vega doctor                           # Validate architecture
 vega update                           # Update framework
 ```
@@ -137,7 +137,7 @@ vega generate interactor CreateProduct
 vega generate mediator CheckoutWorkflow
 
 # Presentation layer
-vega generate router Product          # FastAPI (requires: vega add web)
+vega generate router Product          # Vega Web (requires: vega add web)
 vega generate command create-product  # CLI
 
 # Infrastructure
@@ -147,7 +147,7 @@ vega generate model Product           # SQLAlchemy (requires: vega add db)
 ### Add Features
 
 ```bash
-vega add web         # Add FastAPI web support
+vega add web         # Add Vega Web support
 vega add sqlalchemy  # Add database support
 ```
 
@@ -200,6 +200,7 @@ await UserCreated(user_id="123", email="test@test.com").publish()
 - [Patterns](docs/explanation/patterns/interactor.md) - Interactor, Mediator, Repository, Service
 
 ### Guides
+- [Use Vega Web](docs/how-to/use-vega-web.md) - Build HTTP APIs with Vega's router and middleware
 - [Building Domain Layer](docs/how-to/build-domain-layer.md) - Business logic first
 - [CLI Reference](docs/reference/cli/overview.md) - All CLI commands
 - [Events System](docs/explanation/events/overview.md) - Event-driven architecture
@@ -236,7 +237,7 @@ my-app/
 │   └── services/             # API integrations
 ├── presentation/             # User interfaces
 │   ├── cli/                  # CLI commands
-│   └── web/                  # FastAPI routes
+│   └── web/                  # Vega Web routes
 ├── config.py                 # Dependency injection
 ├── settings.py               # Configuration
 └── main.py                   # Entry point
@@ -257,7 +258,7 @@ async def create_order(request: Request):
 ```
 
 **Problems:**
-- Can't test without FastAPI, database, and Stripe
+- Can't test without the web framework, database, and Stripe
 - Can't reuse for CLI or other interfaces
 - Business rules are unclear
 - Tightly coupled to specific technologies
@@ -277,7 +278,7 @@ class PlaceOrder(Interactor[Order]):
         await payment_service.charge(...)
         return await order_repo.save(order)
 
-# ✅ FastAPI route (Presentation) - just wiring
+# ✅ Vega Web route (Presentation) - just wiring
 @router.post("/orders")
 async def create_order_api(request: CreateOrderRequest):
     return await PlaceOrder(...)

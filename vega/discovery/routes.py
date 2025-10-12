@@ -1,4 +1,4 @@
-"""FastAPI router auto-discovery utilities"""
+"""Vega Web router auto-discovery utilities"""
 import importlib
 import inspect
 import logging
@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Optional
 
 try:
-    from fastapi import APIRouter
+    from vega.web import Router
 except ImportError:
-    APIRouter = None
+    Router = None
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +19,12 @@ def discover_routers(
     api_prefix: str = "/api",
     auto_tags: bool = True,
     auto_prefix: bool = True
-) -> "APIRouter":
+) -> "Router":
     """
-    Auto-discover and register FastAPI routers from a package.
+    Auto-discover and register Vega Web routers from a package.
 
     This function scans a package directory for Python modules containing
-    APIRouter instances named 'router' and automatically registers them
+    Router instances named 'router' and automatically registers them
     with the main router.
 
     Args:
@@ -35,7 +35,7 @@ def discover_routers(
         auto_prefix: Automatically generate prefix from module name (default: True)
 
     Returns:
-        APIRouter: Main router with all discovered routers included
+        Router: Main router with all discovered routers included
 
     Example:
         # In your project's presentation/web/routes/__init__.py
@@ -51,15 +51,15 @@ def discover_routers(
         )
 
     Note:
-        Each route module should export an APIRouter instance named 'router'.
+        Each route module should export a Router instance named 'router'.
         The module filename will be used for tags and prefix generation if enabled.
     """
-    if APIRouter is None:
+    if Router is None:
         raise ImportError(
-            "FastAPI is not installed. Install it with: pip install fastapi"
+            "Vega Web is not installed. This should not happen if you're using vega-framework."
         )
 
-    main_router = APIRouter(prefix=api_prefix)
+    main_router = Router(prefix=api_prefix)
 
     # Resolve the routes package path
     try:
@@ -90,10 +90,10 @@ def discover_routers(
             try:
                 module = importlib.import_module(module_name)
 
-                # Find APIRouter instance named 'router'
+                # Find Router instance named 'router'
                 router = getattr(module, 'router', None)
 
-                if isinstance(router, APIRouter):
+                if isinstance(router, Router):
                     # Generate tags and prefix from module name
                     if auto_tags:
                         tag = file.stem.replace("_", " ").title()

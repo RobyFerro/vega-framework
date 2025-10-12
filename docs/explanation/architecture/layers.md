@@ -263,7 +263,7 @@ Provide interfaces for users to interact with the application while keeping busi
 
 ### Contains
 
-1. **Web API** - FastAPI routes and controllers
+1. **Web API** - Vega Web routes and controllers
 2. **CLI** - Command-line interface commands
 3. **Request/Response Models** - Data transfer objects
 4. **Middleware** - Request/response processing
@@ -281,10 +281,10 @@ Provide interfaces for users to interact with the application while keeping busi
 **Web API Route**:
 ```python
 # presentation/web/routes/product_routes.py
-from fastapi import APIRouter, HTTPException
+from vega.web import Router, HTTPException
 from pydantic import BaseModel
 
-router = APIRouter()
+router = Router()
 
 class PurchaseRequest(BaseModel):
     product_id: str
@@ -429,10 +429,10 @@ async def test_postgres_repository():
 Test HTTP endpoints:
 
 ```python
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
 def test_purchase_endpoint():
-    client = TestClient(app)
+    client = TestClient(app)  # app is a VegaApp instance
     response = client.post("/products/purchase", json={
         "product_id": "123",
         "quantity": 2,

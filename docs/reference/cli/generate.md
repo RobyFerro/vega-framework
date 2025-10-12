@@ -95,16 +95,16 @@ Writes an async handler in the top-level `events/` package so auto-discovery can
 
 ## Presentation Layer Generators
 
-### FastAPI Router (`router`)
+### Vega Web Router (`router`)
 
 ```bash
 vega add web
 vega generate router User
 ```
 
-Requires the FastAPI scaffold. Generates `presentation/web/routes/user.py`, adds the router to `routes/__init__.py`, and reminds you to build request/response models and interactors.
+Requires the Vega Web scaffold. Generates `presentation/web/routes/user.py`, adds the router to `routes/__init__.py`, and reminds you to build request/response models and interactors.
 
-### FastAPI Middleware (`middleware`)
+### Vega Web Middleware (`middleware`)
 
 ```bash
 vega generate middleware Logging
@@ -119,7 +119,7 @@ vega generate webmodel CreateUserRequest --request
 vega generate webmodel UserResponse --response
 ```
 
-Also requires the FastAPI scaffold. Generates (or appends to) files under `presentation/web/models/`. You must specify one of `--request` or `--response`. If the target file already exists, Vega appends the new class instead of overwriting the file.
+Also requires the Vega Web scaffold. Generates (or appends to) files under `presentation/web/models/`. You must specify one of `--request` or `--response`. If the target file already exists, Vega appends the new class instead of overwriting the file.
 
 ## Infrastructure Layer Generators
 

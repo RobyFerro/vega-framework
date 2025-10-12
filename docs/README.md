@@ -4,7 +4,7 @@ Welcome to the Vega Framework documentation set. The content now follows the Di�
 
 ## Quick Links
 - Tutorials: [Project quickstart](tutorials/quickstart.md), [Getting started with events](tutorials/events/getting-started.md)
-- How-to guides: [Install Vega](how-to/install.md), [Build the domain layer](how-to/build-domain-layer.md), [Publish events](how-to/events/publish-events.md)
+- How-to guides: [Install Vega](how-to/install.md), [Build the domain layer](how-to/build-domain-layer.md), [Use Vega Web](how-to/use-vega-web.md), [Publish events](how-to/events/publish-events.md)
 - Reference: [CLI overview](reference/cli/overview.md), [CLI init command](reference/cli/init.md), [CLI add command](reference/cli/add.md), [CLI generate command](reference/cli/generate.md), [CLI migrate command](reference/cli/migrate.md), [CLI web command](reference/cli/web.md), [CLI update command](reference/cli/update.md), [CLI doctor status](reference/cli/doctor.md), [Events API](reference/events/api.md), [Changelog](reference/CHANGELOG.md)
 - Explanations: [Philosophy](explanation/philosophy.md), [Project structure](explanation/project-structure.md), [Architecture](explanation/architecture/clean-architecture.md), [Patterns](explanation/patterns/interactor.md), [Event concepts](explanation/events/overview.md)
 
@@ -14,16 +14,17 @@ Welcome to the Vega Framework documentation set. The content now follows the Di�
 
 ## How-to Guides
 - [Install Vega](how-to/install.md) – installation using pip or Poetry.
-- [Build the domain layer](how-to/build-domain-layer.md) – craft entities, interactors, and repositories.
+- [Build the domain layer](how-to/build-domain-layer.md) - craft entities, interactors, and repositories.
+- [Use Vega Web](how-to/use-vega-web.md) - scaffold routers, middleware, and run the web server.
 - [Publish events](how-to/events/publish-events.md) – choose between auto-publish and manual publishing patterns.
 
 ## Reference
 - [CLI overview](reference/cli/overview.md) – available commands and workflows.
 - [CLI init command](reference/cli/init.md) – scaffold new projects safely.
-- [CLI add command](reference/cli/add.md) – enable FastAPI or SQLAlchemy scaffolds.
+- [CLI add command](reference/cli/add.md) - enable Vega Web or SQLAlchemy scaffolds.
 - [CLI generate command](reference/cli/generate.md) – supported component generators and options.
 - [CLI migrate command](reference/cli/migrate.md) – manage Alembic migrations from the CLI.
-- [CLI web command](reference/cli/web.md) – run the FastAPI app once scaffolded.
+- [CLI web command](reference/cli/web.md) - run the Vega Web app once scaffolded.
 - [CLI update command](reference/cli/update.md) – stay on the latest Vega release.
 - [CLI doctor status](reference/cli/doctor.md) – track the architecture validator roadmap.
 - [Events API](reference/events/api.md) – classes, decorators, and middleware exposed by `vega.events`.

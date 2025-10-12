@@ -1,10 +1,10 @@
 """User management endpoints"""
-from fastapi import APIRouter, HTTPException, status
+from vega.web import Router, HTTPException, status
 from typing import List
 
 from ..models.user_models import CreateUserRequest, UserResponse
 
-router = APIRouter()
+router = Router()
 
 # In-memory storage for demonstration (replace with repository in production)
 users_db: dict[str, UserResponse] = {}

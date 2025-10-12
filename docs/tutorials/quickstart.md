@@ -13,10 +13,10 @@ vega init my-app
 cd my-app
 ```
 
-Or create a project with FastAPI web support:
+Or create a project with Vega Web support:
 
 ```bash
-vega init my-api --template fastapi
+vega init my-api --template web
 cd my-api
 ```
 

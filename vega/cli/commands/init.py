@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from vega.cli.scaffolds import create_fastapi_scaffold
+from vega.cli.scaffolds import create_vega_web_scaffold
 from vega.cli.templates.loader import render_template
 import vega
 
@@ -104,14 +104,15 @@ def init_project(project_name: str, template: str, parent_path: str):
     click.echo(f"  + Created ARCHITECTURE.md")
 
     # Create main.py based on template
-    if template == "fastapi":
-        click.echo("\n[*] Adding FastAPI scaffold (presentation/web/)")
-        create_fastapi_scaffold(project_path, project_name)
+    # Support both "web" and "fastapi" (backward compat)
+    if template in ["web", "fastapi"]:
+        click.echo("\n[*] Adding Vega Web scaffold (presentation/web/)")
+        create_vega_web_scaffold(project_path, project_name)
 
-        # Create main.py for FastAPI project
+        # Create main.py for web project
         main_content = render_template("main.py.j2", project_name=project_name, template="fastapi")
         (project_path / "main.py").write_text(main_content)
-        click.echo(f"  + Created main.py (FastAPI entrypoint)")
+        click.echo(f"  + Created main.py (Vega Web entrypoint)")
     else:
         # Create standard main.py
         main_content = render_template("main.py.j2", project_name=project_name, template="standard")
@@ -126,9 +127,9 @@ def init_project(project_name: str, template: str, parent_path: str):
     click.echo(f"  poetry install")
     click.echo(f"  cp .env.example .env")
 
-    if template == "fastapi":
+    if template in ["web", "fastapi"]:
         click.echo(f"\nRun commands:")
-        click.echo(f"  vega web run                # Start FastAPI server (http://localhost:8000)")
+        click.echo(f"  vega web run                # Start Vega Web server (http://localhost:8000)")
         click.echo(f"  vega web run --reload       # Start with auto-reload")
         click.echo(f"  python main.py hello        # Run CLI command")
         click.echo(f"  python main.py --help       # Show all commands")

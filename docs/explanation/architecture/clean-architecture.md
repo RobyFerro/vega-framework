@@ -28,7 +28,7 @@ The domain layer (core) knows nothing about outer layers.
 
 ### 3. Independence of Frameworks
 
-Your business logic doesn't depend on FastAPI, SQLAlchemy, or any framework. This means:
+Your business logic doesn't depend on Vega Web, FastAPI, SQLAlchemy, or any framework. This means:
 - ✅ Easy to test
 - ✅ Easy to change frameworks
 - ✅ Framework updates don't break business logic
@@ -45,7 +45,7 @@ Pure business logic can be tested without:
 
 The same business logic works with:
 - CLI interface
-- Web API (FastAPI)
+- Web API (Vega Web)
 - GraphQL (future)
 - gRPC (future)
 

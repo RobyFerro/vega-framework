@@ -1,5 +1,5 @@
 """{{ resource_name }} management endpoints"""
-from fastapi import APIRouter, HTTPException, status
+from vega.web import Router, HTTPException, status
 from typing import List
 
 # TODO: Import your Pydantic models here
@@ -8,7 +8,7 @@ from typing import List
 # TODO: Import your interactors/use cases here
 # from {{ project_name }}.domain.interactors.{{ resource_file }} import Create{{ resource_name }}, Get{{ resource_name }}, List{{ resource_name }}
 
-router = APIRouter()
+router = Router()
 
 # TODO: Remove this in-memory storage and use proper repositories/interactors
 {{ resource_file }}_db: dict[str, dict] = {}

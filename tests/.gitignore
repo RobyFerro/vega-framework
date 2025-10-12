@@ -1,0 +1,34 @@
+# Test artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Pytest cache
+.pytest_cache/
+.tox/
+
+# Test databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Test output
+test-results/
+test-reports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

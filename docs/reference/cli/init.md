@@ -12,15 +12,16 @@ Run the command in the directory where you want the project folder to be created
 
 ## Options
 
-### --template <basic|fastapi|ai-rag>
+### --template <basic|web|ai-rag>
 
 ```bash
-vega init my-service --template fastapi
+vega init my-service --template web
 ```
 
-- `basic` (default) – CLI-first layout with a ready-to-use `main.py`.
-- `fastapi` – Adds the FastAPI web scaffold under `presentation/web/` and writes a FastAPI-specific `main.py`. Run `vega web run` to start the server after installing dependencies.
-- `ai-rag` – Reserved template name for future AI/RAG tooling. For now it produces the same structure as `basic` so you can migrate seamlessly when the dedicated scaffold lands.
+- `basic` (default) - CLI-first layout with a ready-to-use `main.py`.
+- `web` - Adds the Vega Web scaffold under `presentation/web/` and writes a Vega Web-specific `main.py`. Run `vega web run` to start the server.
+- `fastapi` - Legacy alias for `web` kept for backward compatibility.
+- `ai-rag` - Reserved template name for future AI/RAG tooling. For now it produces the same structure as `basic` so you can migrate seamlessly when the dedicated scaffold lands.
 
 ### --path PATH
 
@@ -54,10 +55,10 @@ project_name/
 ├── pyproject.toml                # Poetry configuration (pinning current vega version)
 ├── README.md                     # project overview
 ├── ARCHITECTURE.md               # layer responsibilities
-└── main.py                       # CLI entry point (FastAPI-specific when template=fastapi)
+└── main.py                       # CLI entry point (Vega Web-specific when template=web)
 ```
 
-When `--template fastapi` is used, the command also runs `vega add web` internally to create:
+When the web template is selected (`--template web` or the legacy `--template fastapi`), the command also runs `vega add web` internally to create:
 
 - `presentation/web/app.py`
 - `presentation/web/main.py`
@@ -74,9 +75,8 @@ cp .env.example .env
 
 - Add infrastructure implementations and bind them in `config.py`.
 - Generate new components with `vega generate ...`.
-- When using the FastAPI template:
+- When using the web template:
   ```bash
-  poetry add fastapi uvicorn[standard]
   vega web run --reload
   ```
 - For database support run `vega add sqlalchemy` and follow the prompts.

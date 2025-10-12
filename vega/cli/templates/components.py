@@ -84,27 +84,27 @@ def render_web_package_init() -> str:
     return render_template("__init__.py.j2", subfolder="web")
 
 
-def render_fastapi_app(project_name: str) -> str:
+def render_vega_app(project_name: str) -> str:
     """Return the template for web/app.py"""
     return render_template("app.py.j2", subfolder="web", project_name=project_name)
 
 
-def render_fastapi_routes_init() -> str:
+def render_vega_routes_init() -> str:
     """Return the template for web/routes/__init__.py"""
     return render_template("routes_init.py.j2", subfolder="web")
 
 
-def render_fastapi_health_route() -> str:
+def render_vega_health_route() -> str:
     """Return the template for web/routes/health.py"""
     return render_template("health_route.py.j2", subfolder="web")
 
 
-def render_fastapi_dependencies() -> str:
+def render_vega_dependencies() -> str:
     """Return the template for web/dependencies.py"""
     return render_template("dependencies.py.j2", subfolder="web")
 
 
-def render_fastapi_main(project_name: str) -> str:
+def render_vega_main(project_name: str) -> str:
     """Return the template for presentation/web/main.py"""
     return render_template("main.py.j2", subfolder="web", project_name=project_name)
 
@@ -116,8 +116,8 @@ def render_standard_main(project_name: str) -> str:
     )
 
 
-def render_fastapi_project_main(project_name: str) -> str:
-    """Return the template for main.py (FastAPI project with Web and CLI)"""
+def render_vega_project_main(project_name: str) -> str:
+    """Return the template for main.py (Vega Web project with Web and CLI)"""
     return render_template(
         "main_fastapi.py.j2", subfolder="project", project_name=project_name
     )
@@ -133,13 +133,13 @@ def render_pydantic_user_models() -> str:
     return render_template("user_models.py.j2", subfolder="web")
 
 
-def render_fastapi_user_route() -> str:
+def render_vega_user_route() -> str:
     """Return the template for web/routes/users.py"""
     return render_template("users_route.py.j2", subfolder="web")
 
 
-def render_fastapi_router(resource_name: str, resource_file: str, project_name: str) -> str:
-    """Return the template for a FastAPI router"""
+def render_vega_router(resource_name: str, resource_file: str, project_name: str) -> str:
+    """Return the template for a Vega Web router"""
     return render_template(
         "router.py.j2",
         subfolder="web",
@@ -149,14 +149,26 @@ def render_fastapi_router(resource_name: str, resource_file: str, project_name: 
     )
 
 
-def render_fastapi_middleware(class_name: str, file_name: str) -> str:
-    """Return the template for a FastAPI middleware"""
+def render_vega_middleware(class_name: str, file_name: str) -> str:
+    """Return the template for a Vega Web middleware"""
     return render_template(
         "middleware.py.j2",
         subfolder="web",
         class_name=class_name,
         file_name=file_name,
     )
+
+
+# Backward compatibility aliases (deprecated)
+render_fastapi_app = render_vega_app
+render_fastapi_routes_init = render_vega_routes_init
+render_fastapi_health_route = render_vega_health_route
+render_fastapi_dependencies = render_vega_dependencies
+render_fastapi_main = render_vega_main
+render_fastapi_project_main = render_vega_project_main
+render_fastapi_user_route = render_vega_user_route
+render_fastapi_router = render_vega_router
+render_fastapi_middleware = render_vega_middleware
 
 
 def render_database_manager() -> str:
@@ -244,9 +256,13 @@ def render_cli_commands_init() -> str:
     return render_template("commands_init.py.j2", subfolder="cli")
 
 
-def render_fastapi_routes_init_autodiscovery() -> str:
+def render_vega_routes_init_autodiscovery() -> str:
     """Return the template for web/routes/__init__.py with auto-discovery"""
     return render_template("routes_init_autodiscovery.py.j2", subfolder="web")
+
+
+# Backward compatibility alias
+render_fastapi_routes_init_autodiscovery = render_vega_routes_init_autodiscovery
 
 
 def render_event(class_name: str, fields: list[dict]) -> str:

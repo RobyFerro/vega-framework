@@ -34,7 +34,7 @@ def cli():
 
 @cli.command()
 @click.argument('project_name')
-@click.option('--template', default='basic', help='Project template (basic, fastapi, ai-rag)')
+@click.option('--template', default='basic', help='Project template (basic, web, ai-rag)')
 @click.option('--path', default='.', help='Parent directory for project')
 def init(project_name, template, path):
     """
@@ -49,7 +49,7 @@ def init(project_name, template, path):
 
     Examples:
         vega init my-app
-        vega init my-api --template=fastapi
+        vega init my-api --template=web
         vega init my-ai --template=ai-rag --path=./projects
     """
     init_project(project_name, template, path)
@@ -88,8 +88,8 @@ def generate(component_type, name, path, impl, request, response):
         service     - Service interface (domain layer)
         interactor  - Use case (business logic)
         mediator    - Workflow (orchestrates use cases)
-        router      - FastAPI router (requires web module)
-        middleware  - FastAPI middleware (requires web module)
+        router      - Vega Web router (requires web module)
+        middleware  - Vega Web middleware (requires web module)
         webmodel    - Pydantic request/response models (requires web module)
         model       - SQLAlchemy model (requires sqlalchemy module)
         command     - CLI command (async by default)

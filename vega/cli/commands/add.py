@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from vega.cli.scaffolds import create_fastapi_scaffold, create_sqlalchemy_scaffold
+from vega.cli.scaffolds import create_vega_web_scaffold, create_sqlalchemy_scaffold
 
 
 @click.command()
@@ -13,7 +13,7 @@ def add(feature: str, path: str):
     """Add features to an existing Vega project
 
     Features:
-        web        - Add FastAPI web scaffold to the project
+        web        - Add Vega Web scaffold to the project
         sqlalchemy - Add SQLAlchemy database support (alias: db)
         db         - Alias for sqlalchemy
 
@@ -40,13 +40,13 @@ def add(feature: str, path: str):
 
 
 def add_web_feature(project_path: Path, project_name: str):
-    """Add FastAPI web scaffold to existing project"""
-    click.echo(f"\n[*] Adding FastAPI web scaffold to: {click.style(project_name, fg='green', bold=True)}\n")
+    """Add Vega Web scaffold to existing project"""
+    click.echo(f"\n[*] Adding Vega Web scaffold to: {click.style(project_name, fg='green', bold=True)}\n")
 
     # Check if presentation/web already exists
     web_dir = project_path / "presentation" / "web"
     if web_dir.exists() and (web_dir / "main.py").exists():
-        click.echo(click.style("WARNING: FastAPI scaffold already exists!", fg='yellow'))
+        click.echo(click.style("WARNING: Web scaffold already exists!", fg='yellow'))
         if not click.confirm("Do you want to overwrite existing files?"):
             click.echo("Aborted.")
             return
@@ -60,13 +60,12 @@ def add_web_feature(project_path: Path, project_name: str):
         presentation_dir.mkdir(parents=True, exist_ok=True)
         click.echo(f"  + Created presentation/")
 
-    # Create FastAPI scaffold
-    create_fastapi_scaffold(project_path, project_name, overwrite=overwrite)
+    # Create Vega Web scaffold
+    create_vega_web_scaffold(project_path, project_name, overwrite=overwrite)
 
-    click.echo(f"\n{click.style('SUCCESS: FastAPI web scaffold added!', fg='green', bold=True)}\n")
+    click.echo(f"\n{click.style('SUCCESS: Vega Web scaffold added!', fg='green', bold=True)}\n")
     click.echo("Next steps:")
-    click.echo("  1. Add FastAPI dependencies:")
-    click.echo("     poetry add fastapi uvicorn[standard]")
+    click.echo("  1. Dependencies are already included in vega-framework")
     click.echo("  2. Run the server:")
     click.echo("     vega web run --reload")
     click.echo("  3. Visit http://localhost:8000/api/health/status")

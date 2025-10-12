@@ -248,7 +248,7 @@ class TestCreateUser(TestCase):
 - [ ] Implement `TestCase` base class
 - [ ] Add mocking utilities
 - [ ] Create test fixtures and factories
-- [ ] Add HTTP test client (for FastAPI routes)
+- [ ] Add HTTP test client (for Vega Web routes)
 - [ ] Documentation with examples
 - [ ] Test coverage for testing utilities
 
@@ -337,7 +337,7 @@ async def custom_header_middleware(request, call_next):
 - [ ] Support ordering and priorities
 - [ ] Add conditional middleware registration
 - [ ] Inline middleware decorator
-- [ ] Update FastAPI integration
+- [ ] Polish Vega Web integration
 - [ ] Documentation
 
 ---
@@ -583,12 +583,12 @@ result = subprocess.run(
 **Status**: 🟢 Medium
 **Target**: v1.1.0
 
-**Problem**: Optional dependencies (FastAPI, SQLAlchemy) are imported even when not used.
+**Problem**: Optional dependencies (Vega Web stack, SQLAlchemy) are imported even when not used.
 
 **Solution**: Use `importlib.util.LazyLoader` for optional imports.
 
 **Tasks**:
-- [ ] Implement lazy loading for FastAPI
+- [ ] Implement lazy loading for Vega Web components
 - [ ] Implement lazy loading for SQLAlchemy
 - [ ] Test import performance improvements
 

@@ -129,7 +129,7 @@ class PostgresUserRepository(UserRepository):
 
 **Contains**:
 - **CLI Commands**: Command-line interface
-- **Web Routes**: HTTP API endpoints (FastAPI)
+- **Web Routes**: HTTP API endpoints (Vega Web)
 - **Middleware**: Request/response processing
 
 **Rules**:
@@ -150,7 +150,9 @@ async def create_user(name: str, email: str):
     click.echo(f"Created: {user.name}")
 
 # presentation/web/routes/user_routes.py
-router = APIRouter()
+from vega.web import Router
+
+router = Router()
 
 @router.post("/users")
 async def create_user(request: CreateUserRequest):
@@ -242,14 +244,14 @@ infrastructure/
     └── versions/
 ```
 
-### Web Support (FastAPI)
+### Vega Web Support
 
 When you add web support with `vega add web`:
 
 ```
 presentation/
 └── web/
-    ├── app.py          # FastAPI app factory
+    ├── app.py          # Vega Web app factory
     ├── routes/         # API endpoints
     ├── middleware/     # Request/response middleware
     └── models/         # Request/response DTOs

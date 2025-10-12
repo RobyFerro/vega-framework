@@ -22,7 +22,9 @@
       "Read(//tmp/test-autodiscovery/**)",
       "Bash(timeout 5 poetry run python -m uvicorn presentation.web.main:app --host 127.0.0.1 --port 8765)",
       "Bash(test:*)",
-      "Bash(timeout 5 poetry run python -m uvicorn presentation.web.main:app --host 127.0.0.1 --port 8766)"
+      "Bash(timeout 5 poetry run python -m uvicorn presentation.web.main:app --host 127.0.0.1 --port 8766)",
+      "Bash(timeout 5 poetry run python test_vega_web.py)",
+      "Bash(Select-Object -First 50)"
     ],
     "deny": [],
     "ask": []

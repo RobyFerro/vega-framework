@@ -12,7 +12,7 @@ Valid features:
 
 | Feature | Purpose |
 |---------|---------|
-| `web` | Adds FastAPI scaffold under `presentation/web/` |
+| `web` | Adds Vega Web scaffold under `presentation/web/` |
 | `sqlalchemy` | Adds SQLAlchemy database support |
 | `db` | Alias for `sqlalchemy` |
 
@@ -31,13 +31,13 @@ vega add sqlalchemy --path ./my-project
 
 Allows enabling features for a project located elsewhere.
 
-## FastAPI Scaffold (`web`)
+## Vega Web Scaffold (`web`)
 
 ```bash
 vega add web
 ```
 
-Creates FastAPI boilerplate:
+Creates Vega Web boilerplate:
 
 - `presentation/web/__init__.py`
 - `presentation/web/app.py`
@@ -51,7 +51,7 @@ Creates FastAPI boilerplate:
 
 **Next steps**
 
-1. `poetry add fastapi uvicorn[standard]`
+1. `poetry install` *(or `poetry update` to refresh dependencies)*
 2. `vega web run --reload`
 3. Hit `http://localhost:8000/api/health/status`
 
@@ -104,7 +104,7 @@ If you accept the example repository prompt, the CLI also generates:
 ## Example Workflow
 
 ```bash
-vega init store --template fastapi
+vega init store --template web
 cd store
 poetry install
 vega add sqlalchemy
@@ -112,4 +112,4 @@ poetry add sqlalchemy aiosqlite alembic
 vega migrate init
 ```
 
-You now have FastAPI endpoints, CLI commands, and database scaffolding ready for your application.
+You now have Vega Web endpoints, CLI commands, and database scaffolding ready for your application.

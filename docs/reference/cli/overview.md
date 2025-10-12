@@ -12,10 +12,10 @@ pip install vega-framework
 
 | Command | Purpose |
 |---------|---------|
-| `vega init <name>` | Scaffold a new project (templates: `basic`, `fastapi`, `ai-rag`) |
+| `vega init <name>` | Scaffold a new project (templates: `basic`, `web`, `ai-rag`) |
 | `vega generate <type> <name>` | Create domain, application, infrastructure, or presentation components |
-| `vega add <feature>` | Enable optional scaffolds such as FastAPI (`web`) or SQLAlchemy (`sqlalchemy`/`db`) |
-| `vega web <command>` | Run or manage the FastAPI server once the web scaffold is present |
+| `vega add <feature>` | Enable optional scaffolds such as Vega Web (`web`) or SQLAlchemy (`sqlalchemy`/`db`) |
+| `vega web <command>` | Run or manage the Vega Web server once the web scaffold is present |
 | `vega migrate <command>` | Proxy Alembic to manage database migrations |
 | `vega update` | Check for and install CLI/framework updates |
 | `vega doctor` | Planned architecture diagnostics (command reserved; implementation pending) |
@@ -32,8 +32,8 @@ vega init my-app
 cd my-app
 poetry install
 
-# FastAPI-ready project
-vega init my-api --template fastapi
+# Vega Web project
+vega init my-api --template web
 cd my-api
 poetry install
 vega web run --reload
@@ -64,7 +64,7 @@ vega generate repository UserRepository --impl sql
 ### Add Features
 
 ```bash
-vega add web            # FastAPI scaffold
+vega add web            # Vega Web scaffold
 vega add sqlalchemy     # SQLAlchemy + Alembic
 vega add db             # Alias for sqlalchemy
 ```
@@ -90,8 +90,8 @@ vega migrate history                     # Inspect revision log
 - [vega generate](generate.md) – Create components across all layers.
 
 ### Feature Management
-- [vega add](add.md) – Add FastAPI or database scaffolds.
-- [vega web](web.md) – Run the FastAPI app after adding the web scaffold.
+- [vega add](add.md) - Add Vega Web or database scaffolds.
+- [vega web](web.md) - Run the Vega Web app after adding the web scaffold.
 
 ### Database Management
 - [vega migrate](migrate.md) – Run Alembic commands through the Vega CLI.
