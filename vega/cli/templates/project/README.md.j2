@@ -20,9 +20,9 @@ Vega Framework application with Clean Architecture.
 │   └── services/        # Service implementations
 │
 ├── presentation/        # Delivery mechanisms
-│   ├── web/            # FastAPI web interface (if added)
+│   ├── web/            # Vega Web interface (if added)
 │   │   ├── routes/     # HTTP endpoints
-│   │   ├── app.py      # FastAPI app factory
+│   │   ├── app.py      # Vega app factory
 │   │   └── main.py     # ASGI entrypoint
 │   └── cli/            # CLI commands
 │
@@ -45,7 +45,7 @@ cp .env.example .env
 python main.py hello
 python main.py greet --name John
 
-# If using FastAPI template, run the web server
+# If using web template, run the web server
 vega web run
 vega web run --reload  # With auto-reload
 # Visit http://localhost:8000/api/health/status
@@ -81,7 +81,7 @@ vega generate command ListUsers --impl sync
 
 ### Add Features
 
-Add FastAPI web support to your project:
+Add Vega Web support to your project:
 
 ```bash
 vega add web
@@ -140,7 +140,7 @@ async def create_user(name: str):
     click.echo(f"Created: {user.name}")
 ```
 
-This allows the same async business logic to work in both CLI and web contexts (FastAPI).
+This allows the same async business logic to work in both CLI and web contexts (Vega Web).
 
 ## Project Commands Quick Reference
 

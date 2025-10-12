@@ -394,13 +394,13 @@ def _register_router_in_init(project_root: Path, resource_file: str, resource_na
 
 
 def _generate_router(project_root: Path, project_name: str, name: str) -> None:
-    """Generate a FastAPI router for a resource"""
+    """Generate a Vega Web router for a resource"""
 
     # Check if web folder exists
     web_path = project_root / "presentation" / "web"
     if not web_path.exists():
         click.echo(click.style("ERROR: Web module not found", fg='red'))
-        click.echo("   Router generation requires FastAPI web module")
+        click.echo("   Router generation requires Vega Web module")
         click.echo("   Install it with: vega add web")
         return
 
@@ -440,13 +440,13 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
 
 
 def _generate_web_models(project_root: Path, project_name: str, name: str, is_request: bool, is_response: bool) -> None:
-    """Generate Pydantic request or response model for FastAPI"""
+    """Generate Pydantic request or response model for Vega Web"""
 
     # Check if web folder exists
     web_path = project_root / "presentation" / "web"
     if not web_path.exists():
         click.echo(click.style("ERROR: Web module not found", fg='red'))
-        click.echo("   Model generation requires FastAPI web module")
+        click.echo("   Model generation requires Vega Web module")
         click.echo("   Install it with: vega add web")
         return
 
@@ -531,13 +531,13 @@ def _generate_web_models(project_root: Path, project_name: str, name: str, is_re
 
 
 def _generate_middleware(project_root: Path, project_name: str, class_name: str, file_name: str) -> None:
-    """Generate a FastAPI middleware"""
+    """Generate a Vega Web middleware"""
 
     # Check if web folder exists
     web_path = project_root / "presentation" / "web"
     if not web_path.exists():
         click.echo(click.style("ERROR: Web module not found", fg='red'))
-        click.echo("   Middleware generation requires FastAPI web module")
+        click.echo("   Middleware generation requires Vega Web module")
         click.echo("   Install it with: vega add web")
         return
 
@@ -554,7 +554,7 @@ def _generate_middleware(project_root: Path, project_name: str, class_name: str,
     # Check if __init__.py exists
     init_file = middleware_path / "__init__.py"
     if not init_file.exists():
-        init_file.write_text('"""FastAPI Middlewares"""\n')
+        init_file.write_text('"""Vega Web Middlewares"""\n')
         click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
 
     # Generate middleware file
@@ -589,8 +589,8 @@ def _register_middleware_in_app(project_root: Path, class_name: str, file_name: 
         click.echo(click.style(f'''
 from .middleware.{file_name} import {class_name}Middleware
 
-def create_app() -> FastAPI:
-    app = FastAPI(...)
+def create_app() -> VegaApp:
+    app = VegaApp(...)
     app.add_middleware({class_name}Middleware)
     app.include_router(get_api_router())
     return app
@@ -619,9 +619,9 @@ def create_app() -> FastAPI:
             break
 
     if not import_added:
-        # Fallback: add after FastAPI import
+        # Fallback: add after VegaApp import
         for i, line in enumerate(lines):
-            if 'from fastapi import' in line:
+            if 'from vega.web import' in line:
                 lines.insert(i + 1, middleware_import)
                 lines.insert(i + 2, '')
                 break
@@ -629,8 +629,8 @@ def create_app() -> FastAPI:
     # Find create_app function and add middleware registration
     middleware_added = False
     for i, line in enumerate(lines):
-        if 'app = FastAPI(' in line:
-            # Find the end of FastAPI initialization
+        if 'app = VegaApp(' in line:
+            # Find the end of VegaApp initialization
             j = i + 1
             while j < len(lines) and not lines[j].strip().startswith('app.include_router'):
                 j += 1
@@ -649,8 +649,8 @@ def create_app() -> FastAPI:
         click.echo(click.style(f'''
 from .middleware.{file_name} import {class_name}Middleware
 
-def create_app() -> FastAPI:
-    app = FastAPI(...)
+def create_app() -> VegaApp:
+    app = VegaApp(...)
     app.add_middleware({class_name}Middleware)
     app.include_router(get_api_router())
     return app

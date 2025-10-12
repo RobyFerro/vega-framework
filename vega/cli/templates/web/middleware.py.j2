@@ -1,5 +1,5 @@
-"""{{ class_name }} middleware for FastAPI application"""
-from fastapi import Request, Response
+"""{{ class_name }} middleware for Vega Web application"""
+from vega.web import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 import time
@@ -14,7 +14,7 @@ class {{ class_name }}Middleware(BaseHTTPMiddleware):
     and responses before they're returned to clients.
 
     Usage:
-        Add to your FastAPI app in app.py:
+        Add to your Vega Web app in app.py:
         from .middleware.{{ file_name }} import {{ class_name }}Middleware
         app.add_middleware({{ class_name }}Middleware)
     """

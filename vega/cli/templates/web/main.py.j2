@@ -1,5 +1,4 @@
-"""FastAPI ASGI entrypoint for {{ project_name }}"""
-from fastapi import FastAPI
+"""Vega Web ASGI entrypoint for {{ project_name }}"""
 import config  # noqa: F401 - Import to initialize DI container
 
 # Auto-discover event subscribers so @subscribe handlers are ready
@@ -12,7 +11,7 @@ else:
 
 from .app import create_app
 
-app: FastAPI = create_app()
+app = create_app()
 
 
 if __name__ == "__main__":

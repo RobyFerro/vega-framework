@@ -38,7 +38,7 @@ The innermost layer containing pure business logic, completely independent of an
 **Rules:**
 
 - ✅ **NO** dependencies on any other layer
-- ✅ **NO** framework-specific code (no FastAPI, SQLAlchemy, etc.)
+- ✅ **NO** framework-specific code (no Vega Web, SQLAlchemy, etc.)
 - ✅ **NO** infrastructure details (no database, HTTP, file system)
 - ✅ Pure business logic only
 - ✅ Only defines **interfaces**, never concrete implementations
@@ -90,7 +90,7 @@ Handles user interaction and external communication, acting as the entry point t
 
 **Contains:**
 
-- **Web API** - FastAPI routes, controllers, request/response models (when web is enabled)
+- **Web API** - Vega Web routes, controllers, request/response models (when web is enabled)
 - **CLI** - Command-line interface commands and argument parsing
 - **GraphQL/gRPC** - Alternative API implementations (if needed)
 - **WebSockets** - Real-time communication handlers (if needed)
@@ -108,7 +108,7 @@ Handles user interaction and external communication, acting as the entry point t
 **Examples:**
 
 - **CLI**: Uses Click/Typer to define commands that invoke interactors or mediators
-- **Web API**: FastAPI endpoints that receive HTTP requests and call domain use cases
+- **Web API**: Vega Web endpoints that receive HTTP requests and call domain use cases
 - **Both**: Can coexist in the same application, sharing the same business logic
 
 ## Core Patterns
@@ -344,7 +344,7 @@ The generator will interactively prompt for:
 
 Commands are **automatically discovered** from `presentation/cli/commands/` - no manual registration required.
 
-**FastAPI Routers** - HTTP API endpoints (requires web support):
+**Vega Web Routers** - HTTP API endpoints (requires web support):
 ```bash
 vega generate router User
 vega generate router Product
@@ -353,7 +353,7 @@ vega generate router Order
 
 Routers are **automatically discovered** from `presentation/web/routes/` - no manual registration required.
 
-**FastAPI Middleware** - Request/response processing (requires web support):
+**Vega Web Middleware** - Request/response processing (requires web support):
 ```bash
 vega generate middleware Logging
 vega generate middleware Authentication
@@ -362,12 +362,12 @@ vega generate middleware RateLimiting
 
 ### Adding Features to Existing Projects
 
-**Add FastAPI Web Support**:
+**Add Vega Web Support**:
 ```bash
 vega add web
 ```
 
-Creates complete FastAPI scaffold:
+Creates complete Vega Web scaffold:
 - `presentation/web/` directory structure
 - Routes and middleware setup
 - Health check endpoints
@@ -482,9 +482,9 @@ vega doctor
 | `vega generate interactor <Name>` | Generate use case |
 | `vega generate mediator <Name>` | Generate workflow |
 | `vega generate command <Name>` | Generate CLI command |
-| `vega generate router <Name>` | Generate FastAPI router |
+| `vega generate router <Name>` | Generate Vega Web router |
 | `vega generate model <Name>` | Generate SQLAlchemy model |
-| `vega add web` | Add FastAPI support |
+| `vega add web` | Add Vega Web support |
 | `vega add sqlalchemy` | Add database support |
 | `vega migrate <command>` | Manage database migrations |
 | `vega doctor` | Validate project architecture |
@@ -519,9 +519,9 @@ vega generate router Product
 
 This creates `presentation/web/routes/product.py`:
 ```python
-from fastapi import APIRouter
+from vega.web import Router
 
-router = APIRouter()  # MUST be named 'router'
+router = Router()  # MUST be named 'router'
 
 @router.get("/")
 async def list_products():
@@ -682,7 +682,7 @@ Vega projects follow a standard 4-layer structure:
 │       └── sendgrid_email_service.py    # Sendgrid implementation
 │
 ├── presentation/                 # 🟠 PRESENTATION LAYER (Delivery Mechanisms)
-│   ├── web/                      # FastAPI web interface (if enabled)
+│   ├── web/                      # Vega Web interface (if enabled)
 │   │   ├── __init__.py
 │   │   ├── routes/
 │   │   │   └── user_routes.py
@@ -833,7 +833,7 @@ async def create_user(name: str, email: str):
 
 **Benefits:**
 - Execute async interactors directly in CLI commands
-- Same business logic works in both CLI and Web (FastAPI) contexts
+- Same business logic works in both CLI and Web (Vega Web) contexts
 - Clean async/await syntax
 - Automatic asyncio event loop management
 

@@ -1,4 +1,4 @@
-"""Web command - Manage FastAPI web server"""
+"""Web command - Manage Vega Web server"""
 import sys
 from pathlib import Path
 
@@ -7,7 +7,7 @@ import click
 
 @click.group()
 def web():
-    """Manage FastAPI web server
+    """Manage Vega Web server
 
     Commands to manage the web server for your Vega project.
     The web module must be added to the project first using 'vega add web'.
@@ -21,7 +21,7 @@ def web():
 @click.option('--reload', is_flag=True, help='Enable auto-reload')
 @click.option('--path', default='.', help='Path to Vega project (default: current directory)')
 def run(host: str, port: int, reload: bool, path: str):
-    """Start the FastAPI web server
+    """Start the Vega Web server
 
     Examples:
         vega web run
@@ -42,7 +42,7 @@ def run(host: str, port: int, reload: bool, path: str):
     web_main = project_path / "presentation" / "web" / "main.py"
     if not web_main.exists():
         click.echo(click.style("ERROR: Web module not found", fg='red'))
-        click.echo("\nThe FastAPI web module is not available in this project.")
+        click.echo("\nThe Vega Web module is not available in this project.")
         click.echo("Add it using:")
         click.echo(click.style("  vega add web", fg='cyan', bold=True))
         sys.exit(1)
@@ -56,8 +56,9 @@ def run(host: str, port: int, reload: bool, path: str):
         import uvicorn
     except ImportError:
         click.echo(click.style("ERROR: uvicorn not installed", fg='red'))
-        click.echo("\nInstall FastAPI dependencies:")
-        click.echo(click.style("  poetry add fastapi uvicorn[standard]", fg='cyan', bold=True))
+        click.echo("\nUvicorn is required but not installed.")
+        click.echo("It should be included with vega-framework, but you can also install it with:")
+        click.echo(click.style("  poetry add uvicorn[standard]", fg='cyan', bold=True))
         sys.exit(1)
 
     # Initialize DI container first
@@ -73,7 +74,7 @@ def run(host: str, port: int, reload: bool, path: str):
     try:
         from presentation.web.main import app
     except ImportError as e:
-        click.echo(click.style("ERROR: Failed to import FastAPI app", fg='red'))
+        click.echo(click.style("ERROR: Failed to import Vega Web app", fg='red'))
         click.echo(f"\nDetails: {e}")
         click.echo("\nMake sure:")
         click.echo("  1. You are in the project directory or use --path")

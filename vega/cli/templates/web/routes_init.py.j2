@@ -1,5 +1,5 @@
 """API routers aggregation"""
-from fastapi import APIRouter
+from vega.web import Router
 
 from . import health, users
 
@@ -7,9 +7,9 @@ from . import health, users
 API_PREFIX = "/api"
 
 
-def get_api_router() -> APIRouter:
+def get_api_router() -> Router:
     """Return application API router"""
-    router = APIRouter(prefix=API_PREFIX)
+    router = Router(prefix=API_PREFIX)
     router.include_router(health.router, tags=["health"], prefix="/health")
     router.include_router(users.router, tags=["users"], prefix="/users")
     return router
