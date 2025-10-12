@@ -66,6 +66,10 @@ from .route_middleware import (
     middleware,
 )
 
+# OpenAPI / Documentation
+from .openapi import get_openapi_schema
+from .docs import get_swagger_ui_html, get_redoc_html
+
 __all__ = [
     # Version
     "__version__",
@@ -97,4 +101,8 @@ __all__ = [
     "RouteMiddleware",
     "MiddlewarePhase",
     "middleware",
+    # OpenAPI / Docs
+    "get_openapi_schema",
+    "get_swagger_ui_html",
+    "get_redoc_html",
 ]

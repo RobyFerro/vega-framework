@@ -7,10 +7,13 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount, Route as StarletteRoute
 from starlette.types import ASGIApp
+from starlette.responses import JSONResponse as StarletteJSONResponse
 
 from .router import Router
 from .exceptions import HTTPException
 from .response import JSONResponse
+from .openapi import get_openapi_schema
+from .docs import get_swagger_ui_html, get_redoc_html
 
 
 class VegaApp:
@@ -59,11 +62,19 @@ class VegaApp:
         middleware: Optional[Sequence[Middleware]] = None,
         on_startup: Optional[Sequence[Callable]] = None,
         on_shutdown: Optional[Sequence[Callable]] = None,
+        docs_url: Optional[str] = "/docs",
+        redoc_url: Optional[str] = "/redoc",
+        openapi_url: Optional[str] = "/openapi.json",
     ):
         self.title = title
         self.description = description
         self.version = version
         self.debug = debug
+
+        # Documentation URLs (None to disable)
+        self.docs_url = docs_url
+        self.redoc_url = redoc_url
+        self.openapi_url = openapi_url
 
         # Internal router for top-level routes
         self._router = Router()
@@ -77,6 +88,9 @@ class VegaApp:
 
         # Starlette app (created lazily)
         self._starlette_app: Optional[Starlette] = None
+
+        # OpenAPI schema (cached)
+        self._openapi_schema: Optional[Dict[str, Any]] = None
 
     def add_middleware(
         self,
@@ -197,12 +211,61 @@ class VegaApp:
         """
         return self._router.route(path, methods, **kwargs)
 
+    def openapi(self) -> Dict[str, Any]:
+        """
+        Generate and return the OpenAPI schema.
+
+        Returns:
+            OpenAPI schema dictionary
+        """
+        if self._openapi_schema is None:
+            self._openapi_schema = get_openapi_schema(
+                title=self.title,
+                version=self.version,
+                description=self.description,
+                routes=self._router.get_routes(),
+            )
+        return self._openapi_schema
+
     def _build_starlette_app(self) -> Starlette:
         """Build the Starlette application from routes and middleware."""
         # Convert Vega routes to Starlette routes
         starlette_routes = [
             route.to_starlette_route() for route in self._router.get_routes()
         ]
+
+        # Add OpenAPI endpoint
+        if self.openapi_url:
+            async def openapi_endpoint(request):
+                return StarletteJSONResponse(self.openapi())
+
+            starlette_routes.append(
+                StarletteRoute(self.openapi_url, endpoint=openapi_endpoint, methods=["GET"])
+            )
+
+        # Add Swagger UI endpoint
+        if self.docs_url:
+            async def swagger_ui_endpoint(request):
+                return get_swagger_ui_html(
+                    openapi_url=self.openapi_url or "/openapi.json",
+                    title=f"{self.title} - Swagger UI"
+                )
+
+            starlette_routes.append(
+                StarletteRoute(self.docs_url, endpoint=swagger_ui_endpoint, methods=["GET"])
+            )
+
+        # Add ReDoc endpoint
+        if self.redoc_url:
+            async def redoc_endpoint(request):
+                return get_redoc_html(
+                    openapi_url=self.openapi_url or "/openapi.json",
+                    title=f"{self.title} - ReDoc"
+                )
+
+            starlette_routes.append(
+                StarletteRoute(self.redoc_url, endpoint=redoc_endpoint, methods=["GET"])
+            )
 
         # Create Starlette app
         app = Starlette(
