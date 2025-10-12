@@ -110,7 +110,19 @@ Requires the Vega Web scaffold. Generates `presentation/web/routes/user.py`, add
 vega generate middleware Logging
 ```
 
-Creates `presentation/web/middleware/logging.py` and registers the import in the middleware package if it exists.
+Creates `presentation/web/middleware/logging.py` (if the package exists it keeps `__init__.py` up to date). The generated class extends `RouteMiddleware`, so you attach it to routes via the `@middleware(...)` decorator:
+
+```python
+from vega.web import middleware
+from presentation.web.middleware.logging import LoggingMiddleware
+
+@router.get("/timed")
+@middleware(LoggingMiddleware())
+async def timed_route():
+    return {"status": "ok"}
+```
+
+Return a `Response` (or `JSONResponse`) from `before()` to short-circuit the chain, and modify the outgoing `Response` in `after()` as needed.
 
 ### Pydantic Models (`webmodel`)
 

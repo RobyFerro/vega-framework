@@ -569,92 +569,33 @@ def _generate_middleware(project_root: Path, project_name: str, class_name: str,
 
     click.echo(f"+ Created {click.style(str(middleware_file.relative_to(project_root)), fg='green')}")
 
-    # Register the middleware in app.py
-    _register_middleware_in_app(project_root, class_name, file_name)
+    # Warn if legacy app-level registration is present
+    app_file = project_root / "presentation" / "web" / "app.py"
+    if app_file.exists():
+        app_content = app_file.read_text()
+        legacy_call = f"app.add_middleware({class_name}Middleware"
+        if legacy_call in app_content:
+            click.echo(click.style(
+                f"WARNING: Detected legacy app-level registration for {class_name}Middleware in presentation/web/app.py.",
+                fg='yellow'
+            ))
+            click.echo(click.style(
+                "         Route middleware should be applied with the @middleware decorator per route.",
+                fg='yellow'
+            ))
 
     # Instructions for next steps
     click.echo(f"\nNext steps:")
-    click.echo(f"   1. Implement your middleware logic in {class_name}Middleware.dispatch()")
-    click.echo(f"   2. The middleware has been registered in app.py")
-    click.echo(f"   3. Restart your server to apply changes")
+    click.echo(f"   1. Implement your middleware logic in {class_name}Middleware.before/after().")
+    click.echo(f"   2. Apply it to routes using the @middleware decorator, for example:")
+    click.echo(click.style(f'''      from vega.web import middleware
+      from .middleware.{file_name} import {class_name}Middleware
 
-
-def _register_middleware_in_app(project_root: Path, class_name: str, file_name: str) -> None:
-    """Register a new middleware in app.py"""
-    app_file = project_root / "presentation" / "web" / "app.py"
-
-    if not app_file.exists():
-        click.echo(click.style("WARNING: app.py not found", fg='yellow'))
-        click.echo(f"\nTo register manually, add to app.py:")
-        click.echo(click.style(f'''
-from .middleware.{file_name} import {class_name}Middleware
-
-def create_app() -> VegaApp:
-    app = VegaApp(...)
-    app.add_middleware({class_name}Middleware)
-    app.include_router(get_api_router())
-    return app
-''', fg='cyan'))
-        return
-
-    content = app_file.read_text()
-    lines = content.split('\n')
-
-    # Check if already registered
-    middleware_import = f"from .middleware.{file_name} import {class_name}Middleware"
-    middleware_call = f"app.add_middleware({class_name}Middleware)"
-
-    if any(middleware_import in line for line in lines):
-        click.echo(click.style(f"WARNING: Middleware {class_name} already imported in app.py", fg='yellow'))
-        return
-
-    # Find import section and add middleware import
-    import_added = False
-    for i, line in enumerate(lines):
-        if line.startswith('from .routes import'):
-            # Add import before routes import
-            lines.insert(i, middleware_import)
-            lines.insert(i + 1, '')
-            import_added = True
-            break
-
-    if not import_added:
-        # Fallback: add after VegaApp import
-        for i, line in enumerate(lines):
-            if 'from vega.web import' in line:
-                lines.insert(i + 1, middleware_import)
-                lines.insert(i + 2, '')
-                break
-
-    # Find create_app function and add middleware registration
-    middleware_added = False
-    for i, line in enumerate(lines):
-        if 'app = VegaApp(' in line:
-            # Find the end of VegaApp initialization
-            j = i + 1
-            while j < len(lines) and not lines[j].strip().startswith('app.include_router'):
-                j += 1
-
-            # Add middleware registration before include_router
-            lines.insert(j, f'    {middleware_call}')
-            middleware_added = True
-            break
-
-    if import_added or middleware_added:
-        app_file.write_text('\n'.join(lines))
-        click.echo(f"+ Updated {click.style(str(app_file.relative_to(project_root)), fg='green')}")
-    else:
-        click.echo(click.style("WARNING: Could not auto-register middleware in app.py", fg='yellow'))
-        click.echo(f"\nTo register manually, add to app.py:")
-        click.echo(click.style(f'''
-from .middleware.{file_name} import {class_name}Middleware
-
-def create_app() -> VegaApp:
-    app = VegaApp(...)
-    app.add_middleware({class_name}Middleware)
-    app.include_router(get_api_router())
-    return app
-''', fg='cyan'))
+      @router.get("/example")
+      @middleware({class_name}Middleware())
+      async def example():
+          return {{"status": "ok"}}''', fg='cyan'))
+    click.echo(f"   3. Restart your server to load the updated route middleware.")
 
 
 
