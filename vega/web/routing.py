@@ -1,7 +1,7 @@
 """Routing utilities and decorators for Vega Web Framework"""
 
 import inspect
-from typing import Any, Callable, Dict, List, Optional, Type, get_type_hints
+from typing import Any, Callable, Dict, List, Optional, Type, get_type_hints, get_origin, get_args, Union
 from functools import wraps
 
 from starlette.routing import Route as StarletteRoute, Mount
@@ -12,6 +12,7 @@ from .exceptions import HTTPException
 from .request import Request
 from .response import JSONResponse, Response, create_response
 from .route_middleware import MiddlewareChain
+from .params import Query
 
 
 def _is_pydantic_model(type_hint: Any) -> bool:
@@ -20,6 +21,64 @@ def _is_pydantic_model(type_hint: Any) -> bool:
         return inspect.isclass(type_hint) and issubclass(type_hint, BaseModel)
     except (TypeError, AttributeError):
         return False
+
+
+def _convert_query_param(value: str, target_type: Any) -> Any:
+    """
+    Convert a query parameter string to the target type.
+
+    Args:
+        value: The string value from the query parameter
+        target_type: The target type to convert to
+
+    Returns:
+        Converted value
+
+    Raises:
+        ValueError: If conversion fails
+    """
+    # Handle Optional types (e.g., Optional[int] or int | None)
+    origin = get_origin(target_type)
+    if origin is Union:
+        # Get non-None types from Union
+        args = get_args(target_type)
+        non_none_types = [arg for arg in args if arg is not type(None)]
+        if non_none_types:
+            target_type = non_none_types[0]
+        else:
+            return value
+    # Handle Python 3.10+ union types (e.g., int | None)
+    elif hasattr(target_type, '__class__') and target_type.__class__.__name__ == 'UnionType':
+        # For Python 3.10+ union syntax (int | None)
+        args = get_args(target_type)
+        non_none_types = [arg for arg in args if arg is not type(None)]
+        if non_none_types:
+            target_type = non_none_types[0]
+        else:
+            return value
+
+    # Handle common types
+    if target_type is int or target_type == int:
+        return int(value)
+    elif target_type is float or target_type == float:
+        return float(value)
+    elif target_type is bool or target_type == bool:
+        # Handle boolean strings
+        if value.lower() in ('true', '1', 'yes', 'on'):
+            return True
+        elif value.lower() in ('false', '0', 'no', 'off'):
+            return False
+        else:
+            raise ValueError(f"Cannot convert '{value}' to boolean")
+    elif target_type is str or target_type == str:
+        return value
+    else:
+        # Try direct conversion if it's callable
+        if callable(target_type):
+            return target_type(value)
+        else:
+            # If not callable, just return the string value
+            return value
 
 
 class Route:
@@ -108,6 +167,74 @@ class Route:
                     if param_name in params:
                         kwargs[param_name] = param_value
 
+                # Process query parameters
+                query_params = request.query_params
+                for param_name, param in params.items():
+                    # Skip if already processed (request or path param)
+                    if param_name in kwargs or param_name == "request":
+                        continue
+
+                    # Get type hint and default value
+                    param_type = type_hints.get(param_name, param.annotation)
+                    param_default = param.default
+
+                    # Check if this is a Query parameter
+                    if isinstance(param_default, Query):
+                        query_def = param_default
+                        query_key = query_def.alias or param_name
+
+                        # Get value from query string
+                        query_value = query_params.get(query_key)
+
+                        try:
+                            if query_value is not None:
+                                # Convert string to target type
+                                converted_value = _convert_query_param(query_value, param_type)
+                                # Validate using Query rules
+                                validated_value = query_def.validate(converted_value, param_name)
+                                kwargs[param_name] = validated_value
+                            else:
+                                # Use default value
+                                kwargs[param_name] = query_def.default
+                        except (ValueError, TypeError) as e:
+                            return JSONResponse(
+                                content={"detail": f"Invalid query parameter '{param_name}': {str(e)}"},
+                                status_code=422,
+                            )
+                    # Handle regular query parameters with type hints (without Query())
+                    elif param_name not in kwargs and param_type != inspect.Parameter.empty:
+                        # Check if parameter type suggests it might be a query param
+                        # (not a Pydantic model, not Request)
+                        if not _is_pydantic_model(param_type) and param_type != Request:
+                            query_value = query_params.get(param_name)
+
+                            if query_value is not None:
+                                try:
+                                    converted_value = _convert_query_param(query_value, param_type)
+                                    kwargs[param_name] = converted_value
+                                except (ValueError, TypeError) as e:
+                                    return JSONResponse(
+                                        content={"detail": f"Invalid query parameter '{param_name}': {str(e)}"},
+                                        status_code=422,
+                                    )
+                            elif param_default != inspect.Parameter.empty:
+                                # Use default value if provided
+                                kwargs[param_name] = param_default
+                            else:
+                                # Check if parameter is optional (Union with None)
+                                origin = get_origin(param_type)
+                                is_optional = False
+                                if origin is Union and type(None) in get_args(param_type):
+                                    is_optional = True
+                                # Handle Python 3.10+ union types
+                                elif hasattr(param_type, '__class__') and param_type.__class__.__name__ == 'UnionType':
+                                    args = get_args(param_type)
+                                    if type(None) in args:
+                                        is_optional = True
+
+                                if is_optional:
+                                    kwargs[param_name] = None
+
                 # Check for Pydantic model parameters (body parsing)
                 # Only parse the first Pydantic model found
                 body_parsed = False
@@ -165,6 +292,11 @@ class Route:
                 elif isinstance(result, dict):
                     return JSONResponse(content=result, status_code=self.status_code)
                 elif isinstance(result, (list, tuple)):
+                    # Check if list contains Pydantic models
+                    if result and isinstance(result[0], BaseModel):
+                        # Serialize list of Pydantic models
+                        serialized = [item.model_dump() for item in result]
+                        return JSONResponse(content=serialized, status_code=self.status_code)
                     return JSONResponse(content=result, status_code=self.status_code)
                 elif isinstance(result, str):
                     return Response(content=result, status_code=self.status_code)

@@ -1,6 +1,6 @@
 """OpenAPI schema generation for Vega Web Framework"""
 
-from typing import Any, Dict, List, Optional, Type, get_type_hints
+from typing import Any, Dict, List, Optional, Type, get_type_hints, get_origin, get_args, Union
 from inspect import signature, Parameter
 import json
 
@@ -10,6 +10,8 @@ try:
 except ImportError:
     PYDANTIC_AVAILABLE = False
     BaseModel = None  # type: ignore
+
+from .params import Query
 
 
 def get_openapi_schema(
@@ -153,31 +155,71 @@ def _get_parameters(route: Any) -> List[Dict[str, Any]]:
         if param_name in request_body_params:
             continue
 
+        # Get parameter type
+        param_type = type_hints.get(param_name, str)
+
         # Check if it's a path parameter
         if f"{{{param_name}}}" in route.path:
             param_schema = {
                 "name": param_name,
                 "in": "path",
                 "required": True,
-                "schema": _get_type_schema(type_hints.get(param_name, str))
+                "schema": _get_type_schema(param_type)
             }
             parameters.append(param_schema)
+        # Check if it's a Query parameter
+        elif isinstance(param.default, Query):
+            query_def = param.default
+            param_schema = {
+                "name": query_def.alias or param_name,
+                "in": "query",
+                "required": query_def.default is None,
+                "schema": _get_type_schema(param_type)
+            }
+
+            # Add validation constraints to schema
+            if query_def.gt is not None:
+                param_schema["schema"]["exclusiveMinimum"] = query_def.gt
+            if query_def.ge is not None:
+                param_schema["schema"]["minimum"] = query_def.ge
+            if query_def.lt is not None:
+                param_schema["schema"]["exclusiveMaximum"] = query_def.lt
+            if query_def.le is not None:
+                param_schema["schema"]["maximum"] = query_def.le
+            if query_def.min_length is not None:
+                param_schema["schema"]["minLength"] = query_def.min_length
+            if query_def.max_length is not None:
+                param_schema["schema"]["maxLength"] = query_def.max_length
+            if query_def.pattern is not None:
+                param_schema["schema"]["pattern"] = query_def.pattern
+
+            # Add description and title
+            if query_def.description:
+                param_schema["description"] = query_def.description
+            if query_def.title:
+                param_schema["schema"]["title"] = query_def.title
+
+            # Add default value if present
+            if query_def.default is not None:
+                param_schema["schema"]["default"] = query_def.default
+
+            parameters.append(param_schema)
         elif param.default == Parameter.empty:
-            # Required query parameter
+            # Required query parameter (no default)
             param_schema = {
                 "name": param_name,
                 "in": "query",
                 "required": True,
-                "schema": _get_type_schema(type_hints.get(param_name, str))
+                "schema": _get_type_schema(param_type)
             }
             parameters.append(param_schema)
         else:
-            # Optional query parameter
+            # Optional query parameter with default value
             param_schema = {
                 "name": param_name,
                 "in": "query",
                 "required": False,
-                "schema": _get_type_schema(type_hints.get(param_name, str))
+                "schema": _get_type_schema(param_type)
             }
             if param.default is not None and param.default != Parameter.empty:
                 param_schema["schema"]["default"] = param.default
@@ -270,6 +312,21 @@ def _get_response_schema(response_model: Type, components: Dict[str, Any]) -> Di
 
 def _get_type_schema(param_type: Any) -> Dict[str, Any]:
     """Convert Python type to OpenAPI schema."""
+    # Handle Optional types (e.g., Optional[int] or int | None)
+    origin = get_origin(param_type)
+    if origin is Union:
+        # Get non-None types from Union
+        args = get_args(param_type)
+        non_none_types = [arg for arg in args if arg is not type(None)]
+        if non_none_types:
+            param_type = non_none_types[0]
+    # Handle Python 3.10+ union types (e.g., int | None)
+    elif hasattr(param_type, '__class__') and param_type.__class__.__name__ == 'UnionType':
+        args = get_args(param_type)
+        non_none_types = [arg for arg in args if arg is not type(None)]
+        if non_none_types:
+            param_type = non_none_types[0]
+
     if param_type is str or param_type == "str":
         return {"type": "string"}
     elif param_type is int or param_type == "int":

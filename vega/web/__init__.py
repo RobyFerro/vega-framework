@@ -66,6 +66,9 @@ from .route_middleware import (
     middleware,
 )
 
+# Parameters
+from .params import Query
+
 # OpenAPI / Documentation
 from .openapi import get_openapi_schema
 from .docs import get_swagger_ui_html, get_redoc_html
@@ -101,6 +104,8 @@ __all__ = [
     "RouteMiddleware",
     "MiddlewarePhase",
     "middleware",
+    # Parameters
+    "Query",
     # OpenAPI / Docs
     "get_openapi_schema",
     "get_swagger_ui_html",
