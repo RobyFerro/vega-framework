@@ -12,9 +12,9 @@ class {{ class_name }}Middleware(RouteMiddleware):
 
     Usage:
         from vega.web import middleware
-        from .middleware.{{ file_name }} import {{ class_name }}Middleware
+        from presentation.web.middleware.{{ file_name }} import {{ class_name }}Middleware
 
-        @router.get("/example")
+        @router.post("/example")
         @middleware({{ class_name }}Middleware())
         async def example_endpoint():
             return {"message": "ok"}

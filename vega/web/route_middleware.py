@@ -5,6 +5,8 @@ from enum import Enum
 from functools import wraps
 import inspect
 
+from pydantic import BaseModel
+
 from .request import Request
 from .response import Response, JSONResponse
 
@@ -113,6 +115,9 @@ class RouteMiddleware:
         # Convert result to Response if needed
         if isinstance(result, (Response, JSONResponse)):
             response = result
+        elif isinstance(result, BaseModel):
+            # Serialize Pydantic models using model_dump()
+            response = JSONResponse(content=result.model_dump())
         elif isinstance(result, dict):
             response = JSONResponse(content=result)
         elif isinstance(result, (list, tuple)):
@@ -170,6 +175,9 @@ class MiddlewareChain:
             # Convert to response
             if isinstance(result, (Response, JSONResponse)):
                 return result
+            elif isinstance(result, BaseModel):
+                # Serialize Pydantic models using model_dump()
+                return JSONResponse(content=result.model_dump())
             elif isinstance(result, dict):
                 return JSONResponse(content=result)
             elif isinstance(result, (list, tuple)):
@@ -208,6 +216,9 @@ class MiddlewareChain:
         # Convert to response
         if isinstance(result, (Response, JSONResponse)):
             response = result
+        elif isinstance(result, BaseModel):
+            # Serialize Pydantic models using model_dump()
+            response = JSONResponse(content=result.model_dump())
         elif isinstance(result, dict):
             response = JSONResponse(content=result)
         elif isinstance(result, (list, tuple)):

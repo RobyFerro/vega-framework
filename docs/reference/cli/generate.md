@@ -110,7 +110,7 @@ Requires the Vega Web scaffold. Generates `presentation/web/routes/user.py`, add
 vega generate middleware Logging
 ```
 
-Creates `presentation/web/middleware/logging.py` (if the package exists it keeps `__init__.py` up to date). The generated class extends `RouteMiddleware`, so you attach it to routes via the `@middleware(...)` decorator:
+Creates `presentation/web/middleware/logging.py` (if the package exists it keeps `__init__.py` up to date). The generated class extends `RouteMiddleware`, so you attach it to **individual routes** via the `@middleware(...)` decorator:
 
 ```python
 from vega.web import middleware
@@ -121,6 +121,8 @@ from presentation.web.middleware.logging import LoggingMiddleware
 async def timed_route():
     return {"status": "ok"}
 ```
+
+**Important**: `RouteMiddleware` is designed for **per-route** middleware only. Do NOT use `app.add_middleware()` with these classes, as that will cause a `TypeError: __init__() got an unexpected keyword argument 'app'`. If you need application-level middleware, use Starlette's `BaseHTTPMiddleware` instead.
 
 Return a `Response` (or `JSONResponse`) from `before()` to short-circuit the chain, and modify the outgoing `Response` in `after()` as needed.
 
