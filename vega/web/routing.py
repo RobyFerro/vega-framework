@@ -27,6 +27,10 @@ def _convert_query_param(value: str, target_type: Any) -> Any:
     """
     Convert a query parameter string to the target type.
 
+    This function attempts to convert string values from query parameters to their
+    target types. It handles Optional types, special cases like bool and date/datetime,
+    and falls back to direct type conversion for any callable type.
+
     Args:
         value: The string value from the query parameter
         target_type: The target type to convert to
@@ -37,6 +41,8 @@ def _convert_query_param(value: str, target_type: Any) -> Any:
     Raises:
         ValueError: If conversion fails
     """
+    from datetime import date, datetime
+
     # Handle Optional types (e.g., Optional[int] or int | None)
     origin = get_origin(target_type)
     if origin is Union:
@@ -57,28 +63,52 @@ def _convert_query_param(value: str, target_type: Any) -> Any:
         else:
             return value
 
-    # Handle common types
-    if target_type is int or target_type == int:
-        return int(value)
-    elif target_type is float or target_type == float:
-        return float(value)
-    elif target_type is bool or target_type == bool:
-        # Handle boolean strings
+    # Special case: bool requires custom parsing
+    # (can't just call bool(value) because bool("false") == True)
+    if target_type is bool or target_type == bool:
         if value.lower() in ('true', '1', 'yes', 'on'):
             return True
-        elif value.lower() in ('false', '0', 'no', 'off'):
+        elif value.lower() in ('false', '0', 'no', 'off', ''):
             return False
         else:
-            raise ValueError(f"Cannot convert '{value}' to boolean")
-    elif target_type is str or target_type == str:
-        return value
-    else:
-        # Try direct conversion if it's callable
-        if callable(target_type):
+            raise ValueError(f"Cannot convert '{value}' to boolean. Expected: true/false, 1/0, yes/no, on/off")
+
+    # Special case: date supports multiple common formats
+    if target_type is date or target_type == date:
+        for date_format in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y'):
+            try:
+                return datetime.strptime(value, date_format).date()
+            except ValueError:
+                continue
+        raise ValueError(f"Cannot convert '{value}' to date. Expected formats: YYYY-MM-DD, DD/MM/YYYY, or MM/DD/YYYY")
+
+    # Special case: datetime supports ISO format and tries to be lenient
+    if target_type is datetime or target_type == datetime:
+        try:
+            # Try ISO format with timezone
+            return datetime.fromisoformat(value)
+        except ValueError:
+            try:
+                # Try common datetime formats
+                for dt_format in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%d/%m/%Y %H:%M:%S'):
+                    try:
+                        return datetime.strptime(value, dt_format)
+                    except ValueError:
+                        continue
+                raise ValueError("No format matched")
+            except ValueError:
+                raise ValueError(f"Cannot convert '{value}' to datetime. Expected ISO format or YYYY-MM-DD HH:MM:SS")
+
+    # General case: try to call the type as a constructor
+    # This works for int, float, str, Decimal, UUID, Path, and most simple types
+    if callable(target_type):
+        try:
             return target_type(value)
-        else:
-            # If not callable, just return the string value
-            return value
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Cannot convert '{value}' to {target_type.__name__}: {str(e)}")
+
+    # If not callable, just return the string value
+    return value
 
 
 class Route:
@@ -183,19 +213,36 @@ class Route:
                         query_def = param_default
                         query_key = query_def.alias or param_name
 
-                        # Get value from query string
-                        query_value = query_params.get(query_key)
+                        # Check if param_type is a list type
+                        origin = get_origin(param_type)
+                        is_list = origin is list or (hasattr(origin, '__name__') and 'list' in origin.__name__.lower())
 
                         try:
-                            if query_value is not None:
-                                # Convert string to target type
-                                converted_value = _convert_query_param(query_value, param_type)
-                                # Validate using Query rules
-                                validated_value = query_def.validate(converted_value, param_name)
-                                kwargs[param_name] = validated_value
+                            if is_list:
+                                # Get all values for list parameters
+                                query_values = query_params.getlist(query_key)
+                                if query_values:
+                                    # Get the element type from list[T]
+                                    args = get_args(param_type)
+                                    element_type = args[0] if args else str
+                                    # Convert each value to the target type
+                                    converted_values = [_convert_query_param(val, element_type) for val in query_values]
+                                    kwargs[param_name] = converted_values
+                                else:
+                                    # Use default value or empty list
+                                    kwargs[param_name] = query_def.default if query_def.default is not None else []
                             else:
-                                # Use default value
-                                kwargs[param_name] = query_def.default
+                                # Get single value from query string
+                                query_value = query_params.get(query_key)
+                                if query_value is not None:
+                                    # Convert string to target type
+                                    converted_value = _convert_query_param(query_value, param_type)
+                                    # Validate using Query rules
+                                    validated_value = query_def.validate(converted_value, param_name)
+                                    kwargs[param_name] = validated_value
+                                else:
+                                    # Use default value
+                                    kwargs[param_name] = query_def.default
                         except (ValueError, TypeError) as e:
                             return JSONResponse(
                                 content={"detail": f"Invalid query parameter '{param_name}': {str(e)}"},
@@ -206,34 +253,62 @@ class Route:
                         # Check if parameter type suggests it might be a query param
                         # (not a Pydantic model, not Request)
                         if not _is_pydantic_model(param_type) and param_type != Request:
-                            query_value = query_params.get(param_name)
+                            # Check if param_type is a list type
+                            origin = get_origin(param_type)
+                            is_list = origin is list or (hasattr(origin, '__name__') and 'list' in origin.__name__.lower())
 
-                            if query_value is not None:
-                                try:
-                                    converted_value = _convert_query_param(query_value, param_type)
-                                    kwargs[param_name] = converted_value
-                                except (ValueError, TypeError) as e:
-                                    return JSONResponse(
-                                        content={"detail": f"Invalid query parameter '{param_name}': {str(e)}"},
-                                        status_code=422,
-                                    )
-                            elif param_default != inspect.Parameter.empty:
-                                # Use default value if provided
-                                kwargs[param_name] = param_default
+                            if is_list:
+                                # Get all values for list parameters
+                                query_values = query_params.getlist(param_name)
+                                if query_values:
+                                    try:
+                                        # Get the element type from list[T]
+                                        args = get_args(param_type)
+                                        element_type = args[0] if args else str
+                                        # Convert each value to the target type
+                                        converted_values = [_convert_query_param(val, element_type) for val in query_values]
+                                        kwargs[param_name] = converted_values
+                                    except (ValueError, TypeError) as e:
+                                        return JSONResponse(
+                                            content={"detail": f"Invalid query parameter '{param_name}': {str(e)}"},
+                                            status_code=422,
+                                        )
+                                elif param_default != inspect.Parameter.empty:
+                                    # Use default value if provided
+                                    kwargs[param_name] = param_default
+                                else:
+                                    # No values provided and no default, use empty list
+                                    kwargs[param_name] = []
                             else:
-                                # Check if parameter is optional (Union with None)
-                                origin = get_origin(param_type)
-                                is_optional = False
-                                if origin is Union and type(None) in get_args(param_type):
-                                    is_optional = True
-                                # Handle Python 3.10+ union types
-                                elif hasattr(param_type, '__class__') and param_type.__class__.__name__ == 'UnionType':
-                                    args = get_args(param_type)
-                                    if type(None) in args:
-                                        is_optional = True
+                                # Handle single value
+                                query_value = query_params.get(param_name)
 
-                                if is_optional:
-                                    kwargs[param_name] = None
+                                if query_value is not None:
+                                    try:
+                                        converted_value = _convert_query_param(query_value, param_type)
+                                        kwargs[param_name] = converted_value
+                                    except (ValueError, TypeError) as e:
+                                        return JSONResponse(
+                                            content={"detail": f"Invalid query parameter '{param_name}': {str(e)}"},
+                                            status_code=422,
+                                        )
+                                elif param_default != inspect.Parameter.empty:
+                                    # Use default value if provided
+                                    kwargs[param_name] = param_default
+                                else:
+                                    # Check if parameter is optional (Union with None)
+                                    origin = get_origin(param_type)
+                                    is_optional = False
+                                    if origin is Union and type(None) in get_args(param_type):
+                                        is_optional = True
+                                    # Handle Python 3.10+ union types
+                                    elif hasattr(param_type, '__class__') and param_type.__class__.__name__ == 'UnionType':
+                                        args = get_args(param_type)
+                                        if type(None) in args:
+                                            is_optional = True
+
+                                    if is_optional:
+                                        kwargs[param_name] = None
 
                 # Check for Pydantic model parameters (body parsing)
                 # Only parse the first Pydantic model found

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.2.10"
+version = "0.2.11"
 description = "Enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
