@@ -36,6 +36,7 @@ from vega.di.scope import Scope, scope_context, clear_singletons, get_singleton_
 from vega.di.decorators import bind, injectable
 from vega.di.errors import DependencyInjectionError
 from vega.di.container import Container, get_container, set_container, resolve
+from vega.di.bean import bean, is_bean, get_bean_metadata
 
 __all__ = [
     "Scope",
@@ -44,6 +45,9 @@ __all__ = [
     "get_singleton_instance",
     "bind",
     "injectable",
+    "bean",
+    "is_bean",
+    "get_bean_metadata",
     "DependencyInjectionError",
     "Container",
     "get_container",

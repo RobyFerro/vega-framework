@@ -1,5 +1,6 @@
 """Dependency Injection configuration for {{ project_name }}"""
 from vega.di import Container, set_container
+from vega.discovery import discover_beans
 
 # Domain interfaces (Abstract)
 # Example:
@@ -15,13 +16,32 @@ from vega.di import Container, set_container
 # from infrastructure.database_manager import DatabaseManager
 # db_manager = DatabaseManager(url=settings.database_url)
 
-# DI Registry: Map interfaces to implementations
+# DI Registry: Manual registration (optional - for instances or explicit mappings)
 SERVICES = {
-    # Example:
+    # Example - Manual registration:
     # UserRepository: MemoryUserRepository,
     # DatabaseManager: lambda: db_manager,
+
+    # Note: Classes decorated with @bean are auto-discovered and don't need manual registration
 }
 
 # Create and set container
 container = Container(SERVICES)
 set_container(container)
+
+# Auto-discover @bean decorated classes
+# This scans domain/, application/, and infrastructure/ packages
+# for classes decorated with @bean and registers them automatically
+try:
+    discover_beans("{{ project_name }}")
+except Exception as e:
+    # Fallback to manual registration if auto-discovery fails
+    # This ensures backward compatibility with older project structures
+    import logging
+    logging.debug(f"Bean auto-discovery skipped: {e}")
+
+# To customize auto-discovery packages:
+# discover_beans("{{ project_name }}", subpackages=["repositories", "services"])
+
+# To disable auto-discovery, comment out the discover_beans() call above
+# and use manual registration in SERVICES dict instead

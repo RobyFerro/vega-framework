@@ -1,7 +1,9 @@
 """{{ impl_class }} implementation"""
+from vega.di import bean
 from domain.services.{{ interface_file_name }} import {{ interface_class_name }}
 
 
+@bean
 class {{ impl_class }}({{ interface_class_name }}):
     """{{ impl_class }} concrete implementation."""
 
