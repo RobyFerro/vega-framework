@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.2.12"
+version = "0.2.13"
 description = "Enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
@@ -37,9 +37,10 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-# Pydantic v1 for maximum compatibility (including PASE/OS400)
-# In v1, BaseSettings is included in the main pydantic package
-pydantic = ">=1.10,<2.0"
+# Pydantic v2 for modern features and better performance
+pydantic = "^2.0"
+# In Pydantic v2, BaseSettings moved to a separate package
+pydantic-settings = "^2.0"
 # python-dotenv needed for .env file support with BaseSettings
 python-dotenv = "^1.0"
 click = "^8.0"

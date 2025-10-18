@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
 
@@ -10,9 +10,10 @@ class {{ model_name }}Response(BaseModel):
     # name: str = Field(..., description="Name field")
     # created_at: str = Field(..., description="Creation timestamp")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 # Add example values here
             }
         }
+    )

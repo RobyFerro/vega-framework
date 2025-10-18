@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
 
@@ -10,9 +10,10 @@ class {{ model_name }}Request(BaseModel):
     # email: str = Field(..., description="Email address")
     # age: Optional[int] = Field(None, ge=0, description="Age field")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 # Add example values here
             }
         }
+    )
