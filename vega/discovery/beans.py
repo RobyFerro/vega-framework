@@ -2,12 +2,65 @@
 import importlib
 import inspect
 import logging
+import sys
 from pathlib import Path
 from typing import Optional, List
 
 from vega.di import get_container, is_bean
 
 logger = logging.getLogger(__name__)
+
+
+def _find_package_dir_from_filesystem(base_package: str, subpackage: str = "") -> Optional[Path]:
+    """
+    Find package directory from filesystem without requiring __init__.py.
+
+    This function supports PEP 420 namespace packages by searching for
+    package directories in sys.path and the current working directory.
+
+    Args:
+        base_package: Base package name (e.g., "myapp")
+        subpackage: Subpackage path (e.g., "domain.repositories")
+
+    Returns:
+        Path to the package directory if found, None otherwise
+
+    Example:
+        # For base_package="bdc", subpackage="infrastructure.repositories"
+        # Returns: /path/to/bdc/infrastructure/repositories
+    """
+    # Construct the relative path parts
+    base_parts = base_package.split('.')
+    subpackage_parts = subpackage.split('.') if subpackage else []
+
+    # Search locations: current directory first, then sys.path
+    search_paths = [Path.cwd()] + [Path(p) for p in sys.path if p]
+
+    for search_root in search_paths:
+        # Strategy 1: Try full path (base_package + subpackage)
+        # E.g., looking for "bdc/infrastructure/repositories" from parent dir
+        potential_dir = search_root
+        for part in base_parts + subpackage_parts:
+            potential_dir = potential_dir / part
+
+        if potential_dir.exists() and potential_dir.is_dir():
+            if list(potential_dir.glob("*.py")) or list(potential_dir.glob("**/*.py")):
+                logger.debug(f"Found package directory via filesystem (full path): {potential_dir}")
+                return potential_dir
+
+        # Strategy 2: If we're already inside base_package directory, look for subpackage only
+        # E.g., CWD is "/path/to/bdc", looking for "infrastructure/repositories"
+        if subpackage_parts:
+            potential_dir = search_root
+            for part in subpackage_parts:
+                potential_dir = potential_dir / part
+
+            if potential_dir.exists() and potential_dir.is_dir():
+                if list(potential_dir.glob("*.py")) or list(potential_dir.glob("**/*.py")):
+                    logger.debug(f"Found package directory via filesystem (subpackage only): {potential_dir}")
+                    return potential_dir
+
+    return None
 
 
 def discover_beans(
@@ -76,18 +129,28 @@ def discover_beans(
             full_package = base_package
 
         try:
-            # Import the package to get its path
+            # Try to get package directory using two approaches:
+            # 1. Traditional import (fast, works with regular packages)
+            # 2. Filesystem scan (works with PEP 420 namespace packages without __init__.py)
+            package_dir = None
+            found_via_import = False
+
             try:
                 package_module = importlib.import_module(full_package)
+                if hasattr(package_module, '__file__') and package_module.__file__ is not None:
+                    package_dir = Path(package_module.__file__).parent
+                    found_via_import = True
+                    logger.debug(f"Found package via import: {package_dir}")
             except ImportError as e:
-                logger.debug(f"Skipping package '{full_package}': {e}")
-                continue
+                logger.debug(f"Cannot import '{full_package}': {e}, trying filesystem scan...")
 
-            if not hasattr(package_module, '__file__') or package_module.__file__ is None:
-                logger.debug(f"Skipping namespace package '{full_package}'")
-                continue
+            # Fallback: Search filesystem for namespace packages (PEP 420)
+            if package_dir is None:
+                package_dir = _find_package_dir_from_filesystem(base_package, subpackage)
+                if package_dir is None:
+                    logger.debug(f"Skipping package '{full_package}': not found")
+                    continue
 
-            package_dir = Path(package_module.__file__).parent
             logger.debug(f"Discovering beans in: {package_dir}")
 
             # Scan for Python modules
@@ -101,9 +164,36 @@ def discover_beans(
                     continue
 
                 # Convert file path to module name
-                relative_path = file.relative_to(package_dir.parent)
-                module_parts = list(relative_path.parts[:-1]) + [relative_path.stem]
-                module_name = ".".join(module_parts)
+                # Handle both cases: regular packages and namespace packages
+                try:
+                    # Calculate relative path from package_dir
+                    relative_path = file.relative_to(package_dir)
+                    module_parts = list(relative_path.parts[:-1]) + [relative_path.stem]
+
+                    if found_via_import:
+                        # Package was imported successfully - use full_package as prefix
+                        if module_parts and module_parts != [file.stem]:
+                            # File is in a subdirectory
+                            module_name = f"{full_package}.{'.'.join(module_parts)}"
+                        else:
+                            # File is directly in package_dir
+                            module_name = f"{full_package}.{file.stem}"
+                    else:
+                        # Package found via filesystem - use subpackage only (no base_package)
+                        # This handles cases where base_package is not importable
+                        if subpackage:
+                            if module_parts and module_parts != [file.stem]:
+                                module_name = f"{subpackage}.{'.'.join(module_parts)}"
+                            else:
+                                module_name = f"{subpackage}.{file.stem}"
+                        else:
+                            # No subpackage, just use module parts
+                            module_name = ".".join(module_parts) if module_parts != [file.stem] else file.stem
+                except ValueError:
+                    # Fallback: use old logic if relative_to fails
+                    relative_path = file.relative_to(package_dir.parent)
+                    module_parts = list(relative_path.parts[:-1]) + [relative_path.stem]
+                    module_name = ".".join(module_parts)
 
                 try:
                     # Import the module (this triggers @bean decorator)
