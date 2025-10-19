@@ -110,17 +110,64 @@ def init():
     from pathlib import Path
     import sys
     from vega.cli.utils import async_command
+    from vega.di import get_container
+    from vega.discovery import discover_beans
 
     # Add project root to path to allow imports
     project_root = Path.cwd()
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
+    # Get the base package name from project structure
+    # Try to determine the base package from common file locations
+    base_package = None
+    for potential_name in ['app', 'src', project_root.name]:
+        potential_path = project_root / potential_name
+        if potential_path.exists() and potential_path.is_dir():
+            if any(potential_path.glob("*.py")):
+                base_package = potential_name
+                break
+
+    # If no standard structure found, use project name
+    if base_package is None:
+        base_package = project_root.name.replace('-', '_').replace(' ', '_')
+
+    # Discover beans to ensure DatabaseManager is registered
+    click.echo(f"Discovering beans in package '{base_package}'...")
     try:
-        from config import db_manager
-    except ImportError:
-        click.secho("Error: Could not import db_manager from config.py", fg='red')
-        click.echo("Make sure you have SQLAlchemy configured in your project")
+        bean_count = discover_beans(base_package)
+        if bean_count == 0:
+            click.secho(
+                f"Warning: No beans discovered in '{base_package}'. "
+                "Make sure your DatabaseManager is decorated with @bean.",
+                fg='yellow'
+            )
+    except Exception as e:
+        click.secho(f"Warning: Failed to discover beans: {e}", fg='yellow')
+
+    # Try to get DatabaseManager from container
+    container = get_container()
+    db_manager = None
+
+    # Search for DatabaseManager in registered beans
+    for interface, implementation in container._services.items():
+        if 'DatabaseManager' in implementation.__name__:
+            try:
+                db_manager = container.resolve(interface)
+                click.echo(f"Found DatabaseManager: {implementation.__name__}")
+                break
+            except Exception as e:
+                click.secho(f"Failed to resolve {implementation.__name__}: {e}", fg='yellow')
+
+    if db_manager is None:
+        click.secho(
+            "Error: Could not find DatabaseManager in DI container.\n"
+            "Make sure you have:\n"
+            "  1. Created a DatabaseManager class\n"
+            "  2. Decorated it with @bean\n"
+            "  3. Placed it in a discoverable location (domain/application/infrastructure)",
+            fg='red'
+        )
         sys.exit(1)
 
     @async_command
