@@ -200,11 +200,14 @@ def _generate_service(
 ):
     """Generate service interface"""
 
-    file_path = project_root / "domain" / "services" / f"{file_name}.py"
+    file_path = project_root / "application" / "services" / f"{file_name}.py"
 
     if file_path.exists():
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
+
+    # Ensure directory exists
+    file_path.parent.mkdir(parents=True, exist_ok=True)
 
     content = render_service_interface(class_name)
 
@@ -236,11 +239,14 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
 
     entity_file = to_snake_case(entity_name)
 
-    file_path = project_root / "domain" / "interactors" / f"{file_name}.py"
+    file_path = project_root / "application" / "interactors" / f"{file_name}.py"
 
     if file_path.exists():
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
+
+    # Ensure directory exists
+    file_path.parent.mkdir(parents=True, exist_ok=True)
 
     content = render_interactor(class_name, entity_name, entity_file)
 

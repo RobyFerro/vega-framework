@@ -5,7 +5,7 @@ import config  # noqa: F401 - Initialize DI container
 
 {% if with_interactor -%}
 # Import your interactors here
-# from domain.interactors.{{ interactor_name }} import {{ interactor_name }}
+# from application.interactors.{{ interactor_name }} import {{ interactor_name }}
 {% endif %}
 
 @click.command()

@@ -29,7 +29,8 @@
       "Bash(.venv/Scripts/vega web:*)",
       "Bash(timeout 3 .venv/Scripts/vega web run:*)",
       "Bash(timeout:*)",
-      "Bash(tree -L 3 c:/Users/rober/Documents/Projects/vega-framework-release/vega)"
+      "Bash(tree -L 3 c:/Users/rober/Documents/Projects/vega-framework-release/vega)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

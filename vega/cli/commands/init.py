@@ -32,8 +32,8 @@ def init_project(project_name: str, template: str, parent_path: str):
     directories = [
         "domain/entities",
         "domain/repositories",
-        "domain/services",
-        "domain/interactors",
+        "application/interactors",
+        "application/services",
         "application/mediators",
         "infrastructure/repositories",
         "infrastructure/services",

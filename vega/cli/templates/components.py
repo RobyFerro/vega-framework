@@ -26,7 +26,7 @@ def render_repository_interface(
 def render_service_interface(class_name: str) -> str:
     """Return the template for a service interface."""
     return render_template(
-        "service_interface.py.j2", subfolder="domain", class_name=class_name
+        "service_interface.py.j2", subfolder="application", class_name=class_name
     )
 
 
@@ -34,7 +34,7 @@ def render_interactor(class_name: str, entity_name: str, entity_file: str) -> st
     """Return the template for an interactor."""
     return render_template(
         "interactor.py.j2",
-        subfolder="domain",
+        subfolder="application",
         class_name=class_name,
         entity_name=entity_name,
         entity_file=entity_file,
@@ -43,7 +43,7 @@ def render_interactor(class_name: str, entity_name: str, entity_file: str) -> st
 
 def render_mediator(class_name: str) -> str:
     """Return the template for a mediator."""
-    return render_template("mediator.py.j2", subfolder="domain", class_name=class_name)
+    return render_template("mediator.py.j2", subfolder="application", class_name=class_name)
 
 
 def render_infrastructure_repository(

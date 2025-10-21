@@ -8,11 +8,11 @@ Vega Framework application with Clean Architecture.
 {{ project_name }}/
 ├── domain/              # 🔵 Business logic (framework-independent)
 │   ├── entities/        # Business entities
-│   ├── repositories/    # Repository interfaces
-│   ├── services/        # Service interfaces
-│   └── interactors/     # Use cases
+│   └── repositories/    # Repository interfaces
 │
-├── application/         # 🟢 Application workflows
+├── application/         # 🟢 Use cases & workflows
+│   ├── interactors/     # Use cases (business operations)
+│   ├── services/        # Service interfaces (outbound ports)
 │   └── mediators/       # Complex workflows
 │
 ├── infrastructure/      # 🟡 Concrete implementations
@@ -64,10 +64,10 @@ Generate Clean Architecture components quickly:
 # Domain layer
 vega generate entity Product
 vega generate repository ProductRepository --impl memory
-vega generate service EmailService
-vega generate interactor CreateProduct
 
 # Application layer
+vega generate interactor CreateProduct
+vega generate service EmailService
 vega generate mediator CheckoutFlow
 
 # Presentation layer (web)
@@ -134,7 +134,7 @@ from vega.cli.utils import async_command
 async def create_user(name: str):
     """Create a user using an interactor"""
     import config  # Initialize DI container
-    from domain.interactors.create_user import CreateUser
+    from application.interactors.create_user import CreateUser
 
     user = await CreateUser(name=name)
     click.echo(f"Created: {user.name}")

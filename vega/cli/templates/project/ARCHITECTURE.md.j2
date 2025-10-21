@@ -32,8 +32,8 @@ The innermost layer containing pure business logic, completely independent of an
 
 - **Entities** - Business objects and data structures (pure Python classes)
 - **Repository Interfaces** - Abstract data persistence contracts (using `Repository[T]`)
-- **Service Interfaces** - Abstract external service contracts (using `Service`)
-- **Interactors (Use Cases)** - Business operations that implement specific use cases
+- **Domain Events** - Events that represent domain state changes
+- **Domain Services** - Business logic that doesn't naturally fit in entities (optional)
 
 **Rules:**
 
@@ -47,21 +47,23 @@ The innermost layer containing pure business logic, completely independent of an
 
 ### 2. Application Layer
 
-Orchestrates domain use cases into complex workflows and coordinates multiple business operations.
+Orchestrates domain use cases into complex workflows and coordinates multiple business operations. Contains the application logic and defines interfaces for external services.
 
 **Contains:**
 
+- **Interactors (Use Cases)** - Single-purpose business operations that implement specific use cases
 - **Mediators** - Multi-step workflows that orchestrate multiple interactors
-- **Application Services** - Coordinate domain operations for specific application scenarios
+- **Service Interfaces** - Abstract external service contracts (email, payment, storage, etc.) - outbound ports
 
 **Rules:**
 
 - ✅ Can depend **only** on the domain layer
 - ✅ **NO** dependencies on infrastructure or presentation
-- ✅ **NO** knowledge of HTTP, databases, or external services
+- ✅ **NO** knowledge of HTTP, databases, or external service implementations
 - ✅ Orchestrates business operations without implementation details
+- ✅ Defines **interfaces** for external services, never implementations
 
-**Purpose:** Manage complex business workflows while remaining independent of delivery mechanisms and infrastructure.
+**Purpose:** Manage complex business workflows and define application boundaries (ports) while remaining independent of delivery mechanisms and infrastructure.
 
 ### 3. Infrastructure Layer
 
@@ -227,9 +229,9 @@ class PostgresUserRepository(UserRepository):
 A **Service** provides abstraction over external services and APIs.
 
 **Key Characteristics:**
-- Abstract interface in domain layer
+- Abstract interface in **application layer** (outbound port)
 - Concrete implementation in infrastructure layer
-- Represents third-party dependencies
+- Represents third-party dependencies (email, payment, storage, etc.)
 
 **Example:**
 
@@ -237,7 +239,7 @@ A **Service** provides abstraction over external services and APIs.
 from vega.patterns import Service
 from abc import abstractmethod
 
-# Domain layer - Interface
+# Application layer - Interface
 class EmailService(Service):
     @abstractmethod
     async def send(self, to: str, subject: str, body: str) -> bool:
@@ -288,7 +290,17 @@ vega generate repository User --impl sql      # SQL implementation
 vega generate repository User --impl postgres # PostgreSQL implementation
 ```
 
-**Service Interfaces** - External service abstractions:
+### Generating Application Layer Components
+
+**Interactors** - Single-purpose use cases:
+```bash
+vega generate interactor CreateUser
+vega generate interactor GetUserById
+vega generate interactor UpdateUserEmail
+vega generate interactor DeleteUser
+```
+
+**Service Interfaces** - External service abstractions (outbound ports):
 ```bash
 vega generate service EmailService
 vega generate service PaymentService
@@ -299,16 +311,6 @@ vega generate service PaymentService
 vega generate service Email --impl sendgrid
 vega generate service Payment --impl stripe
 ```
-
-**Interactors** - Single-purpose use cases:
-```bash
-vega generate interactor CreateUser
-vega generate interactor GetUserById
-vega generate interactor UpdateUserEmail
-vega generate interactor DeleteUser
-```
-
-### Generating Application Layer Components
 
 **Mediators** - Complex workflows:
 ```bash
@@ -658,17 +660,17 @@ Vega projects follow a standard 4-layer structure:
 │   ├── entities/
 │   │   ├── __init__.py
 │   │   └── user.py              # Business entities (pure Python)
-│   ├── repositories/
+│   └── repositories/
+│       ├── __init__.py
+│       └── user_repository.py   # Repository interfaces (abstractions)
+│
+├── application/                  # 🟢 APPLICATION LAYER (Use Cases & Workflows)
+│   ├── interactors/
 │   │   ├── __init__.py
-│   │   └── user_repository.py   # Repository interfaces (abstractions)
+│   │   └── create_user.py       # Use cases (business operations)
 │   ├── services/
 │   │   ├── __init__.py
-│   │   └── email_service.py     # Service interfaces (abstractions)
-│   └── interactors/
-│       ├── __init__.py
-│       └── create_user.py       # Use cases (business operations)
-│
-├── application/                  # 🟢 APPLICATION LAYER (Workflows)
+│   │   └── email_service.py     # Service interfaces (outbound ports)
 │   └── mediators/
 │       ├── __init__.py
 │       └── registration_flow.py # Multi-step workflows
@@ -703,15 +705,16 @@ Vega projects follow a standard 4-layer structure:
 ```text
 Presentation → Application → Domain ← Infrastructure
     ↓              ↓                      ↓
-  (CLI)        (Mediators)           (Implements)
-  (Web)       (Workflows)            (Interfaces)
+  (CLI)       (Use Cases)           (Implements)
+  (Web)       (Workflows)           (Interfaces)
+             (Services)
 ```
 
 **Key Points:**
 
-- **Domain** is the center and has NO dependencies
-- **Application** depends only on Domain
-- **Infrastructure** implements Domain interfaces
+- **Domain** is the center and has NO dependencies (only pure business logic)
+- **Application** depends only on Domain (use cases, workflows, service interfaces)
+- **Infrastructure** implements Application/Domain interfaces (concrete implementations)
 - **Presentation** depends on Application and Domain (and may use Infrastructure for setup)
 
 ## Best Practices
