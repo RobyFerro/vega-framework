@@ -30,7 +30,10 @@
       "Bash(timeout 3 .venv/Scripts/vega web run:*)",
       "Bash(timeout:*)",
       "Bash(tree -L 3 c:/Users/rober/Documents/Projects/vega-framework-release/vega)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Read(//tmp/test-vega-project/**)",
+      "Bash(vega init:*)",
+      "Bash(PYTHONPATH=. python:*)"
     ],
     "deny": [],
     "ask": []

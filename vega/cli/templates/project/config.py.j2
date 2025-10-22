@@ -1,6 +1,12 @@
 """Dependency Injection configuration for {{ project_name }}"""
+import logging
+import sys
+
 from vega.di import Container, set_container
 from vega.discovery import discover_beans
+
+# Configure logging for bean discovery debugging
+logger = logging.getLogger(__name__)
 
 # Domain interfaces (Abstract)
 # Example:
@@ -33,12 +39,19 @@ set_container(container)
 # This scans domain/, application/, and infrastructure/ packages
 # for classes decorated with @bean and registers them automatically
 try:
-    discover_beans("{{ project_name }}")
+    logger.debug(f"Starting bean auto-discovery for package: {{ project_name }}")
+    logger.debug(f"Current sys.path: {sys.path}")
+    discovered = discover_beans("{{ project_name }}")
+    logger.info(f"Successfully discovered {discovered} bean(s) for {{ project_name }}")
 except Exception as e:
     # Fallback to manual registration if auto-discovery fails
     # This ensures backward compatibility with older project structures
-    import logging
-    logging.debug(f"Bean auto-discovery skipped: {e}")
+    logger.warning(
+        f"Bean auto-discovery failed for {{ project_name }}: {type(e).__name__}: {e}\n"
+        f"Current working directory: {__import__('pathlib').Path.cwd()}\n"
+        f"sys.path: {sys.path}\n"
+        f"Falling back to manual bean registration in SERVICES dict"
+    )
 
 # To customize auto-discovery packages:
 # discover_beans("{{ project_name }}", subpackages=["repositories", "services"])

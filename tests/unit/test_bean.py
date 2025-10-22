@@ -12,6 +12,8 @@ from vega.di import (
     Scope,
     DependencyInjectionError,
 )
+from vega.patterns import Repository, Service
+from typing import Optional
 
 
 # Test Fixtures: Abstract Interfaces (ABC-based)
@@ -38,6 +40,33 @@ class ProductRepository(ABC):
 
     @abstractmethod
     def find_by_id(self, product_id: str):
+        pass
+
+
+# Test Fixtures: Pattern-based Interfaces (Repository and Service)
+
+
+class User:
+    """Simple User entity"""
+    def __init__(self, id: str, name: str, email: str):
+        self.id = id
+        self.name = name
+        self.email = email
+
+
+class UserPatternRepository(Repository[User]):
+    """Abstract user repository using Repository pattern"""
+
+    @abstractmethod
+    async def find_by_email(self, email: str) -> Optional[User]:
+        pass
+
+
+class EmailService(Service):
+    """Abstract email service using Service pattern"""
+
+    @abstractmethod
+    async def send(self, to: str, subject: str, body: str) -> bool:
         pass
 
 
@@ -465,6 +494,84 @@ class TestBeanDecoratorSyntax:
         metadata = get_bean_metadata(TestRepo)
         assert metadata['scope'] == Scope.SINGLETON
         assert metadata['interface'] == UserRepository
+
+
+class TestBeanPatternInterfaces:
+    """Test @bean with Repository and Service pattern interfaces"""
+
+    def setup_method(self):
+        """Reset container before each test"""
+        set_container(Container())
+
+    def test_repository_pattern_interface_detected(self):
+        """Test Repository pattern interface is auto-detected"""
+
+        @bean
+        class PostgresUserRepository(UserPatternRepository):
+            async def find_by_email(self, email: str) -> Optional[User]:
+                return None
+
+        metadata = get_bean_metadata(PostgresUserRepository)
+        assert metadata['interface'] == UserPatternRepository
+
+    def test_service_pattern_interface_detected(self):
+        """Test Service pattern interface is auto-detected"""
+
+        @bean
+        class SendgridEmailService(EmailService):
+            async def send(self, to: str, subject: str, body: str) -> bool:
+                return True
+
+        metadata = get_bean_metadata(SendgridEmailService)
+        assert metadata['interface'] == EmailService
+
+    def test_repository_pattern_registration(self):
+        """Test Repository pattern class is registered correctly"""
+
+        @bean
+        class PostgresUserRepository(UserPatternRepository):
+            async def find_by_email(self, email: str) -> Optional[User]:
+                return None
+
+        container = get_container()
+        assert UserPatternRepository in container._services
+        assert container._services[UserPatternRepository] == PostgresUserRepository
+
+    def test_service_pattern_registration(self):
+        """Test Service pattern class is registered correctly"""
+
+        @bean
+        class SendgridEmailService(EmailService):
+            async def send(self, to: str, subject: str, body: str) -> bool:
+                return True
+
+        container = get_container()
+        assert EmailService in container._services
+        assert container._services[EmailService] == SendgridEmailService
+
+    def test_repository_pattern_with_scope(self):
+        """Test Repository pattern with custom scope"""
+
+        @bean(scope=Scope.SINGLETON)
+        class PostgresUserRepository(UserPatternRepository):
+            async def find_by_email(self, email: str) -> Optional[User]:
+                return None
+
+        metadata = get_bean_metadata(PostgresUserRepository)
+        assert metadata['scope'] == Scope.SINGLETON
+        assert metadata['interface'] == UserPatternRepository
+
+    def test_service_pattern_with_scope(self):
+        """Test Service pattern with custom scope"""
+
+        @bean(scope=Scope.SINGLETON)
+        class SendgridEmailService(EmailService):
+            async def send(self, to: str, subject: str, body: str) -> bool:
+                return True
+
+        metadata = get_bean_metadata(SendgridEmailService)
+        assert metadata['scope'] == Scope.SINGLETON
+        assert metadata['interface'] == EmailService
 
 
 class TestBeanRealWorldScenarios:

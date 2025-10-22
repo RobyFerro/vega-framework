@@ -11,6 +11,7 @@ from typing import Type, TypeVar, Optional, Any, Dict
 from vega.di.scope import Scope
 from vega.di.container import get_container
 from vega.di.errors import DependencyInjectionError
+from vega.patterns import Repository, Service
 
 
 T = TypeVar('T')
@@ -28,7 +29,7 @@ def bean(
 
     This decorator handles automatic registration of classes in the dependency
     injection container. It supports:
-    - Auto-detection of abstract interfaces (classes inheriting from ABC)
+    - Auto-detection of abstract interfaces (classes inheriting from ABC, Repository, or Service)
     - Registration of concrete classes
     - Constructor parameter injection
     - Configurable scope (SINGLETON, SCOPED, TRANSIENT)
@@ -51,6 +52,18 @@ def bean(
         class SqlUserRepository(UserRepository):  # UserRepository inherits from ABC
             def __init__(self, db: DatabaseManager):
                 self._db = db
+
+        # Basic usage with Repository pattern
+        @bean
+        class PostgresUserRepository(UserRepository):  # UserRepository inherits from Repository
+            def __init__(self, db: DatabaseManager):
+                self._db = db
+
+        # Basic usage with Service pattern
+        @bean
+        class SendgridEmailService(EmailService):  # EmailService inherits from Service
+            def __init__(self, api_key: str):
+                self.api_key = api_key
 
         # Concrete class without interface
         @bean
@@ -115,8 +128,8 @@ def _detect_interface(cls: Type, explicit_interface: Optional[Type] = None) -> T
 
     Logic:
     1. If explicit_interface is provided, use it
-    2. If class inherits from ABC-based classes, use the first one
-    3. If multiple ABC-based classes found, raise error
+    2. If class inherits from ABC, Repository, or Service classes, use the first one
+    3. If multiple interface classes found, raise error
     4. Otherwise, register the class as its own interface
 
     Args:
@@ -158,20 +171,23 @@ def _detect_interface(cls: Type, explicit_interface: Optional[Type] = None) -> T
 
 def _is_abc_interface(cls: Type) -> bool:
     """
-    Check if a class is an ABC-based interface.
+    Check if a class is an interface (ABC, Repository, or Service).
 
-    A class is considered an ABC interface if it inherits from ABC
-    (directly or indirectly).
+    A class is considered an interface if it inherits from:
+    - ABC (Abstract Base Class)
+    - Repository (pattern class for data persistence)
+    - Service (pattern class for external integrations)
 
     Args:
         cls: The class to check
 
     Returns:
-        True if the class inherits from ABC, False otherwise
+        True if the class is an ABC, Repository, or Service, False otherwise
     """
     try:
-        # Check if ABC is in the method resolution order
-        return ABC in inspect.getmro(cls)
+        mro = inspect.getmro(cls)
+        # Check if ABC, Repository, or Service is in the method resolution order
+        return ABC in mro or Repository in mro or Service in mro
     except (AttributeError, TypeError):
         return False
 
