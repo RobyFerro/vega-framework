@@ -7,6 +7,7 @@ in the DI container, enabling dependency injection without manual registration.
 
 import inspect
 from abc import ABC
+import logging
 from typing import Type, TypeVar, Optional, Any, Dict
 from vega.di.scope import Scope
 from vega.di.container import get_container
@@ -233,6 +234,9 @@ def _create_factory_with_params(cls: Type[T], params: Dict[str, Any]) -> Type[T]
 
             # Instantiate the original class with pre-configured params
             # The container will handle auto-injection of remaining dependencies
+
+            logging.debug(f"Instantiate {cls.__name__}")
+
             return cls(**params)
 
     # Copy metadata from original class
