@@ -18,6 +18,11 @@ from vega.cli.templates import (
     render_event,
     render_event_handler,
     render_template,
+    # CQRS
+    render_cqrs_handler,
+    render_cqrs_command,
+    render_cqrs_query,
+    render_cqrs_response,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
 from vega.cli.utils import to_snake_case, to_pascal_case
@@ -74,10 +79,10 @@ def generate_component(
         "mediator": "Mediator",
     }
 
-    if implementation and component_type not in {'repository', 'service'}:
+    if implementation and component_type not in {'repository', 'service', 'interactor'}:
         click.echo(
             click.style(
-                "WARNING: Implementation option is only supported for repositories and services",
+                "WARNING: Implementation option is only supported for repositories, services, and interactors (as CQRS type)",
                 fg='yellow',
             )
         )
@@ -99,7 +104,7 @@ def generate_component(
     elif component_type == 'service':
         _generate_service(project_root, project_name, class_name, file_name, implementation)
     elif component_type == 'interactor':
-        _generate_interactor(project_root, project_name, class_name, file_name)
+        _generate_interactor(project_root, project_name, class_name, file_name, implementation)
     elif component_type == 'mediator':
         _generate_mediator(project_root, project_name, class_name, file_name)
     elif component_type == 'router':
@@ -227,34 +232,97 @@ def _generate_service(
         )
 
 
-def _generate_interactor(project_root: Path, project_name: str, class_name: str, file_name: str):
-    """Generate interactor (use case)"""
+def _generate_interactor(project_root: Path, project_name: str, class_name: str, file_name: str, cqrs_type: str | None = None):
+    """Generate interactor (use case) with CQRS pattern"""
 
-    # Try to infer entity from name (e.g., CreateUser -> User)
-    entity_name = class_name
-    for prefix in ['Create', 'Update', 'Delete', 'Get', 'List', 'Find']:
-        if class_name.startswith(prefix):
-            entity_name = class_name[len(prefix):]
-            break
+    # If no CQRS type specified, ask the user
+    if not cqrs_type:
+        cqrs_type = click.prompt(
+            "CQRS type",
+            type=click.Choice(['command', 'query'], case_sensitive=False),
+            default='command'
+        ).lower()
 
-    entity_file = to_snake_case(entity_name)
+    # Determine layer folder (commands or queries)
+    layer_folder = 'commands' if cqrs_type == 'command' else 'queries'
+    handler_type = 'COMMAND' if cqrs_type == 'command' else 'QUERY'
 
-    file_path = project_root / "application" / "interactors" / f"{file_name}.py"
+    # Folder name for the interactor (e.g., CreateUser - keep PascalCase)
+    folder_name = class_name
 
-    if file_path.exists():
-        click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
+    # Create the interactor directory
+    interactor_dir = project_root / "application" / layer_folder / class_name
+
+    if interactor_dir.exists():
+        click.echo(click.style(f"ERROR: Error: {interactor_dir.relative_to(project_root)} already exists", fg='red'))
         return
 
-    # Ensure directory exists
-    file_path.parent.mkdir(parents=True, exist_ok=True)
+    interactor_dir.mkdir(parents=True, exist_ok=True)
 
-    content = render_interactor(class_name, entity_name, entity_file)
+    # Prepare file names and class names
+    input_file = f"{cqrs_type}"  # command.py or query.py
+    input_class = f"{class_name}{cqrs_type.capitalize()}"  # CreateUserCommand or GetUserQuery
+    input_var = cqrs_type  # command or query
+    response_file = "response"
+    response_class = f"{class_name}Result"
 
-    file_path.write_text(content)
-    click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
+    # Ask for description
+    description = click.prompt("Description", default=f"{class_name} {cqrs_type}")
 
-    click.echo(f"\n💡 Usage:")
-    click.echo(f"   result = await {class_name}(param=value)")
+    # Generate handler.py
+    handler_content = render_cqrs_handler(
+        class_name=class_name,
+        handler_type=handler_type,
+        layer_folder=layer_folder,
+        folder_name=folder_name,
+        input_file=input_file,
+        input_class=input_class,
+        input_var=input_var,
+        response_file=response_file,
+        response_class=response_class,
+        description=description,
+    )
+    handler_file = interactor_dir / "handler.py"
+    handler_file.write_text(handler_content)
+    click.echo(f"+ Created {click.style(str(handler_file.relative_to(project_root)), fg='green')}")
+
+    # Generate command.py or query.py
+    if cqrs_type == 'command':
+        input_content = render_cqrs_command(class_name, description)
+    else:
+        input_content = render_cqrs_query(class_name, description)
+
+    input_file_path = interactor_dir / f"{input_file}.py"
+    input_file_path.write_text(input_content)
+    click.echo(f"+ Created {click.style(str(input_file_path.relative_to(project_root)), fg='green')}")
+
+    # Generate response.py
+    response_content = render_cqrs_response(class_name, description)
+    response_file_path = interactor_dir / "response.py"
+    response_file_path.write_text(response_content)
+    click.echo(f"+ Created {click.style(str(response_file_path.relative_to(project_root)), fg='green')}")
+
+    # Create __init__.py for easier imports
+    init_content = f'''"""{ class_name} {cqrs_type} - CQRS Pattern"""
+from .handler import {class_name}Handler
+from .{input_file} import {input_class}
+from .response import {response_class}
+
+__all__ = [
+    "{class_name}Handler",
+    "{input_class}",
+    "{response_class}",
+]
+'''
+    init_file = interactor_dir / "__init__.py"
+    init_file.write_text(init_content)
+    click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
+
+    # Usage instructions
+    click.echo(f"\nUsage:")
+    click.echo(f"   from application.{layer_folder}.{class_name} import {class_name}Handler, {input_class}")
+    click.echo(f"   {input_var} = {input_class}(...)  # Add your parameters")
+    click.echo(f"   result = await {class_name}Handler({input_var})")
 
 
 def _generate_mediator(project_root: Path, project_name: str, class_name: str, file_name: str):

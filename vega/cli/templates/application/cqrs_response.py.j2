@@ -1,0 +1,25 @@
+"""Response DTO: {{ class_name }}"""
+from dataclasses import dataclass
+from typing import Any, Optional
+from datetime import datetime
+
+
+@dataclass
+class {{ class_name }}Result:
+    """
+    DTO: {{ description }} result
+
+    CQRS Pattern: Result/Response object
+
+    Example:
+        >>> result = {{ class_name }}Result(
+        ...     # Add your response fields here
+        ... )
+    """
+    # TODO: Add result fields here
+    # Example:
+    # id: str
+    # name: str
+    # created_at: datetime
+    # status: str
+    pass

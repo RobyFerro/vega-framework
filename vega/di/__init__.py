@@ -32,16 +32,17 @@ Example:
             return user
 """
 
-from vega.di.scope import Scope, scope_context, clear_singletons, get_singleton_instance
+from vega.di.scope import Scope, scope_context, clear_singletons, clear_scoped, get_singleton_instance
 from vega.di.decorators import bind, injectable
 from vega.di.errors import DependencyInjectionError
-from vega.di.container import Container, get_container, set_container, resolve
+from vega.di.container import Container, get_container, set_container, resolve, Summon
 from vega.di.bean import bean, is_bean, get_bean_metadata
 
 __all__ = [
     "Scope",
     "scope_context",
     "clear_singletons",
+    "clear_scoped",
     "get_singleton_instance",
     "bind",
     "injectable",
@@ -53,4 +54,5 @@ __all__ = [
     "get_container",
     "set_container",
     "resolve",
+    "Summon",
 ]

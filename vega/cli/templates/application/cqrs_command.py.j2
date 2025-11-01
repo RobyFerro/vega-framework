@@ -1,0 +1,23 @@
+"""Command DTO: {{ class_name }}"""
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class {{ class_name }}Command:
+    """
+    Command DTO: {{ description }}
+
+    CQRS Pattern: COMMAND (write operation)
+
+    Example:
+        >>> command = {{ class_name }}Command(
+        ...     # Add your parameters here
+        ... )
+        >>> result = await {{ class_name }}Handler(command)
+    """
+    # TODO: Add command parameters here
+    # Example:
+    # user_id: str
+    # name: str
+    # email: str
+    pass

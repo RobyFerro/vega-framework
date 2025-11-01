@@ -11,6 +11,9 @@ from vega.di import (
     set_container,
     Scope,
     DependencyInjectionError,
+    Summon,
+    clear_singletons,
+    clear_scoped,
 )
 from vega.patterns import Repository, Service
 from typing import Optional
@@ -138,8 +141,10 @@ class TestBeanBasicRegistration:
     """Test basic @bean registration functionality"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_bean_with_abc_interface(self):
         """Test @bean registers class with ABC interface"""
@@ -196,8 +201,10 @@ class TestBeanScopeConfiguration:
     """Test @bean scope configuration"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_default_scope_is_scoped(self):
         """Test default scope is SCOPED"""
@@ -234,8 +241,10 @@ class TestBeanConstructorParameters:
     """Test @bean with constructor parameters"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_bean_with_constructor_params(self):
         """Test @bean with constructor parameters"""
@@ -270,8 +279,10 @@ class TestBeanMultipleInterfaces:
     """Test @bean with multiple interfaces"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_multiple_interfaces_without_explicit_raises_error(self):
         """Test @bean with multiple interfaces raises error without explicit interface"""
@@ -323,8 +334,10 @@ class TestBeanInterfaceDetection:
     """Test interface detection logic"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_abc_interface_detected(self):
         """Test ABC-based interface is detected"""
@@ -373,8 +386,10 @@ class TestBeanDependencyInjection:
     """Test @bean integration with dependency injection"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_bean_dependency_resolution(self):
         """Test @bean classes can be resolved with dependencies"""
@@ -435,8 +450,10 @@ class TestBeanDecoratorSyntax:
     """Test different @bean decorator syntax options"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_bean_without_parentheses(self):
         """Test @bean decorator without parentheses"""
@@ -500,8 +517,10 @@ class TestBeanPatternInterfaces:
     """Test @bean with Repository and Service pattern interfaces"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_repository_pattern_interface_detected(self):
         """Test Repository pattern interface is auto-detected"""
@@ -578,8 +597,10 @@ class TestBeanRealWorldScenarios:
     """Test real-world usage scenarios"""
 
     def setup_method(self):
-        """Reset container before each test"""
-        set_container(Container())
+        """Reset container and caches before each test"""
+        set_container(Container())  # Reset first to clear mappings
+        clear_singletons()  # Then clear caches
+        clear_scoped()
 
     def test_repository_pattern(self):
         """Test @bean with repository pattern"""
@@ -639,3 +660,213 @@ class TestBeanRealWorldScenarios:
         assert isinstance(service, UserService)
         assert isinstance(service._repo, TestUserRepo)
         assert service.get_all_users() == []
+
+
+class TestSummonFunction:
+    """Test Summon() function for manual DI resolution"""
+
+    def setup_method(self):
+        """Reset container and singletons before each test"""
+        clear_singletons()
+        set_container(Container())
+
+    def test_summon_registered_interface(self):
+        """Test Summon() resolves registered interface"""
+
+        @bean
+        class TestUserRepo(UserRepository):
+            def __init__(self):
+                self._users = []
+
+            def find_all(self):
+                return self._users
+
+        # Summon the repository using the interface
+        repo = Summon(UserRepository)
+
+        assert isinstance(repo, TestUserRepo)
+        assert repo.find_all() == []
+
+    def test_summon_concrete_class(self):
+        """Test Summon() resolves concrete class"""
+
+        @bean
+        class TestDatabaseManager:
+            def __init__(self):
+                self.connected = True
+
+        # Summon concrete class
+        db = Summon(TestDatabaseManager)
+
+        assert isinstance(db, TestDatabaseManager)
+        assert db.connected is True
+
+    def test_summon_with_dependencies(self):
+        """Test Summon() resolves dependencies recursively"""
+
+        @bean
+        class TestDatabaseManager:
+            def __init__(self):
+                self.connected = True
+
+        @bean
+        class TestUserRepo(UserRepository):
+            def __init__(self, db: TestDatabaseManager):
+                self._db = db
+
+            def find_all(self):
+                return []
+
+        # Summon should resolve UserRepository with TestDatabaseManager injected
+        repo = Summon(UserRepository)
+
+        assert isinstance(repo, TestUserRepo)
+        assert hasattr(repo, '_db')
+        assert isinstance(repo._db, TestDatabaseManager)
+        assert repo._db.connected is True
+
+    def test_summon_nested_dependencies(self):
+        """Test Summon() resolves nested dependency chain"""
+
+        @bean
+        class ConfigService:
+            def __init__(self):
+                self.settings = {"db": "test"}
+
+        @bean
+        class DatabaseManager:
+            def __init__(self, config: ConfigService):
+                self.config = config
+
+        @bean
+        class TestUserRepo(UserRepository):
+            def __init__(self, db: DatabaseManager):
+                self._db = db
+
+            def find_all(self):
+                return []
+
+        # Summon with deep dependency chain
+        repo = Summon(UserRepository)
+
+        assert isinstance(repo, TestUserRepo)
+        assert isinstance(repo._db, DatabaseManager)
+        assert isinstance(repo._db.config, ConfigService)
+        assert repo._db.config.settings == {"db": "test"}
+
+    def test_summon_unregistered_service_raises_error(self):
+        """Test Summon() raises error for unregistered service"""
+
+        class UnregisteredService:
+            pass
+
+        with pytest.raises(ValueError) as exc_info:
+            Summon(UnregisteredService)
+
+        assert "not registered" in str(exc_info.value).lower()
+
+    def test_summon_in_event_handler(self):
+        """Test Summon() usage in event handler (real-world scenario)"""
+
+        @bean(scope=Scope.SINGLETON)  # Use singleton so instances are shared
+        class TestEmailService:
+            def __init__(self):
+                self.sent_emails = []
+
+            def send(self, to: str, message: str):
+                self.sent_emails.append((to, message))
+                return True
+
+        # Simulate event handler using Summon
+        def handle_user_created_event(user_email: str):
+            email_service = Summon(TestEmailService)
+            email_service.send(user_email, "Welcome!")
+
+        handle_user_created_event("test@example.com")
+
+        # Verify the email was sent
+        email_service = Summon(TestEmailService)
+        assert len(email_service.sent_emails) > 0
+
+    def test_summon_in_regular_function(self):
+        """Test Summon() usage in regular function (service locator pattern)"""
+
+        @bean
+        class TestProductRepo(ProductRepository):
+            def __init__(self):
+                self._products = ["Product A", "Product B"]
+
+            def find_by_id(self, product_id: str):
+                return None
+
+        # Regular function using Summon
+        def get_all_products():
+            repo = Summon(ProductRepository)
+            return repo._products
+
+        products = get_all_products()
+        assert products == ["Product A", "Product B"]
+
+    def test_summon_type_safety(self):
+        """Test Summon() maintains type safety"""
+
+        @bean
+        class TestUserRepo(UserRepository):
+            def find_all(self):
+                return []
+
+        # Summon returns the correct type
+        repo: UserRepository = Summon(UserRepository)
+
+        # Should have the interface methods
+        assert hasattr(repo, 'find_all')
+        assert callable(repo.find_all)
+
+    def test_summon_with_constructor_params(self):
+        """Test Summon() with @bean constructor parameters"""
+
+        @bean(url="postgresql://localhost/test")
+        class TestDatabaseManager:
+            def __init__(self, url: str):
+                self.url = url
+
+        db = Summon(TestDatabaseManager)
+
+        assert isinstance(db, TestDatabaseManager)
+        assert db.url == "postgresql://localhost/test"
+
+    def test_summon_singleton_scope(self):
+        """Test Summon() respects SINGLETON scope"""
+
+        @bean(scope=Scope.SINGLETON)
+        class SingletonService:
+            def __init__(self):
+                self.id = id(self)
+
+        # Summon multiple times - should return same instance
+        service1 = Summon(SingletonService)
+        service2 = Summon(SingletonService)
+
+        assert service1.id == service2.id
+        assert service1 is service2
+
+    def test_summon_pattern_interfaces(self):
+        """Test Summon() with Repository and Service pattern interfaces"""
+
+        @bean
+        class PostgresUserRepository(UserPatternRepository):
+            async def find_by_email(self, email: str) -> Optional[User]:
+                return User("1", "Test", email)
+
+        @bean
+        class SendgridEmailService(EmailService):
+            async def send(self, to: str, subject: str, body: str) -> bool:
+                return True
+
+        # Summon Repository pattern
+        user_repo = Summon(UserPatternRepository)
+        assert isinstance(user_repo, PostgresUserRepository)
+
+        # Summon Service pattern
+        email_service = Summon(EmailService)
+        assert isinstance(email_service, SendgridEmailService)

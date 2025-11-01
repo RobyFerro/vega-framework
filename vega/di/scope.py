@@ -143,6 +143,11 @@ def clear_singletons():
     _scope_manager.clear_singleton_cache()
 
 
+def clear_scoped():
+    """Clear all scoped instances. Useful for testing."""
+    _scope_manager.clear_scoped_cache()
+
+
 def get_singleton_instance(service_name: str) -> Optional[Any]:
     """Get a singleton instance from cache if it exists."""
     return _scope_manager.singleton_cache.get(service_name)

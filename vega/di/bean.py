@@ -107,10 +107,13 @@ def bean(
             # Standard registration: interface -> concrete class
             container.register(detected_interface, target_cls)
 
-        # Store metadata on the class for introspection
+        # Store metadata on the class for introspection (including DI-compatible flags)
         target_cls._bean_registered = True
         target_cls._bean_interface = detected_interface
         target_cls._bean_scope = scope
+        # Mark class as DI-enabled for container resolution
+        target_cls._di_enabled = True
+        target_cls._di_scope = scope
 
         return target_cls
 

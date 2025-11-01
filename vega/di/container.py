@@ -48,40 +48,23 @@ class Container:
         if concrete not in self._concrete_services:
             self._concrete_services.append(concrete)
 
-    def _instantiate_with_dependencies(self, cls: Type[T]) -> T:
+    def _resolve_constructor_kwargs(self, cls: Type[T]) -> Dict[str, Any]:
         """
-        Instantiate a class by resolving its constructor dependencies recursively.
-
-        Supports scoped caching for classes decorated with @injectable(scope=Scope.SCOPED).
+        Resolve constructor dependencies for a class.
 
         Args:
-            cls: The class to instantiate
+            cls: The class to resolve dependencies for
 
         Returns:
-            Instance of the class with all dependencies resolved
+            Dictionary of resolved dependencies
         """
-        # Check if class has @injectable decorator with scope
-        if hasattr(cls, '_di_enabled') and cls._di_enabled:
-            # Use ScopeManager to handle caching
-            if hasattr(cls, '_di_scope'):
-                cache_key = f"{cls.__module__}.{cls.__name__}"
-                return _scope_manager.get_or_create(
-                    cache_key=cache_key,
-                    scope=cls._di_scope,
-                    factory=lambda: cls(),
-                    context_name=f"class '{cls.__name__}'"
-                )
-            else:
-                # No scope specified, just instantiate
-                return cls()
-
         # Get constructor signature
         try:
             sig = inspect.signature(cls.__init__)
             hints = get_type_hints(cls.__init__)
         except Exception:
-            # If we can't inspect, try to instantiate without args
-            return cls()
+            # If we can't inspect, return empty kwargs
+            return {}
 
         # Resolve constructor dependencies
         kwargs = {}
@@ -102,6 +85,45 @@ class Container:
             if param_type in self._services or param_type in self._concrete_services:
                 kwargs[param_name] = self.resolve(param_type)
 
+        return kwargs
+
+    def _instantiate_with_dependencies(self, cls: Type[T]) -> T:
+        """
+        Instantiate a class by resolving its constructor dependencies recursively.
+
+        Supports scoped caching for classes decorated with @injectable(scope=Scope.SCOPED).
+
+        Args:
+            cls: The class to instantiate
+
+        Returns:
+            Instance of the class with all dependencies resolved
+        """
+        # Check if class has @injectable or @bean decorator with scope
+        if hasattr(cls, '_di_enabled') and cls._di_enabled:
+            # Use ScopeManager to handle caching
+            if hasattr(cls, '_di_scope'):
+                # Use class ID for cache key to handle local classes with same name
+                cache_key = f"{cls.__module__}.{cls.__name__}@{id(cls)}"
+
+                # Create factory that resolves dependencies
+                def factory():
+                    kwargs = self._resolve_constructor_kwargs(cls)
+                    return cls(**kwargs)
+
+                return _scope_manager.get_or_create(
+                    cache_key=cache_key,
+                    scope=cls._di_scope,
+                    factory=factory,
+                    context_name=f"class '{cls.__name__}'"
+                )
+            else:
+                # No scope specified, just instantiate with dependencies
+                kwargs = self._resolve_constructor_kwargs(cls)
+                return cls(**kwargs)
+
+        # For classes without @bean/@injectable, resolve dependencies directly
+        kwargs = self._resolve_constructor_kwargs(cls)
         return cls(**kwargs)
 
     def resolve(self, service: Type[T]) -> T:
@@ -171,5 +193,43 @@ def resolve(service: Type[T]) -> T:
 
     Returns:
         Instance of the service
+    """
+    return _default_container.resolve(service)
+
+
+def Summon(service: Type[T]) -> T:
+    """
+    Summon (resolve) a service from the DI container.
+
+    Type-safe service locator pattern for manual dependency resolution.
+    Use this when you need to resolve dependencies outside of @bind context
+    or when you need dynamic resolution.
+
+    Args:
+        service: The class type to resolve (not a string, actual class)
+
+    Returns:
+        Instance of the service with all dependencies resolved
+
+    Raises:
+        ValueError: If service is not registered in the container
+
+    Examples:
+        # Resolve a repository
+        user_repo = Summon(UserRepository)
+
+        # Resolve a service
+        email_service = Summon(EmailService)
+
+        # In any class or function
+        def my_function():
+            repository = Summon(ProductRepository)
+            return repository.find_all()
+
+        # In event handlers
+        @subscribe(UserCreated)
+        async def on_user_created(event: UserCreated):
+            email_service = Summon(EmailService)
+            await email_service.send_welcome(event.email)
     """
     return _default_container.resolve(service)

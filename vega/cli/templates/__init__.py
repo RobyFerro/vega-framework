@@ -7,6 +7,11 @@ from .components import (
     render_repository_interface,
     render_service_interface,
     render_web_package_init,
+    # CQRS templates
+    render_cqrs_handler,
+    render_cqrs_command,
+    render_cqrs_query,
+    render_cqrs_response,
     # New Vega Web functions
     render_vega_app,
     render_vega_routes_init,
@@ -56,6 +61,11 @@ __all__ = [
     "render_infrastructure_repository",
     "render_infrastructure_service",
     "render_web_package_init",
+    # CQRS
+    "render_cqrs_handler",
+    "render_cqrs_command",
+    "render_cqrs_query",
+    "render_cqrs_response",
     # Vega Web
     "render_vega_app",
     "render_vega_routes_init",

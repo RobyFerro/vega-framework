@@ -1,0 +1,22 @@
+"""Query DTO: {{ class_name }}"""
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class {{ class_name }}Query:
+    """
+    Query DTO: {{ description }}
+
+    CQRS Pattern: QUERY (read-only operation)
+
+    Example:
+        >>> query = {{ class_name }}Query(
+        ...     # Add your parameters here
+        ... )
+        >>> result = await {{ class_name }}Handler(query)
+    """
+    # TODO: Add query parameters here
+    # Example:
+    # user_id: str
+    # session_id: str
+    pass

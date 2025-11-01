@@ -46,6 +46,67 @@ def render_mediator(class_name: str) -> str:
     return render_template("mediator.py.j2", subfolder="application", class_name=class_name)
 
 
+def render_cqrs_handler(
+    class_name: str,
+    handler_type: str,
+    layer_folder: str,
+    folder_name: str,
+    input_file: str,
+    input_class: str,
+    input_var: str,
+    response_file: str,
+    response_class: str,
+    description: str,
+) -> str:
+    """Return the template for a CQRS handler."""
+    handler_type_lower = handler_type.lower()
+    return render_template(
+        "cqrs_handler.py.j2",
+        subfolder="application",
+        class_name=class_name,
+        handler_type=handler_type,
+        handler_type_lower=handler_type_lower,
+        layer_folder=layer_folder,
+        folder_name=folder_name,
+        input_file=input_file,
+        input_class=input_class,
+        input_var=input_var,
+        response_file=response_file,
+        response_class=response_class,
+        description=description,
+    )
+
+
+def render_cqrs_command(class_name: str, description: str) -> str:
+    """Return the template for a CQRS command."""
+    return render_template(
+        "cqrs_command.py.j2",
+        subfolder="application",
+        class_name=class_name,
+        description=description,
+    )
+
+
+def render_cqrs_query(class_name: str, description: str) -> str:
+    """Return the template for a CQRS query."""
+    return render_template(
+        "cqrs_query.py.j2",
+        subfolder="application",
+        class_name=class_name,
+        description=description,
+    )
+
+
+def render_cqrs_response(class_name: str, description: str) -> str:
+    """Return the template for a CQRS response."""
+    return render_template(
+        "cqrs_response.py.j2",
+        subfolder="application",
+        class_name=class_name,
+        description=description,
+    )
+
+
 def render_infrastructure_repository(
     impl_class: str,
     interface_class_name: str,
