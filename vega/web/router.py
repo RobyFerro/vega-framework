@@ -4,7 +4,7 @@ from typing import Any, Callable, List, Optional, Sequence, Type
 
 from starlette.routing import Mount
 
-from .routing import Route, route as create_route
+from .routing import Route, WebSocketRouteDefinition, route as create_route
 
 
 class Router:
@@ -45,6 +45,7 @@ class Router:
         self.dependencies = dependencies or []
         self.responses = responses or {}
         self.routes: List[Route] = []
+        self.websocket_routes: List[WebSocketRouteDefinition] = []
         self.child_routers: List[tuple[Router, str, Optional[List[str]]]] = []
 
     def add_route(
@@ -92,6 +93,38 @@ class Router:
             status_code=status_code,
         )
         self.routes.append(route_obj)
+
+    def add_websocket_route(
+        self,
+        path: str,
+        endpoint: Callable,
+        *,
+        name: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        summary: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        """
+        Add a WebSocket route to the router.
+
+        Args:
+            path: URL path pattern (e.g., "/ws/agent-plan")
+            endpoint: Handler function accepting a WebSocket instance
+            name: Optional route name
+            tags: Route tags
+            summary: Short description
+            description: Longer description
+        """
+        route_tags = (tags or []) + self.tags
+        route_obj = WebSocketRouteDefinition(
+            path=path,
+            endpoint=endpoint,
+            name=name,
+            tags=route_tags,
+            summary=summary,
+            description=description,
+        )
+        self.websocket_routes.append(route_obj)
 
     def route(
         self,
@@ -272,6 +305,37 @@ class Router:
             status_code=status_code,
         )
 
+    def websocket(
+        self,
+        path: str,
+        *,
+        name: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        summary: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Callable:
+        """
+        Decorator for WebSocket routes.
+
+        Example:
+            @router.websocket("/ws/agent")
+            async def agent_ws(websocket: WebSocket):
+                await websocket.accept()
+        """
+
+        def decorator(func: Callable) -> Callable:
+            self.add_websocket_route(
+                path=path,
+                endpoint=func,
+                name=name,
+                tags=tags,
+                summary=summary,
+                description=description,
+            )
+            return func
+
+        return decorator
+
     def include_router(
         self,
         router: "Router",
@@ -297,12 +361,12 @@ class Router:
         """
         self.child_routers.append((router, prefix, tags))
 
-    def get_routes(self) -> List[Route]:
+    def get_routes(self) -> List[Any]:
         """
         Get all routes including child routers.
 
         Returns:
-            List of Route objects with prefixes applied
+            List of route definitions (HTTP and WebSocket) with prefixes applied
         """
         routes = []
 
@@ -323,6 +387,18 @@ class Router:
             )
             routes.append(prefixed_route)
 
+        # Add direct WebSocket routes with prefix
+        for ws_route in self.websocket_routes:
+            prefixed_ws_route = WebSocketRouteDefinition(
+                path=self.prefix + ws_route.path,
+                endpoint=ws_route.endpoint,
+                name=ws_route.name,
+                tags=ws_route.tags,
+                summary=ws_route.summary,
+                description=ws_route.description,
+            )
+            routes.append(prefixed_ws_route)
+
         # Add child router routes
         for child_router, child_prefix, child_tags in self.child_routers:
             for route in child_router.get_routes():
@@ -330,18 +406,28 @@ class Router:
                 combined_prefix = self.prefix + child_prefix
                 combined_tags = route.tags + (child_tags or [])
 
-                prefixed_route = Route(
-                    path=combined_prefix + route.path,
-                    endpoint=route.endpoint,
-                    methods=route.methods,
-                    name=route.name,
-                    include_in_schema=route.include_in_schema,
-                    tags=combined_tags,
-                    summary=route.summary,
-                    description=route.description,
-                    response_model=route.response_model,
-                    status_code=route.status_code,
-                )
+                if isinstance(route, WebSocketRouteDefinition):
+                    prefixed_route = WebSocketRouteDefinition(
+                        path=combined_prefix + route.path,
+                        endpoint=route.endpoint,
+                        name=route.name,
+                        tags=combined_tags,
+                        summary=route.summary,
+                        description=route.description,
+                    )
+                else:
+                    prefixed_route = Route(
+                        path=combined_prefix + route.path,
+                        endpoint=route.endpoint,
+                        methods=route.methods,
+                        name=route.name,
+                        include_in_schema=route.include_in_schema,
+                        tags=combined_tags,
+                        summary=route.summary,
+                        description=route.description,
+                        response_model=route.response_model,
+                        status_code=route.status_code,
+                    )
                 routes.append(prefixed_route)
 
         return routes

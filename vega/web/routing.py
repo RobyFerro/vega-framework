@@ -1,12 +1,24 @@
 """Routing utilities and decorators for Vega Web Framework"""
 
 import inspect
-from typing import Any, Callable, Dict, List, Optional, Type, get_type_hints, get_origin, get_args, Union
 from functools import wraps
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
-from starlette.routing import Route as StarletteRoute, Mount
-from starlette.requests import Request as StarletteRequest
 from pydantic import BaseModel, ValidationError
+from starlette.requests import Request as StarletteRequest
+from starlette.routing import Mount, Route as StarletteRoute, WebSocketRoute
+from starlette.websockets import WebSocket as StarletteWebSocket
 
 from .exceptions import HTTPException
 from .request import Request
@@ -403,6 +415,49 @@ class Route:
         )
 
 
+class WebSocketRouteDefinition:
+    """
+    Represents a WebSocket route definition.
+
+    Args:
+        path: URL path pattern (e.g., "/ws/agent-plan")
+        endpoint: Handler function that receives a Starlette WebSocket
+        name: Optional route name
+        tags: Optional tags (kept for consistency with HTTP routes)
+        summary: Optional short description
+        description: Optional long description
+    """
+
+    def __init__(
+        self,
+        path: str,
+        endpoint: Callable[[StarletteWebSocket], Any],
+        *,
+        name: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        summary: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        self.path = path
+        self.endpoint = endpoint
+        self.name = name
+        self.tags = tags or []
+        self.summary = summary
+        self.description = description
+
+    def to_starlette_route(self) -> WebSocketRoute:
+        """Convert to Starlette WebSocketRoute."""
+
+        async def wrapped_endpoint(websocket: StarletteWebSocket) -> None:
+            await self.endpoint(websocket)
+
+        return WebSocketRoute(
+            path=self.path,
+            endpoint=wrapped_endpoint,
+            name=self.name,
+        )
+
+
 def route(
     path: str,
     methods: List[str],
@@ -594,6 +649,7 @@ def delete(
 
 __all__ = [
     "Route",
+    "WebSocketRouteDefinition",
     "route",
     "get",
     "post",
