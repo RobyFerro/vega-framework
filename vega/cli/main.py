@@ -10,6 +10,7 @@ from vega.cli.commands.add import add
 from vega.cli.commands.update import update_vega, check_version
 from vega.cli.commands.migrate import migrate
 from vega.cli.commands.web import web
+from vega.cli.commands.listener import listener
 
 
 @click.group()
@@ -157,10 +158,11 @@ def update(check, force):
         update_vega(force=force)
 
 
-# Register the add, migrate and web commands
+# Register the add, migrate, web and listener commands
 cli.add_command(add)
 cli.add_command(migrate)
 cli.add_command(web)
+cli.add_command(listener)
 
 
 if __name__ == '__main__':

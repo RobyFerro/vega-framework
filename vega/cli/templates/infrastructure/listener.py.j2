@@ -1,0 +1,116 @@
+"""{{ class_name }} job listener"""
+from vega.listeners import JobListener, job_listener, Message{% if has_context %}, MessageContext{% endif %}
+from vega.di import bind
+
+
+@job_listener(
+    queue="{{ queue_name }}",
+    workers={{ workers }},
+    auto_ack={{ auto_ack }},
+    visibility_timeout={{ visibility_timeout }},{% if retry_on_error %}
+    retry_on_error=True,
+    max_retries={{ max_retries }},{% endif %}
+)
+class {{ class_name }}(JobListener):
+    """
+    Process messages from {{ queue_name }} queue.
+
+    This listener automatically polls the queue and processes messages
+    using the configured queue driver (SQS, RabbitMQ, Redis, etc.).
+
+    Configuration:
+        - Queue: {{ queue_name }}
+        - Workers: {{ workers }}
+        - Auto-ack: {{ auto_ack }}
+        - Visibility timeout: {{ visibility_timeout }}s{% if retry_on_error %}
+        - Retry on error: Yes (max {{ max_retries }} retries){% endif %}
+
+    Example message format:
+        {
+            "id": "message-123",
+            "data": {
+                # Your message payload here
+            }
+        }
+    """
+
+    @bind
+    async def handle(
+        self,
+        message: Message,{% if has_context %}
+        context: MessageContext,{% endif %}
+        # Add your dependencies here (will be auto-injected)
+        # Example: user_repo: UserRepository
+    ) -> None:
+        """
+        Process a queue message.
+
+        Args:
+            message: The queue message to process{% if has_context %}
+            context: Message context for manual acknowledgment{% endif %}
+            # Add your injected dependencies here
+
+        {% if has_context %}Example (manual acknowledgment):
+            try:
+                # Process message
+                data = message.body
+                await self.process_data(data)
+
+                # Explicitly acknowledge success
+                await context.ack()
+            except TemporaryError as e:
+                # Temporary failure - requeue for retry
+                await context.reject(requeue=True)
+            except PermanentError as e:
+                # Permanent failure - send to DLQ
+                await context.reject(requeue=False)
+        {% else %}Example (auto-acknowledgment):
+            # Process message
+            data = message.body
+            await self.process_data(data)
+            # Message automatically acknowledged on success
+            # On exception, message is auto-rejected (requeue if retries < 3)
+        {% endif %}"""
+        # TODO: Implement message processing logic
+        data = message.body
+        raise NotImplementedError("Implement {{ class_name }} handler")
+
+    async def on_startup(self) -> None:
+        """
+        Hook called when the listener starts.
+
+        Use this for initialization:
+        - Opening connections
+        - Loading configuration
+        - Warming up caches
+        """
+        pass
+
+    async def on_shutdown(self) -> None:
+        """
+        Hook called when the listener stops.
+
+        Use this for cleanup:
+        - Closing connections
+        - Flushing buffers
+        - Saving state
+        """
+        pass
+
+    async def on_error(self, message: Message, error: Exception) -> None:
+        """
+        Hook called when message processing fails.
+
+        Called after all retry attempts are exhausted.
+        Use this for:
+        - Logging errors to monitoring systems
+        - Sending notifications
+        - Custom error handling
+
+        Args:
+            message: The message that failed
+            error: The exception that was raised
+        """
+        # TODO: Add error logging/monitoring
+        # Example: sentry_sdk.capture_exception(error)
+        pass

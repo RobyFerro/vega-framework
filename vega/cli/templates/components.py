@@ -358,3 +358,28 @@ def render_event_handler(
 def render_events_init() -> str:
     """Return the template for events/__init__.py with auto-discovery"""
     return render_template("events_init.py.j2", subfolder="project")
+
+
+def render_listener(
+    class_name: str,
+    queue_name: str,
+    workers: int,
+    auto_ack: bool,
+    visibility_timeout: int,
+    retry_on_error: bool,
+    max_retries: int,
+    has_context: bool,
+) -> str:
+    """Return the template for a job listener"""
+    return render_template(
+        "listener.py.j2",
+        subfolder="infrastructure",
+        class_name=class_name,
+        queue_name=queue_name,
+        workers=workers,
+        auto_ack=auto_ack,
+        visibility_timeout=visibility_timeout,
+        retry_on_error=retry_on_error,
+        max_retries=max_retries,
+        has_context=has_context,
+    )

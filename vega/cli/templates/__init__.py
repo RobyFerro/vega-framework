@@ -49,6 +49,7 @@ from .components import (
     render_event,
     render_event_handler,
     render_events_init,
+    render_listener,
 )
 from .loader import render_template
 
@@ -103,5 +104,6 @@ __all__ = [
     "render_event",
     "render_event_handler",
     "render_events_init",
+    "render_listener",
     "render_template",
 ]

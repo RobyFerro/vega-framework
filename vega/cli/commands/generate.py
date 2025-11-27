@@ -17,6 +17,7 @@ from vega.cli.templates import (
     render_cli_command_simple,
     render_event,
     render_event_handler,
+    render_listener,
     render_template,
     # CQRS
     render_cqrs_handler,
@@ -121,6 +122,8 @@ def generate_component(
         _generate_event(project_root, project_name, class_name, file_name)
     elif component_type == 'event_handler':
         _generate_event_handler(project_root, project_name, class_name, file_name)
+    elif component_type == 'listener':
+        _generate_listener(project_root, project_name, class_name, file_name)
 
 
 def _generate_entity(project_root: Path, project_name: str, class_name: str, file_name: str):
@@ -1004,3 +1007,59 @@ def _generate_event_handler(project_root: Path, project_name: str, class_name: s
     click.echo(f"   1. Implement your handler in {handler_file.relative_to(project_root)}")
     click.echo("   2. Call events.register_all_handlers() during startup so auto-discovery loads it.")
     click.echo("   3. Run your workflow and verify the subscriber reacts to the event.")
+
+
+def _generate_listener(project_root: Path, project_name: str, class_name: str, file_name: str):
+    """Generate a job queue listener in infrastructure/listeners/"""
+
+    listeners_path = project_root / "infrastructure" / "listeners"
+    listeners_path.mkdir(parents=True, exist_ok=True)
+
+    init_file = listeners_path / "__init__.py"
+    if not init_file.exists():
+        init_file.write_text("")
+
+    listener_file = listeners_path / f"{file_name}.py"
+    if listener_file.exists():
+        click.echo(click.style(f"ERROR: {listener_file.relative_to(project_root)} already exists", fg='red'))
+        return
+
+    # Prompt for listener configuration
+    default_queue = to_snake_case(class_name.replace("Listener", ""))
+    queue_name = click.prompt("Queue name", default=default_queue)
+    workers = click.prompt("Number of workers", default=1, type=int)
+    auto_ack = click.confirm("Auto-acknowledge messages?", default=True)
+    visibility_timeout = click.prompt("Visibility timeout (seconds)", default=30, type=int)
+    retry_on_error = click.confirm("Retry on failure?", default=False)
+    max_retries = 3
+    if retry_on_error:
+        max_retries = click.prompt("Max retries", default=3, type=int)
+
+    # Determine if context parameter is needed (only when auto_ack=False)
+    has_context = not auto_ack
+
+    content = render_listener(
+        class_name=class_name,
+        queue_name=queue_name,
+        workers=workers,
+        auto_ack=auto_ack,
+        visibility_timeout=visibility_timeout,
+        retry_on_error=retry_on_error,
+        max_retries=max_retries,
+        has_context=has_context,
+    )
+
+    listener_file.write_text(content)
+    click.echo(f"+ Created {click.style(str(listener_file.relative_to(project_root)), fg='green')}")
+
+    click.echo("\nNext steps:")
+    click.echo(f"   1. Implement message handling logic in {listener_file.relative_to(project_root)}")
+    click.echo("   2. Configure queue driver in config.py (e.g., SQSDriver)")
+    click.echo(f"   3. Run: vega listener run")
+    click.echo(f"\nQueue configuration:")
+    click.echo(f"   - Queue: {queue_name}")
+    click.echo(f"   - Workers: {workers}")
+    click.echo(f"   - Auto-ack: {auto_ack}")
+    click.echo(f"   - Visibility timeout: {visibility_timeout}s")
+    if retry_on_error:
+        click.echo(f"   - Retry on error: Yes (max {max_retries} retries)")
