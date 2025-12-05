@@ -8,6 +8,15 @@ Welcome to the Vega Framework documentation set. The content now follows the Di�
 - Reference: [CLI overview](reference/cli/overview.md), [CLI init command](reference/cli/init.md), [CLI add command](reference/cli/add.md), [CLI generate command](reference/cli/generate.md), [CLI migrate command](reference/cli/migrate.md), [CLI web command](reference/cli/web.md), [CLI update command](reference/cli/update.md), [CLI doctor status](reference/cli/doctor.md), [Events API](reference/events/api.md), [Changelog](reference/CHANGELOG.md)
 - Explanations: [Philosophy](explanation/philosophy.md), [Project structure](explanation/project-structure.md), [Architecture](explanation/architecture/clean-architecture.md), [Patterns](explanation/patterns/interactor.md), [Event concepts](explanation/events/overview.md)
 
+### 🔄 Async Listeners (NEW!)
+
+Background job processing system with message queues (SQS, RabbitMQ, Redis).
+
+- **[Complete Guide](ASYNC_LISTENERS.md)** ⭐ Full documentation - drivers, patterns, lifecycle, examples
+- **[Quick Reference](LISTENER_QUICK_REFERENCE.md)** 📋 Common patterns and CLI commands
+- **[Examples](examples/listeners/)** - Email notifications, image processing, webhooks
+- **[Test Coverage](../tests/LISTENER_TESTS.md)** - Test status (29 unit tests passing)
+
 ## Tutorials
 - [Project quickstart](tutorials/quickstart.md) – scaffold your first Vega application and run an interactor.
 - [Getting started with events](tutorials/events/getting-started.md) – define events, subscribe handlers, and publish them end-to-end.

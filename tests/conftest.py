@@ -118,6 +118,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "events: mark test as event system related"
     )
+    config.addinivalue_line(
+        "markers", "listeners: mark test as job listener related"
+    )
 
 
 # Pytest collection configuration
@@ -141,3 +144,5 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.di)
         if "event" in item.nodeid.lower():
             item.add_marker(pytest.mark.events)
+        if "listener" in item.nodeid.lower():
+            item.add_marker(pytest.mark.listeners)
