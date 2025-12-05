@@ -116,6 +116,25 @@ class QueueDriver(Service, ABC):
         """
         pass
 
+    @abstractmethod
+    async def send_message(self, queue_name: str, body: Dict[str, Any]) -> None:
+        """
+        Send a message to a queue.
+
+        Used for scheduling jobs to be processed by listeners.
+
+        Args:
+            queue_name: Name of the queue to send to
+            body: Message body as dictionary (will be JSON serialized)
+
+        Example:
+            await driver.send_message(
+                queue_name="email-notifications",
+                body={"to": "user@example.com", "subject": "Welcome"}
+            )
+        """
+        pass
+
     async def connect(self) -> None:
         """
         Initialize connection to queue service.

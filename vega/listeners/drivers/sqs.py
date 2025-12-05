@@ -326,3 +326,33 @@ class SQSDriver(QueueDriver):
         except Exception as e:
             logger.error(f"Failed to get attributes for '{queue_name}': {e}")
             raise
+
+    async def send_message(self, queue_name: str, body: Dict[str, Any]) -> None:
+        """
+        Send a message to SQS queue.
+
+        Args:
+            queue_name: Name of the queue
+            body: Message body as dictionary (will be JSON serialized)
+
+        Example:
+            await driver.send_message(
+                queue_name="email-notifications",
+                body={"to": "user@example.com", "subject": "Welcome"}
+            )
+        """
+        queue_url = await self._get_queue_url(queue_name)
+
+        try:
+            message_body = json.dumps(body)
+            response = await self._client.send_message(
+                QueueUrl=queue_url,
+                MessageBody=message_body
+            )
+            logger.debug(
+                f"Sent message to queue '{queue_name}' "
+                f"(MessageId: {response.get('MessageId')})"
+            )
+        except Exception as e:
+            logger.error(f"Failed to send message to '{queue_name}': {e}")
+            raise

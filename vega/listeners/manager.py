@@ -209,7 +209,7 @@ class ListenerManager:
         while attempt <= (max_retries if retry_on_error else 0):
             try:
                 # Use scope context for scoped dependencies
-                async with scope_context():
+                with scope_context():
                     # Call handler with DI
                     if auto_ack:
                         # Auto-ack mode: only pass message

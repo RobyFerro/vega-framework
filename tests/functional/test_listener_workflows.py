@@ -67,6 +67,18 @@ class MockQueueDriver(QueueDriver):
             "QueueArn": f"arn:aws:sqs:us-east-1:123456789012:{queue_name}"
         }
 
+    async def send_message(self, queue_name: str, body: dict) -> None:
+        """Send a message to the queue"""
+        message = Message(
+            id=f"msg-{len(self.messages)}",
+            body=body,
+            attributes={"queue_name": queue_name},
+            receipt_handle=f"receipt-{len(self.messages)}",
+            received_count=1,
+            timestamp=datetime.now()
+        )
+        self.messages.append(message)
+
     async def connect(self) -> None:
         """Mark as connected"""
         self.connected = True
@@ -507,3 +519,82 @@ class TestListenerManager:
             await asyncio.wait_for(task, timeout=1.0)
         except asyncio.CancelledError:
             pass
+
+
+@pytest.mark.functional
+@pytest.mark.listeners
+class TestJobScheduling:
+    """Test Job.schedule() functionality"""
+
+    def setup_method(self):
+        """Setup for each test"""
+        clear_listener_registry()
+        self.driver = MockQueueDriver()
+        self.container = Container({QueueDriver: lambda: self.driver})
+        set_container(self.container)
+
+    def teardown_method(self):
+        """Cleanup after each test"""
+        clear_listener_registry()
+
+    async def test_job_schedule_sends_message(self):
+        """Test Job.schedule() sends message to queue"""
+        from vega.listeners import Job
+
+        # Schedule a job
+        await Job.schedule(
+            queue="email-notifications",
+            to="user@example.com",
+            subject="Welcome!",
+            template="welcome"
+        )
+
+        # Verify message was sent
+        assert len(self.driver.messages) == 1
+        message = self.driver.messages[0]
+        assert message.body["to"] == "user@example.com"
+        assert message.body["subject"] == "Welcome!"
+        assert message.body["template"] == "welcome"
+        assert message.attributes["queue_name"] == "email-notifications"
+
+    async def test_job_schedule_with_listener_integration(self):
+        """Test Job.schedule() integrates with listener processing"""
+        from vega.listeners import Job
+
+        processed_jobs = []
+
+        @job_listener(queue="test-jobs")
+        class TestJobListener(JobListener):
+            async def handle(self, message: Message) -> None:
+                processed_jobs.append(message.body)
+
+        # Schedule a job
+        await Job.schedule(
+            queue="test-jobs",
+            task="process_order",
+            order_id="12345",
+            user_id="67890"
+        )
+
+        # Create and start manager
+        manager = ListenerManager([TestJobListener])
+
+        # Run for a short time
+        task = asyncio.create_task(manager.start())
+        await asyncio.sleep(0.1)
+
+        # Stop manager
+        manager._running = False
+        for t in manager._tasks:
+            t.cancel()
+
+        try:
+            await asyncio.wait_for(task, timeout=1.0)
+        except asyncio.CancelledError:
+            pass
+
+        # Verify job was processed by listener
+        assert len(processed_jobs) == 1
+        assert processed_jobs[0]["task"] == "process_order"
+        assert processed_jobs[0]["order_id"] == "12345"
+        assert processed_jobs[0]["user_id"] == "67890"

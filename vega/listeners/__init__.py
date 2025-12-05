@@ -48,6 +48,7 @@ from vega.listeners.decorators import job_listener
 from vega.listeners.driver import QueueDriver
 from vega.listeners.message import Message, MessageContext
 from vega.listeners.manager import ListenerManager
+from vega.listeners.job import Job
 from vega.listeners.registry import (
     register_listener,
     get_listener_registry,
@@ -61,6 +62,7 @@ __all__ = [
     'Message',
     'MessageContext',
     'ListenerManager',
+    'Job',
     # Decorators
     'job_listener',
     # Registry functions
