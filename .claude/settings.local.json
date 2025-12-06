@@ -33,7 +33,8 @@
       "Bash(tree:*)",
       "Read(//tmp/test-vega-project/**)",
       "Bash(vega init:*)",
-      "Bash(PYTHONPATH=. python:*)"
+      "Bash(PYTHONPATH=. python:*)",
+      "Bash(if exist \"test-vega-ddd\" rmdir /s /q \"test-vega-ddd\")"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,46 @@
+"""{{ class_name }} value object"""
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class {{ class_name }}:
+    """
+    {{ class_name }} value object.
+
+    Value objects are immutable objects defined by their attributes, not by identity.
+    Two value objects with the same attributes are considered equal.
+
+    Key characteristics:
+    - Immutable (frozen=True)
+    - No identity - equality based on values
+    - Self-validating (validation in __post_init__)
+    - Can contain business logic related to the value
+
+    Example:
+        # Create a value object
+        {{ instance_name }} = {{ class_name }}(value="example")
+
+        # Value objects are immutable
+        # {{ instance_name }}.value = "new"  # Raises FrozenInstanceError
+
+        # Equality is based on values
+        other = {{ class_name }}(value="example")
+        assert {{ instance_name }} == other  # True
+    """
+    value: str  # TODO: Change type as needed (str, int, float, Decimal, etc.)
+
+    def __post_init__(self):
+        """Validate value object invariants."""
+        if not self.value:
+            raise ValueError("{{ class_name }} cannot be empty")
+        # TODO: Add your validation logic here
+        # Examples:
+        # if len(self.value) > 100:
+        #     raise ValueError("{{ class_name }} cannot exceed 100 characters")
+        # if not re.match(r'^[a-zA-Z0-9]+$', self.value):
+        #     raise ValueError("{{ class_name }} must be alphanumeric")
+
+    # TODO: Add business methods if needed
+    # def to_uppercase(self) -> "{{ class_name }}":
+    #     """Return a new value object with uppercase value."""
+    #     return {{ class_name }}(value=self.value.upper())

@@ -1,28 +1,38 @@
 """
-CleanArch Framework
+Vega Framework v2.0
 
-A lightweight Python framework for building applications with Clean Architecture.
+Enterprise-ready Python framework with Domain-Driven Design (DDD), CQRS,
+and Clean Architecture for building maintainable and scalable applications.
 
 Features:
+- Domain-Driven Design with Bounded Contexts
+- CQRS (Command Query Responsibility Segregation)
 - Automatic Dependency Injection
 - Clean Architecture patterns (Interactor, Mediator, Repository)
+- DDD patterns (Aggregate, Value Object, Domain Events)
 - Type-safe with Python type hints
 - Scoped dependency management (Singleton, Scoped, Transient)
-- CLI scaffolding tools
+- CLI scaffolding tools for rapid development
 
 Example:
-    from vega.patterns import Interactor
+    from vega.patterns import CommandHandler, AggregateRoot
     from vega.di import bind
+    from dataclasses import dataclass
 
-    class CreateUser(Interactor[User]):
-        def __init__(self, name: str, email: str):
-            self.name = name
-            self.email = email
+    @dataclass
+    class Order(AggregateRoot[str]):
+        id: str
+        total: float
+
+    class CreateOrder(CommandHandler[Order]):
+        def __init__(self, customer_id: str, total: float):
+            self.customer_id = customer_id
+            self.total = total
 
         @bind
-        async def call(self, repository: UserRepository) -> User:
-            user = User(name=self.name, email=self.email)
-            return await repository.save(user)
+        async def call(self, repository: OrderRepository) -> Order:
+            order = Order(id="...", total=self.total)
+            return await repository.save(order)
 """
 
 import tomllib
@@ -51,7 +61,15 @@ __version__ = _get_version()
 __author__ = "Roberto Ferro"
 
 from vega.di import bind, injectable, Scope, scope_context
-from vega.patterns import Interactor, Mediator, Repository, Service
+from vega.patterns import (
+    Interactor,
+    Mediator,
+    Repository,
+    Service,
+    AggregateRoot,
+    CommandHandler,
+    QueryHandler,
+)
 
 __all__ = [
     "bind",
@@ -62,4 +80,7 @@ __all__ = [
     "Mediator",
     "Repository",
     "Service",
+    "AggregateRoot",
+    "CommandHandler",
+    "QueryHandler",
 ]

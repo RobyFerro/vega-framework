@@ -24,9 +24,74 @@ from vega.cli.templates import (
     render_cqrs_command,
     render_cqrs_query,
     render_cqrs_response,
+    # DDD
+    render_aggregate,
+    render_value_object,
+    render_context_init,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
 from vega.cli.utils import to_snake_case, to_pascal_case
+
+
+def _detect_bounded_context(project_root: Path) -> str | None:
+    """
+    Detect which bounded context we're in based on current directory or prompt user.
+
+    Returns:
+        Context name if found, None if lib/ doesn't exist (legacy structure)
+    """
+    lib_path = project_root / "lib"
+    if not lib_path.exists():
+        return None  # Legacy structure
+
+    # Try to detect context from current working directory
+    try:
+        cwd = Path.cwd()
+        relative = cwd.relative_to(lib_path)
+        if relative.parts:
+            return relative.parts[0]
+    except (ValueError, IndexError):
+        pass
+
+    # Prompt user to select context
+    contexts = [d.name for d in lib_path.iterdir()
+                if d.is_dir() and not d.name.startswith('_') and d.name != 'shared']
+
+    if not contexts:
+        click.echo(click.style("ERROR: No bounded contexts found in lib/", fg='red'))
+        click.echo("Create a context first with: vega generate context <name>")
+        return None
+
+    if len(contexts) == 1:
+        click.echo(f"Using context: {click.style(contexts[0], fg='cyan')}")
+        return contexts[0]
+
+    click.echo("\nAvailable contexts:")
+    for i, ctx in enumerate(contexts, 1):
+        click.echo(f"  {i}. {ctx}")
+
+    try:
+        choice = click.prompt("Select context", type=click.IntRange(1, len(contexts)))
+        return contexts[choice - 1]
+    except (click.Abort, KeyboardInterrupt):
+        click.echo("\nCancelled.")
+        return None
+
+
+def _get_context_base_path(project_root: Path, context: str | None) -> Path:
+    """
+    Get base path for generating components.
+
+    Args:
+        project_root: Root of the project
+        context: Bounded context name (None for legacy structure)
+
+    Returns:
+        Base path where components should be created
+    """
+    if context is None:
+        return project_root  # Legacy structure
+    return project_root / "lib" / context
 
 
 def _resolve_implementation_names(class_name: str, implementation: str) -> tuple[str, str]:
@@ -69,10 +134,15 @@ def generate_component(
     class_name = to_pascal_case(name)
     implementation = implementation.strip() if implementation else None
 
+    # Handle aliases
     if component_type == 'repo':
         component_type = 'repository'
     if component_type in {'event-handler', 'subscriber'}:
         component_type = 'event_handler'
+    if component_type == 'value-object':
+        component_type = 'value_object'
+    if component_type == 'domain-event':
+        component_type = 'event'
 
     suffixes = {
         "repository": "Repository",
@@ -98,7 +168,25 @@ def generate_component(
 
     file_name = to_snake_case(class_name)
 
-    if component_type == 'entity':
+    # DDD generators (context-aware)
+    if component_type == 'context':
+        _generate_context(project_root, project_name, name)
+    elif component_type == 'aggregate':
+        _generate_aggregate(project_root, project_name, class_name, file_name)
+    elif component_type == 'value_object':
+        _generate_value_object(project_root, project_name, class_name, file_name)
+    # CQRS generators
+    elif component_type == 'command':
+        # For CLI command, use existing _generate_command
+        # For CQRS command, use implementation='COMMAND' on interactor
+        if implementation and implementation.upper() in {'COMMAND', 'QUERY'}:
+            _generate_interactor(project_root, project_name, class_name, file_name, implementation)
+        else:
+            _generate_command(project_root, project_name, name, implementation)
+    elif component_type == 'query':
+        _generate_interactor(project_root, project_name, class_name, file_name, 'QUERY')
+    # Existing generators
+    elif component_type == 'entity':
         _generate_entity(project_root, project_name, class_name, file_name)
     elif component_type == 'repository':
         _generate_repository(project_root, project_name, class_name, file_name, implementation)
@@ -116,28 +204,34 @@ def generate_component(
         _generate_sqlalchemy_model(project_root, project_name, class_name, file_name)
     elif component_type == 'webmodel':
         _generate_web_models(project_root, project_name, name, is_request, is_response)
-    elif component_type == 'command':
-        _generate_command(project_root, project_name, name, implementation)
     elif component_type == 'event':
         _generate_event(project_root, project_name, class_name, file_name)
     elif component_type == 'event_handler':
         _generate_event_handler(project_root, project_name, class_name, file_name)
     elif component_type == 'listener':
         _generate_listener(project_root, project_name, class_name, file_name)
+    else:
+        click.echo(click.style(f"ERROR: Unknown component type: {component_type}", fg='red'))
+        click.echo("Supported types: context, aggregate, value-object, command, query, entity, repository, service, etc.")
 
 
 def _generate_entity(project_root: Path, project_name: str, class_name: str, file_name: str):
-    """Generate domain entity"""
+    """Generate domain entity (context-aware)"""
+    context = _detect_bounded_context(project_root)
+    if context is None and (project_root / "lib").exists():
+        return  # Error already shown
 
-    file_path = project_root / "domain" / "entities" / f"{file_name}.py"
+    base_path = _get_context_base_path(project_root, context)
+    file_path = base_path / "domain" / "entities" / f"{file_name}.py"
 
     if file_path.exists():
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     content = render_entity(class_name)
-
     file_path.write_text(content)
+
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
 
 
@@ -148,20 +242,25 @@ def _generate_repository(
     file_name: str,
     implementation: str | None = None,
 ):
-    """Generate repository interface"""
+    """Generate repository interface (context-aware)"""
+    context = _detect_bounded_context(project_root)
+    if context is None and (project_root / "lib").exists():
+        return  # Error already shown
+
+    base_path = _get_context_base_path(project_root, context)
 
     # Remove 'Repository' suffix if present to get entity name
     entity_name = class_name[:-len('Repository')] if class_name.endswith('Repository') else class_name
     entity_file = to_snake_case(entity_name)
 
-    file_path = project_root / "domain" / "repositories" / f"{file_name}.py"
+    file_path = base_path / "domain" / "repositories" / f"{file_name}.py"
 
     if file_path.exists():
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
     # Check if entity exists
-    entity_path = project_root / "domain" / "entities" / f"{entity_file}.py"
+    entity_path = base_path / "domain" / "entities" / f"{entity_file}.py"
     if not entity_path.exists():
         click.echo(
             click.style(
@@ -177,15 +276,17 @@ def _generate_repository(
             click.echo(click.style(f"ERROR: Cannot create repository without entity {entity_name}", fg='red'))
             return
 
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     content = render_repository_interface(class_name, entity_name, entity_file)
-
     file_path.write_text(content)
+
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
 
     # Suggest next steps
+    infra_path = "lib/{context}/infrastructure/repositories/" if context else "infrastructure/repositories/"
     click.echo(f"\n💡 Next steps:")
     click.echo(f"   1. Create entity: vega generate entity {entity_name}")
-    click.echo(f"   2. Implement repository in infrastructure/repositories/")
+    click.echo(f"   2. Implement repository in {infra_path}")
     click.echo(f"   3. Register in config.py SERVICES dict")
 
     if implementation:
@@ -196,6 +297,7 @@ def _generate_repository(
             entity_name,
             entity_file,
             implementation,
+            context,
         )
 
 
@@ -206,20 +308,26 @@ def _generate_service(
     file_name: str,
     implementation: str | None = None,
 ):
-    """Generate service interface"""
+    """Generate service interface (context-aware)"""
+    context = _detect_bounded_context(project_root)
+    if context is None and (project_root / "lib").exists():
+        return  # Error already shown
 
-    file_path = project_root / "application" / "services" / f"{file_name}.py"
+    base_path = _get_context_base_path(project_root, context)
+
+    # Services go in domain layer for DDD (domain services)
+    # Or in application layer for application services
+    # Default to domain for now
+    file_path = base_path / "domain" / "repositories" / f"{file_name}.py"
 
     if file_path.exists():
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
-    # Ensure directory exists
     file_path.parent.mkdir(parents=True, exist_ok=True)
-
     content = render_service_interface(class_name)
-
     file_path.write_text(content)
+
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
 
     click.echo(f"\n💡 Next steps:")
@@ -353,10 +461,13 @@ def _generate_infrastructure_repository(
     entity_name: str,
     entity_file: str,
     implementation: str,
+    context: str | None = None,
 ) -> None:
-    """Generate infrastructure repository implementation extending the domain interface."""
+    """Generate infrastructure repository implementation (context-aware)."""
     impl_class, impl_file = _resolve_implementation_names(interface_class_name, implementation)
-    file_path = project_root / "infrastructure" / "repositories" / f"{impl_file}.py"
+
+    base_path = _get_context_base_path(project_root, context)
+    file_path = base_path / "infrastructure" / "repositories" / f"{impl_file}.py"
 
     if file_path.exists():
         click.echo(click.style(f"WARNING: Implementation {file_path} already exists", fg='yellow'))
@@ -907,9 +1018,13 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
 
 
 def _generate_event(project_root: Path, project_name: str, class_name: str, file_name: str):
-    """Generate a domain event."""
+    """Generate a domain event (context-aware)."""
+    context = _detect_bounded_context(project_root)
+    if context is None and (project_root / "lib").exists():
+        return  # Error already shown
 
-    events_path = project_root / "domain" / "events"
+    base_path = _get_context_base_path(project_root, context)
+    events_path = base_path / "domain" / "events"
     events_path.mkdir(parents=True, exist_ok=True)
 
     init_file = events_path / "__init__.py"
@@ -1063,3 +1178,116 @@ def _generate_listener(project_root: Path, project_name: str, class_name: str, f
     click.echo(f"   - Visibility timeout: {visibility_timeout}s")
     if retry_on_error:
         click.echo(f"   - Retry on error: Yes (max {max_retries} retries)")
+
+
+# DDD Generators
+
+
+def _generate_context(project_root: Path, project_name: str, context_name: str):
+    """Generate bounded context structure under lib/"""
+    lib_path = project_root / "lib"
+    if not lib_path.exists():
+        click.echo(click.style("ERROR: lib/ directory not found. This project uses legacy structure.", fg='red'))
+        click.echo("Create a new project with `vega init` to use DDD bounded contexts.")
+        return
+
+    context_path = lib_path / context_name
+    if context_path.exists():
+        click.echo(click.style(f"ERROR: Context '{context_name}' already exists", fg='red'))
+        return
+
+    click.echo(f"\n[*] Creating bounded context: {click.style(context_name, fg='green')}")
+
+    directories = [
+        "domain/aggregates",
+        "domain/entities",
+        "domain/value_objects",
+        "domain/events",
+        "domain/repositories",
+        "application/commands",
+        "application/queries",
+        "infrastructure/repositories",
+        "infrastructure/services",
+        "presentation/cli/commands",
+    ]
+
+    for directory in directories:
+        dir_path = context_path / directory
+        dir_path.mkdir(parents=True, exist_ok=True)
+        (dir_path / "__init__.py").write_text("")
+        click.echo(f"  + Created {context_name}/{directory}/")
+
+    # Context __init__.py with documentation
+    context_init = render_context_init(context_name, project_name)
+    (context_path / "__init__.py").write_text(context_init)
+
+    click.echo(f"\n{click.style('SUCCESS!', fg='green')} Bounded context '{context_name}' created")
+    click.echo(f"\nNext steps:")
+    click.echo(f"  vega generate aggregate Order          # In {context_name} context")
+    click.echo(f"  vega generate value-object Money")
+    click.echo(f"  vega generate command CreateOrder")
+
+
+def _generate_aggregate(project_root: Path, project_name: str, class_name: str, file_name: str):
+    """Generate aggregate root in domain/aggregates/"""
+    context = _detect_bounded_context(project_root)
+    if context is None and (project_root / "lib").exists():
+        return  # Error already shown by _detect_bounded_context
+
+    base_path = _get_context_base_path(project_root, context)
+
+    # Determine path based on structure
+    if context:
+        file_path = base_path / "domain" / "aggregates" / f"{file_name}.py"
+    else:
+        # Legacy: create in domain/entities (no aggregates folder in legacy)
+        file_path = base_path / "domain" / "entities" / f"{file_name}.py"
+        click.echo(click.style("WARNING: Using legacy structure. Consider migrating to lib/ structure.", fg='yellow'))
+
+    if file_path.exists():
+        click.echo(click.style(f"ERROR: {file_path} already exists", fg='red'))
+        return
+
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    content = render_aggregate(class_name)
+    file_path.write_text(content)
+
+    relative_path = file_path.relative_to(project_root)
+    click.echo(f"+ Created {click.style(str(relative_path), fg='green')}")
+    click.echo(f"\nNext steps:")
+    click.echo(f"  1. Add fields to {class_name}")
+    click.echo(f"  2. Implement business methods")
+    click.echo(f"  3. Add validation in __post_init__")
+
+
+def _generate_value_object(project_root: Path, project_name: str, class_name: str, file_name: str):
+    """Generate value object in domain/value_objects/"""
+    context = _detect_bounded_context(project_root)
+    if context is None and (project_root / "lib").exists():
+        return  # Error already shown
+
+    base_path = _get_context_base_path(project_root, context)
+
+    if context:
+        file_path = base_path / "domain" / "value_objects" / f"{file_name}.py"
+    else:
+        # Legacy: create in domain/entities
+        file_path = base_path / "domain" / "entities" / f"{file_name}.py"
+        click.echo(click.style("WARNING: Using legacy structure. Value objects created in domain/entities/", fg='yellow'))
+
+    if file_path.exists():
+        click.echo(click.style(f"ERROR: {file_path} already exists", fg='red'))
+        return
+
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    content = render_value_object(class_name)
+    file_path.write_text(content)
+
+    relative_path = file_path.relative_to(project_root)
+    click.echo(f"+ Created {click.style(str(relative_path), fg='green')}")
+    click.echo(f"\nValue object characteristics:")
+    click.echo(f"  - Immutable (frozen=True)")
+    click.echo(f"  - Equality by value, not identity")
+    click.echo(f"  - Self-validating (__post_init__)")

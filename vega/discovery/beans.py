@@ -108,8 +108,28 @@ def discover_beans(
     """
 
     if subpackages is None:
-        # Default Clean Architecture structure
-        subpackages = ["domain", "application", "infrastructure"]
+        # Check if this is DDD structure with lib/ or legacy structure
+        lib_path = Path.cwd() / "lib"
+        if lib_path.exists() and lib_path.is_dir():
+            # New DDD structure - scan all bounded contexts
+            logger.info("Detected DDD structure with bounded contexts (lib/)")
+            contexts = [d.name for d in lib_path.iterdir()
+                       if d.is_dir() and not d.name.startswith('_')]
+            # Scan all contexts and shared kernel
+            subpackages = []
+            for context in contexts:
+                subpackages.extend([
+                    f"lib.{context}.domain",
+                    f"lib.{context}.application",
+                    f"lib.{context}.infrastructure",
+                ])
+            # Also scan shared kernel
+            if (lib_path / "shared").exists():
+                subpackages.append("lib.shared")
+        else:
+            # Legacy Clean Architecture structure
+            logger.info("Detected legacy Clean Architecture structure")
+            subpackages = ["domain", "application", "infrastructure"]
 
     discovered_count = 0
     container = get_container()

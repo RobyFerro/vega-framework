@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.2.22"
-description = "Enterprise-ready Python framework that enforces Clean Architecture for building maintainable and scalable applications."
+version = "0.3.0"
+description = "Enterprise-ready Python framework with Domain-Driven Design (DDD), CQRS, and Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
 readme = "README.md"
@@ -10,6 +10,10 @@ repository = "https://github.com/RobyFerro/vega-framework"
 documentation = "https://vega-framework.readthedocs.io"
 keywords = [
     "clean-architecture",
+    "domain-driven-design",
+    "ddd",
+    "cqrs",
+    "bounded-contexts",
     "dependency-injection",
     "framework",
     "python",

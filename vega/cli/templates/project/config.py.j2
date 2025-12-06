@@ -36,12 +36,17 @@ container = Container(SERVICES)
 set_container(container)
 
 # Auto-discover @bean decorated classes
-# This scans domain/, application/, and infrastructure/ packages
-# for classes decorated with @bean and registers them automatically
+# DDD Structure (lib/): Automatically scans all bounded contexts in lib/
+# Legacy Structure: Scans domain/, application/, infrastructure/
 try:
     logger.debug(f"Starting bean auto-discovery for package: {{ project_name }}")
     logger.debug(f"Current sys.path: {sys.path}")
+
+    # Auto-discovery works with both structures:
+    # - DDD: lib/{context}/domain, lib/{context}/application, lib/{context}/infrastructure
+    # - Legacy: domain/, application/, infrastructure/
     discovered = discover_beans("{{ project_name }}")
+
     logger.info(f"Successfully discovered {discovered} bean(s) for {{ project_name }}")
 except Exception as e:
     # Fallback to manual registration if auto-discovery fails
@@ -53,8 +58,7 @@ except Exception as e:
         f"Falling back to manual bean registration in SERVICES dict"
     )
 
-# To customize auto-discovery packages:
-# discover_beans("{{ project_name }}", subpackages=["repositories", "services"])
-
-# To disable auto-discovery, comment out the discover_beans() call above
-# and use manual registration in SERVICES dict instead
+# Customization examples:
+# - Scan specific bounded context: discover_beans("{{ project_name }}", subpackages=["lib.core.domain"])
+# - Scan multiple contexts: discover_beans("{{ project_name }}", subpackages=["lib.core.domain", "lib.sales.domain"])
+# - Disable auto-discovery: Comment out discover_beans() and use manual SERVICES dict

@@ -11,7 +11,7 @@ import vega
 
 
 def init_project(project_name: str, template: str, parent_path: str):
-    """Initialize a new Vega project with Clean Architecture structure"""
+    """Initialize a new Vega project with DDD and Bounded Contexts structure"""
 
     template = template.lower()
     # Validate project name
@@ -25,44 +25,71 @@ def init_project(project_name: str, template: str, parent_path: str):
         click.echo(click.style(f"ERROR: Error: Directory '{project_name}' already exists", fg='red'))
         return
 
-    click.echo(f"\n[*] Creating Vega project: {click.style(project_name, fg='green', bold=True)}")
+    click.echo(f"\n[*] Creating Vega DDD project: {click.style(project_name, fg='green', bold=True)}")
+    click.echo(f"[*] Architecture: Domain-Driven Design with Bounded Contexts")
     click.echo(f"[*] Location: {project_path.absolute()}\n")
 
-    # Create directory structure
+    # Create DDD structure with lib/ and bounded contexts
     directories = [
-        "domain/entities",
-        "domain/repositories",
-        "application/commands",
-        "application/queries",
-        "application/services",
-        "application/mediators",
-        "infrastructure/repositories",
-        "infrastructure/services",
-        "presentation/cli/commands",
-        "events",
-        "tests/domain",
-        "tests/application",
-        "tests/infrastructure",
-        "tests/presentation",
+        "lib/core/domain/aggregates",
+        "lib/core/domain/entities",
+        "lib/core/domain/value_objects",
+        "lib/core/domain/events",
+        "lib/core/domain/repositories",
+        "lib/core/application/commands",
+        "lib/core/application/queries",
+        "lib/core/infrastructure/repositories",
+        "lib/core/infrastructure/services",
+        "lib/core/presentation/cli/commands",
+        "lib/shared",
+        "tests/lib/core/domain",
+        "tests/lib/core/application",
+        "tests/lib/core/infrastructure",
+        "tests/lib/core/presentation",
     ]
+
+    # Add web directories if web template
+    if template in ["web", "fastapi"]:
+        directories.extend([
+            "lib/core/presentation/web/routes",
+            "lib/core/presentation/web/models",
+        ])
 
     for directory in directories:
         dir_path = project_path / directory
         dir_path.mkdir(parents=True, exist_ok=True)
+
+        # Create __init__.py for Python packages
+        (dir_path / "__init__.py").write_text("")
 
         # Use auto-discovery template for cli/commands
         if "cli" in directory and "commands" in directory:
             from vega.cli.templates import render_cli_commands_init
             content = render_cli_commands_init()
             (dir_path / "__init__.py").write_text(content)
-        # Use auto-discovery template for events/
-        elif directory == "events":
+        # Use auto-discovery template for domain/events/
+        elif directory.endswith("domain/events"):
             from vega.cli.templates import render_events_init
             content = render_events_init()
             (dir_path / "__init__.py").write_text(content)
 
         click.echo(f"  + Created {directory}/")
 
+    # Create bounded context init files with documentation
+    from vega.cli.templates import render_context_init
+
+    # Core context __init__.py
+    core_init = render_context_init("core", project_name)
+    (project_path / "lib" / "core" / "__init__.py").write_text(core_init)
+    click.echo(f"  + Created lib/core/__init__.py (Core bounded context)")
+
+    # Shared kernel __init__.py
+    shared_init = render_context_init("shared", project_name)
+    (project_path / "lib" / "shared" / "__init__.py").write_text(shared_init)
+    click.echo(f"  + Created lib/shared/__init__.py (Shared kernel)")
+
+    # lib/__init__.py
+    (project_path / "lib" / "__init__.py").write_text("")
 
     # Create config.py
     config_content = render_template("config.py.j2", project_name=project_name)
@@ -140,8 +167,12 @@ def init_project(project_name: str, template: str, parent_path: str):
         click.echo(f"  python main.py greet --name John  # Run with parameters")
         click.echo(f"  python main.py --help       # Show all commands")
 
-    click.echo(f"\nGenerate components:")
-    click.echo(f"  vega generate entity User")
-    click.echo(f"  vega generate repository UserRepository")
-    click.echo(f"  vega generate interactor CreateUser")
+    click.echo(f"\nGenerate DDD components:")
+    click.echo(f"  vega generate context sales          # Create new bounded context")
+    click.echo(f"  vega generate aggregate Order        # Create aggregate root")
+    click.echo(f"  vega generate value-object Money     # Create value object")
+    click.echo(f"  vega generate entity User            # Create domain entity")
+    click.echo(f"  vega generate command CreateOrder    # Create command handler (CQRS)")
+    click.echo(f"  vega generate query GetOrderById     # Create query handler (CQRS)")
+    click.echo(f"  vega generate repository OrderRepository")
     click.echo(f"\n[Docs] https://vega-framework.readthedocs.io/")

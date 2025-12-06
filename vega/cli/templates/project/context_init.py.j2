@@ -1,0 +1,32 @@
+"""
+{{ context_name }} bounded context
+
+A bounded context is an explicit boundary within which a domain model is defined and applicable.
+It represents a cohesive subdomain with its own ubiquitous language.
+
+This context contains:
+- Domain model (aggregates, entities, value objects, events, repositories)
+- Application logic (commands, queries, mediators)
+- Infrastructure implementations (repositories, services)
+- Presentation layer (CLI commands, web routes)
+
+Context: {{ context_name }}
+{% if context_name == 'core' %}
+Description: Core business logic and domain model
+{% elif context_name == 'shared' %}
+Description: Shared kernel - common code across contexts
+{% else %}
+Description: TODO - Describe the purpose of this bounded context
+{% endif %}
+
+Guidelines:
+- Keep the domain model pure and framework-independent
+- Use domain events to communicate with other contexts (avoid direct dependencies)
+- Prefer duplication over coupling between contexts
+- Each context should be independently deployable (if needed)
+
+Related contexts:
+- TODO: List contexts that integrate with this one via events or shared kernel
+"""
+
+__all__ = []

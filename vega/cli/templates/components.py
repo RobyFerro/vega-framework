@@ -383,3 +383,40 @@ def render_listener(
         max_retries=max_retries,
         has_context=has_context,
     )
+
+
+# DDD Pattern Renderers
+
+
+def render_aggregate(class_name: str) -> str:
+    """Return the template for an aggregate root."""
+    from vega.cli.utils import to_snake_case
+    instance_name = to_snake_case(class_name)
+    return render_template(
+        "aggregate.py.j2",
+        subfolder="domain",
+        class_name=class_name,
+        instance_name=instance_name,
+    )
+
+
+def render_value_object(class_name: str) -> str:
+    """Return the template for a value object."""
+    from vega.cli.utils import to_snake_case
+    instance_name = to_snake_case(class_name)
+    return render_template(
+        "value_object.py.j2",
+        subfolder="domain",
+        class_name=class_name,
+        instance_name=instance_name,
+    )
+
+
+def render_context_init(context_name: str, project_name: str = "") -> str:
+    """Return the template for bounded context __init__.py"""
+    return render_template(
+        "context_init.py.j2",
+        subfolder="project",
+        context_name=context_name,
+        project_name=project_name,
+    )
