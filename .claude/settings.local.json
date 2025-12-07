@@ -37,7 +37,8 @@
       "Bash(if exist \"test-vega-ddd\" rmdir /s /q \"test-vega-ddd\")",
       "Bash(pipx uninstall:*)",
       "Bash(pipx install:*)",
-      "Bash(vega generate:*)"
+      "Bash(vega generate:*)",
+      "Bash(vega add:*)"
     ],
     "deny": [],
     "ask": []

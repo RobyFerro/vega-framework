@@ -584,14 +584,22 @@ def _register_router_in_init(project_root: Path, resource_file: str, resource_na
 
 
 def _generate_router(project_root: Path, project_name: str, name: str) -> None:
-    """Generate a Vega Web router for a resource"""
+    """Generate a Vega Web router for a resource (context-aware)"""
 
-    # Check if web folder exists
-    web_path = project_root / "presentation" / "web"
+    # Detect bounded context
+    context = _detect_bounded_context(project_root)
+    base_path = _get_context_base_path(project_root, context)
+
+    # Check if web folder exists in context
+    web_path = base_path / "presentation" / "web"
     if not web_path.exists():
         click.echo(click.style("ERROR: Web module not found", fg='red'))
-        click.echo("   Router generation requires Vega Web module")
-        click.echo("   Install it with: vega add web")
+        if context:
+            click.echo(f"   Router generation requires web structure in context '{context}'")
+            click.echo(f"   Create it: mkdir -p {web_path / 'routes'}")
+        else:
+            click.echo("   Router generation requires Vega Web module")
+            click.echo("   Install it with: vega add web")
         return
 
     # Convert name to appropriate formats
@@ -600,7 +608,7 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
 
     # Create routes directory if it doesn't exist
     routes_path = web_path / "routes"
-    routes_path.mkdir(exist_ok=True)
+    routes_path.mkdir(parents=True, exist_ok=True)
 
     # Check if __init__.py exists, create with auto-discovery if not
     init_file = routes_path / "__init__.py"
@@ -630,14 +638,21 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
 
 
 def _generate_web_models(project_root: Path, project_name: str, name: str, is_request: bool, is_response: bool) -> None:
-    """Generate Pydantic request or response model for Vega Web"""
+    """Generate Pydantic request or response model for Vega Web (context-aware)"""
 
-    # Check if web folder exists
-    web_path = project_root / "presentation" / "web"
+    # Detect bounded context
+    context = _detect_bounded_context(project_root)
+    base_path = _get_context_base_path(project_root, context)
+
+    # Check if web folder exists in context
+    web_path = base_path / "presentation" / "web"
     if not web_path.exists():
         click.echo(click.style("ERROR: Web module not found", fg='red'))
-        click.echo("   Model generation requires Vega Web module")
-        click.echo("   Install it with: vega add web")
+        if context:
+            click.echo(f"   Model generation requires web structure in context '{context}'")
+        else:
+            click.echo("   Model generation requires Vega Web module")
+            click.echo("   Install it with: vega add web")
         return
 
     # Validate flags
@@ -886,17 +901,21 @@ from infrastructure.models.{file_name} import {class_name}Model  # noqa: F401
 
 
 def _generate_command(project_root: Path, project_name: str, name: str, is_async: str | None = None) -> None:
-    """Generate a CLI command"""
-    
-    # Check if presentation/cli exists
-    cli_path = project_root / "presentation" / "cli"
+    """Generate a CLI command (context-aware)"""
+
+    # Detect bounded context
+    context = _detect_bounded_context(project_root)
+    base_path = _get_context_base_path(project_root, context)
+
+    # Check if presentation/cli exists in context
+    cli_path = base_path / "presentation" / "cli"
     if not cli_path.exists():
         cli_path.mkdir(parents=True, exist_ok=True)
         click.echo(f"+ Created {click.style(str(cli_path.relative_to(project_root)), fg='green')}")
-    
+
     # Create commands directory if it doesn't exist
     commands_path = cli_path / "commands"
-    commands_path.mkdir(exist_ok=True)
+    commands_path.mkdir(parents=True, exist_ok=True)
 
     # Check if __init__.py exists, create with auto-discovery if not
     init_file = commands_path / "__init__.py"
