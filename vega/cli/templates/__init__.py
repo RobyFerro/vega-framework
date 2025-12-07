@@ -12,6 +12,10 @@ from .components import (
     render_cqrs_command,
     render_cqrs_query,
     render_cqrs_response,
+    # DDD templates
+    render_aggregate,
+    render_value_object,
+    render_context_init,
     # New Vega Web functions
     render_vega_app,
     render_vega_routes_init,
@@ -67,6 +71,10 @@ __all__ = [
     "render_cqrs_command",
     "render_cqrs_query",
     "render_cqrs_response",
+    # DDD
+    "render_aggregate",
+    "render_value_object",
+    "render_context_init",
     # Vega Web
     "render_vega_app",
     "render_vega_routes_init",

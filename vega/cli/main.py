@@ -17,18 +17,21 @@ from vega.cli.commands.listener import listener
 @click.version_option(version=__version__, prog_name="Vega Framework")
 def cli():
     """
-    Vega Framework - Clean Architecture for Python
+    Vega Framework v2.0 - Domain-Driven Design & Clean Architecture for Python
 
-    Build applications with Clean Architecture principles:
+    Build applications with DDD and Clean Architecture:
+    - Domain-Driven Design with Bounded Contexts
+    - CQRS (Command Query Responsibility Segregation)
     - Automatic Dependency Injection
-    - Type-safe patterns (Interactor, Mediator, Repository)
+    - Type-safe patterns (Aggregate, CommandHandler, QueryHandler)
     - Testable and maintainable code
 
     Examples:
-        vega init my-app              # Create new project
-        vega generate entity User     # Generate entity
-        vega generate repo User       # Generate repository
-        vega generate interactor CreateUser  # Generate use case
+        vega init my-app                    # Create new DDD project
+        vega generate context sales         # Create bounded context
+        vega generate aggregate Order       # Generate aggregate root
+        vega generate command CreateOrder   # Generate command handler
+        vega generate query GetOrderById    # Generate query handler
     """
     pass
 
@@ -58,6 +61,9 @@ def init(project_name, template, path):
 
 @cli.command()
 @click.argument('component_type', type=click.Choice([
+    'context',
+    'aggregate',
+    'value-object',
     'entity',
     'repository',
     'repo',
@@ -69,6 +75,8 @@ def init(project_name, template, path):
     'webmodel',
     'model',
     'command',
+    'query',
+    'cli-command',
     'event',
     'event-handler',
     'subscriber',
@@ -82,40 +90,59 @@ def generate(component_type, name, path, impl, request, response):
     """
     Generate a component in your Vega project.
 
-    Component types:
+    Component types (DDD):
+        context     - Bounded context (creates lib/{context}/ structure)
+        aggregate   - Aggregate root (DDD pattern)
+        value-object- Value object (immutable, validated)
         entity      - Domain entity (dataclass)
+        command     - Command handler (CQRS write operation)
+        query       - Query handler (CQRS read operation)
+        event       - Domain event (immutable dataclass + metadata)
+
+    Component types (Clean Architecture):
         repository  - Repository interface (domain layer)
         repo        - Short alias for repository
         service     - Service interface (domain layer)
         interactor  - Use case (business logic)
         mediator    - Workflow (orchestrates use cases)
+        event-handler/subscriber - Application-level event subscriber
+
+    Component types (Infrastructure):
         router      - Vega Web router (requires web module)
         middleware  - Vega Web middleware (requires web module)
         webmodel    - Pydantic request/response models (requires web module)
         model       - SQLAlchemy model (requires sqlalchemy module)
-        command     - CLI command (async by default)
-        event       - Domain event (immutable dataclass + metadata)
-        event-handler/subscriber - Application-level event subscriber
+        cli-command - CLI command (presentation layer, async by default)
 
-    Examples:
+    Examples (DDD):
+        vega generate context sales
+        vega generate aggregate Order
+        vega generate value-object Money
+        vega generate command CreateOrder
+        vega generate query GetOrderById
+
+    Examples (Clean Architecture):
         vega generate entity Product
         vega generate repository ProductRepository
         vega generate repository Product --impl memory
         vega generate interactor CreateProduct
         vega generate mediator CheckoutFlow
+        vega generate event UserCreated
+        vega generate subscriber SendWelcomeEmail
+
+    Examples (Infrastructure):
         vega generate router Product
         vega generate middleware Logging
         vega generate webmodel CreateUserRequest --request
-        vega generate webmodel UserResponse --response
         vega generate model User
-        vega generate command CreateUser
-        vega generate command ListUsers --impl sync
-        vega generate event UserCreated
-        vega generate subscriber SendWelcomeEmail --name UserCreated
+        vega generate cli-command create-user
+        vega generate cli-command list-users --impl sync
     """
-    # Normalize 'repo' to 'repository'
+    # Normalize aliases
     if component_type == 'repo':
         component_type = 'repository'
+    if component_type == 'cli-command':
+        component_type = 'cli_command'
 
     generate_component(component_type, name, path, impl, request, response)
 

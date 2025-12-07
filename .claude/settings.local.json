@@ -34,7 +34,10 @@
       "Read(//tmp/test-vega-project/**)",
       "Bash(vega init:*)",
       "Bash(PYTHONPATH=. python:*)",
-      "Bash(if exist \"test-vega-ddd\" rmdir /s /q \"test-vega-ddd\")"
+      "Bash(if exist \"test-vega-ddd\" rmdir /s /q \"test-vega-ddd\")",
+      "Bash(pipx uninstall:*)",
+      "Bash(pipx install:*)",
+      "Bash(vega generate:*)"
     ],
     "deny": [],
     "ask": []

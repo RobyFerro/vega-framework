@@ -177,12 +177,12 @@ def generate_component(
         _generate_value_object(project_root, project_name, class_name, file_name)
     # CQRS generators
     elif component_type == 'command':
-        # For CLI command, use existing _generate_command
-        # For CQRS command, use implementation='COMMAND' on interactor
-        if implementation and implementation.upper() in {'COMMAND', 'QUERY'}:
-            _generate_interactor(project_root, project_name, class_name, file_name, implementation)
+        # Default: CQRS command handler
+        # With --impl=cli: CLI command
+        if implementation and implementation.lower() == 'cli':
+            _generate_command(project_root, project_name, name, None)
         else:
-            _generate_command(project_root, project_name, name, implementation)
+            _generate_interactor(project_root, project_name, class_name, file_name, 'COMMAND')
     elif component_type == 'query':
         _generate_interactor(project_root, project_name, class_name, file_name, 'QUERY')
     # Existing generators
@@ -204,6 +204,8 @@ def generate_component(
         _generate_sqlalchemy_model(project_root, project_name, class_name, file_name)
     elif component_type == 'webmodel':
         _generate_web_models(project_root, project_name, name, is_request, is_response)
+    elif component_type == 'cli_command':
+        _generate_command(project_root, project_name, name, implementation)
     elif component_type == 'event':
         _generate_event(project_root, project_name, class_name, file_name)
     elif component_type == 'event_handler':
