@@ -101,8 +101,8 @@ def bean(
         # If constructor params are provided, register as a factory lambda
         if constructor_params:
             # Create a factory function that instantiates with the provided params
-            factory = _create_factory_with_params(target_cls, constructor_params)
-            container.register(detected_interface, factory)
+            factory = _create_factory_with_params(target_cls, constructor_params, container)
+            container.register_factory(detected_interface, factory, scope=scope)
         else:
             # Standard registration: interface -> concrete class
             container.register(detected_interface, target_cls)
@@ -196,7 +196,7 @@ def _is_abc_interface(cls: Type) -> bool:
         return False
 
 
-def _create_factory_with_params(cls: Type[T], params: Dict[str, Any]) -> Type[T]:
+def _create_factory_with_params(cls: Type[T], params: Dict[str, Any], container) -> Type[T]:
     """
     Create a factory function that wraps a class with pre-configured parameters.
 
@@ -207,48 +207,20 @@ def _create_factory_with_params(cls: Type[T], params: Dict[str, Any]) -> Type[T]
     Args:
         cls: The class to instantiate
         params: Parameters to pass to the constructor
+        container: DI container used to resolve remaining deps
 
     Returns:
         A factory class that the container can instantiate
     """
 
-    # Create a wrapper class that acts as a factory
-    class BeanFactory:
-        """Factory wrapper for bean with constructor parameters."""
+    def factory():
+        """
+        Factory closure that mixes configured params with DI-resolved ones.
+        Uses the container public helper to remain scope-aware.
+        """
+        return container.build(cls, **params)
 
-        def __new__(cls_factory):
-            # Get the signature of the original class constructor
-            sig = inspect.signature(cls.__init__)
-
-            # Separate auto-injectable params from pre-configured params
-            auto_inject_params = {}
-
-            for param_name, param in sig.parameters.items():
-                if param_name == 'self':
-                    continue
-
-                # Skip parameters that are already provided
-                if param_name in params:
-                    continue
-
-                # This parameter needs to be auto-injected by the container
-                # The container will handle this via _instantiate_with_dependencies
-                auto_inject_params[param_name] = param
-
-            # Instantiate the original class with pre-configured params
-            # The container will handle auto-injection of remaining dependencies
-
-            logging.debug(f"Instantiate {cls.__name__}")
-
-            return cls(**params)
-
-    # Copy metadata from original class
-    BeanFactory.__name__ = f"{cls.__name__}Factory"
-    BeanFactory.__module__ = cls.__module__
-    BeanFactory._bean_target_class = cls
-    BeanFactory._bean_params = params
-
-    return BeanFactory
+    return factory
 
 
 def get_bean_metadata(cls: Type) -> Optional[Dict[str, Any]]:

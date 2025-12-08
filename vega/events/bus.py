@@ -1,10 +1,13 @@
 """Event Bus implementation for pub/sub pattern"""
 import asyncio
 import logging
-from typing import Type, Callable, List, Dict, Any, Optional
+from typing import Type, Callable, List, Dict, Any, Optional, TYPE_CHECKING
 from collections import defaultdict
 
 from vega.events.event import Event
+
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from vega.events.middleware import EventMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +164,7 @@ class EventBus:
         self._error_handlers.append(handler)
         return handler
 
-    async def publish(self, event: Event) -> None:
+    async def publish(self, event: Event, *, fail_fast: bool = False) -> None:
         """
         Publish an event to all subscribers.
 
@@ -173,6 +176,9 @@ class EventBus:
 
         Example:
             await bus.publish(UserCreated(user_id="123", email="test@test.com"))
+        Args:
+            event: Event instance to publish
+            fail_fast: If True, re-raise the first handler error after execution.
         """
         logger.debug(f"Publishing event: {event.event_name} (id={event.event_id})")
 
@@ -202,20 +208,26 @@ class EventBus:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Check for errors
+        errors = []
         for idx, result in enumerate(results):
             if isinstance(result, Exception):
                 handler_name = handlers[idx]['handler'].__name__
                 logger.error(
                     f"Handler '{handler_name}' failed for event '{event.event_name}': {result}"
                 )
+                errors.append(result)
 
         # Execute middleware (after)
         for middleware in reversed(self._middleware):
             await middleware.after_publish(event)
 
+        if errors and fail_fast:
+            # Re-raise first error to signal failure to caller
+            raise errors[0]
+
         logger.debug(f"Event published: {event.event_name} (id={event.event_id})")
 
-    async def publish_many(self, events: List[Event]) -> None:
+    async def publish_many(self, events: List[Event], *, fail_fast: bool = False) -> None:
         """
         Publish multiple events.
 
@@ -225,7 +237,7 @@ class EventBus:
             events: List of events to publish
         """
         for event in events:
-            await self.publish(event)
+            await self.publish(event, fail_fast=fail_fast)
 
     def _get_handlers_for_event(self, event: Event) -> List[Dict[str, Any]]:
         """

@@ -283,16 +283,14 @@ class ListenerManager:
         """
         def signal_handler(sig, frame):
             logger.info(f"Received signal {sig}, initiating graceful shutdown")
-            self._running = False
-            # Cancel all tasks
-            for task in self._tasks:
-                task.cancel()
+            self.stop()
 
         try:
             signal.signal(signal.SIGTERM, signal_handler)
             signal.signal(signal.SIGINT, signal_handler)
-        except Exception as e:
-            logger.warning(f"Could not setup signal handlers: {e}")
+        except (ValueError, OSError, RuntimeError, AttributeError) as e:
+            # Windows / restricted environments may not support signal handling
+            logger.debug(f"Signal handlers not installed: {e}")
 
     async def shutdown(self) -> None:
         """
@@ -325,3 +323,13 @@ class ListenerManager:
                 logger.error(f"Error disconnecting driver: {e}", exc_info=True)
 
         logger.info("All listeners stopped")
+
+    def stop(self) -> None:
+        """
+        Stop polling loop and cancel worker tasks.
+        Safe to call multiple times.
+        """
+        self._running = False
+        for task in self._tasks:
+            if not task.done():
+                task.cancel()

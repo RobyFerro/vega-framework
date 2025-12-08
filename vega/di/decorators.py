@@ -1,6 +1,7 @@
 """Dependency injection decorators"""
 import inspect
 import logging
+import os
 from functools import wraps
 from typing import Callable, Dict, Any, get_type_hints, Tuple
 
@@ -9,6 +10,12 @@ from vega.di.errors import DependencyInjectionError
 from vega.di.container import get_container
 
 logger = logging.getLogger(__name__)
+
+_STRICT_DI = os.getenv("VEGA_DI_STRICT", "").lower() in {"1", "true", "yes", "on"}
+
+
+def _is_strict_mode() -> bool:
+    return _STRICT_DI
 
 # Constants for method detection
 _METHOD_FIRST_PARAMS = frozenset({'self', 'cls'})
@@ -136,7 +143,7 @@ def _resolve_dependencies_from_hints(
         # Attempt to resolve dependency from container
         # Type can be either an abstract interface or concrete implementation
         try:
-            if param_type in container._services or param_type in container._concrete_services:
+            if container.is_registered(param_type) or container.has_concrete(param_type):
                 # Generate unique cache key for scope management
                 cache_key = f"{param_type.__module__}.{param_type.__name__}"
                 factory = lambda pt=param_type: container.resolve(pt)
@@ -148,11 +155,19 @@ def _resolve_dependencies_from_hints(
                     factory=factory,
                     context_name=f"{context_name} -> {param_name}"
                 )
+            else:
+                if _is_strict_mode():
+                    raise DependencyInjectionError(
+                        f"{context_name}: Unable to resolve required dependency "
+                        f"'{param_name}' of type '{param_type.__name__}' in strict mode."
+                    )
         except Exception as e:
             # Silently skip unresolvable dependencies (not in container)
             logger.debug(
                 f"{context_name}: Could not resolve '{param_name}' of type '{param_type}': {e}"
             )
+            if _is_strict_mode():
+                raise
 
     return resolved
 

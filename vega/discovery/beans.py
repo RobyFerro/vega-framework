@@ -135,7 +135,7 @@ def discover_beans(
     container = get_container()
 
     # Track initial services count
-    initial_count = len(container._services)
+    initial_count = len(container.get_bindings())
 
     # If no subpackages specified, scan the base package directly
     if not subpackages:
@@ -238,7 +238,7 @@ def discover_beans(
             continue
 
     # Verify beans were registered
-    final_count = len(container._services)
+    final_count = len(container.get_bindings())
     registered_count = final_count - initial_count
 
     logger.info(
@@ -299,4 +299,4 @@ def list_registered_beans() -> dict:
             print(f"{interface.__name__} -> {implementation.__name__}")
     """
     container = get_container()
-    return dict(container._services)
+    return dict(container.get_bindings())
