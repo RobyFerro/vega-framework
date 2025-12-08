@@ -103,6 +103,10 @@ def bean(
             # Create a factory function that instantiates with the provided params
             factory = _create_factory_with_params(target_cls, constructor_params, container)
             container.register_factory(detected_interface, factory, scope=scope)
+            # Also add the concrete class to _concrete_services so it can be resolved directly
+            # when used as a dependency in other classes
+            if target_cls not in container._concrete_services:
+                container._concrete_services.append(target_cls)
         else:
             # Standard registration: interface -> concrete class
             container.register(detected_interface, target_cls)
