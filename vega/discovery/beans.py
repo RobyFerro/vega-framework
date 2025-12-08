@@ -127,9 +127,49 @@ def discover_beans(
             if (lib_path / "shared").exists():
                 subpackages.append("lib.shared")
         else:
-            # Legacy Clean Architecture structure
-            logger.info("Detected legacy Clean Architecture structure")
-            subpackages = ["domain", "application", "infrastructure"]
+            # Check if this is bounded context structure without lib/ (e.g., myapp/blog/domain, myapp/core/domain)
+            # Try to find the base package directory
+            base_parts = base_package.split('.')
+            search_paths = [Path.cwd()] + [Path(p) for p in sys.path if p]
+
+            bounded_contexts_detected = False
+            for search_root in search_paths:
+                potential_base = search_root
+                for part in base_parts:
+                    potential_base = potential_base / part
+
+                if potential_base.exists() and potential_base.is_dir():
+                    # Check if there are subdirectories with domain/application/infrastructure
+                    contexts = []
+                    for subdir in potential_base.iterdir():
+                        if subdir.is_dir() and not subdir.name.startswith('_') and not subdir.name.startswith('.'):
+                            # Check if this looks like a bounded context (has domain/ or infrastructure/ subdirectories)
+                            has_domain = (subdir / "domain").exists()
+                            has_infrastructure = (subdir / "infrastructure").exists()
+                            has_application = (subdir / "application").exists()
+
+                            if has_domain or has_infrastructure or has_application:
+                                contexts.append(subdir.name)
+
+                    if contexts:
+                        # Bounded context structure detected
+                        logger.info(f"Detected bounded context structure (without lib/): {contexts}")
+                        bounded_contexts_detected = True
+                        subpackages = []
+                        for context in contexts:
+                            # Note: we don't include base_package here as it will be added later
+                            # when constructing full_package in the scanning loop
+                            subpackages.extend([
+                                f"{context}.domain",
+                                f"{context}.application",
+                                f"{context}.infrastructure",
+                            ])
+                        break
+
+            if not bounded_contexts_detected:
+                # Legacy Clean Architecture structure
+                logger.info("Detected legacy Clean Architecture structure")
+                subpackages = ["domain", "application", "infrastructure"]
 
     discovered_count = 0
     container = get_container()
@@ -190,25 +230,14 @@ def discover_beans(
                     relative_path = file.relative_to(package_dir)
                     module_parts = list(relative_path.parts[:-1]) + [relative_path.stem]
 
-                    if found_via_import:
-                        # Package was imported successfully - use full_package as prefix
-                        if module_parts and module_parts != [file.stem]:
-                            # File is in a subdirectory
-                            module_name = f"{full_package}.{'.'.join(module_parts)}"
-                        else:
-                            # File is directly in package_dir
-                            module_name = f"{full_package}.{file.stem}"
+                    # Always use full_package as the prefix
+                    # This ensures correct module names whether found via import or filesystem
+                    if module_parts and module_parts != [file.stem]:
+                        # File is in a subdirectory
+                        module_name = f"{full_package}.{'.'.join(module_parts)}"
                     else:
-                        # Package found via filesystem - use subpackage only (no base_package)
-                        # This handles cases where base_package is not importable
-                        if subpackage:
-                            if module_parts and module_parts != [file.stem]:
-                                module_name = f"{subpackage}.{'.'.join(module_parts)}"
-                            else:
-                                module_name = f"{subpackage}.{file.stem}"
-                        else:
-                            # No subpackage, just use module parts
-                            module_name = ".".join(module_parts) if module_parts != [file.stem] else file.stem
+                        # File is directly in package_dir
+                        module_name = f"{full_package}.{file.stem}"
                 except ValueError:
                     # Fallback: use old logic if relative_to fails
                     relative_path = file.relative_to(package_dir.parent)
