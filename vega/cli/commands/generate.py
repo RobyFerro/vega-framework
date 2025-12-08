@@ -308,22 +308,36 @@ def _generate_repository(
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
         return
 
-    # Check if entity exists
+    # Check if entity or aggregate exists
     entity_path = base_path / "domain" / "entities" / f"{entity_file}.py"
-    if not entity_path.exists():
+    aggregate_path = base_path / "domain" / "aggregates" / f"{entity_file}.py"
+    aggregate_exists = aggregate_path.exists()
+    entity_exists = entity_path.exists()
+
+    if not entity_exists and not aggregate_exists:
         click.echo(
             click.style(
-                f"⚠️  Warning: Entity {entity_name} does not exist at {entity_path.relative_to(project_root)}",
+                f"⚠️  Warning: neither Entity nor Aggregate named {entity_name} exists "
+                f"(checked {entity_path.relative_to(project_root)} and {aggregate_path.relative_to(project_root)})",
                 fg='yellow',
             )
         )
-
-        if click.confirm(f"Do you want to create the entity {entity_name}?", default=True):
+        choice = click.prompt(
+            "Create missing type",
+            type=click.Choice(['entity', 'aggregate'], case_sensitive=False),
+            default='entity'
+        )
+        if choice == 'entity':
             _generate_entity(project_root, project_name, entity_name, entity_file)
-            click.echo()  # Empty line for readability
         else:
-            click.echo(click.style(f"ERROR: Cannot create repository without entity {entity_name}", fg='red'))
-            return
+            _generate_aggregate(project_root, project_name, entity_name, entity_file)
+        click.echo()  # spacing
+    else:
+        # Show what we found
+        if entity_exists:
+            click.echo(click.style(f"✔ Found entity at {entity_path.relative_to(project_root)}", fg='green'))
+        if aggregate_exists:
+            click.echo(click.style(f"✔ Found aggregate at {aggregate_path.relative_to(project_root)}", fg='green'))
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
     content = render_repository_interface(class_name, entity_name, entity_file)
