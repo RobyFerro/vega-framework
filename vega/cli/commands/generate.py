@@ -229,9 +229,9 @@ def generate_component(
         if implementation and implementation.lower() == 'cli':
             _generate_command(project_root, project_name, name, None)
         else:
-            _generate_interactor(project_root, project_name, class_name, file_name, 'COMMAND')
+            _generate_interactor(project_root, project_name, class_name, file_name, 'command')
     elif component_type == 'query':
-        _generate_interactor(project_root, project_name, class_name, file_name, 'QUERY')
+        _generate_interactor(project_root, project_name, class_name, file_name, 'query')
     # Existing generators
     elif component_type == 'entity':
         _generate_entity(project_root, project_name, class_name, file_name)
@@ -408,6 +408,9 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
             type=click.Choice(['command', 'query'], case_sensitive=False),
             default='command'
         ).lower()
+
+    # Normalize type
+    cqrs_type = cqrs_type.lower()
 
     # Determine layer folder (commands or queries)
     layer_folder = 'commands' if cqrs_type == 'command' else 'queries'
