@@ -189,15 +189,30 @@ def discover_routers_ddd(
         logger.info("Included framework-level health router at /health")
 
     try:
-        # Try to import lib package to check if DDD structure exists
-        lib_module = importlib.import_module(f"{base_package}.lib")
-        lib_path = Path(lib_module.__file__).parent
+        # Try to import base package to check if DDD structure exists
+        # First try the package itself (new structure), then lib/ (legacy)
+        package_module = None
+        package_path_str = None
 
-        logger.info(f"Detected DDD structure in: {lib_path}")
+        try:
+            # New structure: contexts directly in base package
+            package_module = importlib.import_module(base_package)
+            package_path = Path(package_module.__file__).parent
+            package_path_str = base_package
+        except (ImportError, AttributeError):
+            # Legacy structure: contexts in base_package.lib
+            try:
+                package_module = importlib.import_module(f"{base_package}.lib")
+                package_path = Path(package_module.__file__).parent
+                package_path_str = f"{base_package}.lib"
+            except ImportError:
+                raise
 
-        # Get all bounded contexts (directories in lib/ except __pycache__ and shared)
+        logger.info(f"Detected DDD structure in: {package_path}")
+
+        # Get all bounded contexts (directories except __pycache__ and shared)
         contexts = [
-            d.name for d in lib_path.iterdir()
+            d.name for d in package_path.iterdir()
             if d.is_dir() and not d.name.startswith('_') and d.name != 'shared'
         ]
 
@@ -207,7 +222,7 @@ def discover_routers_ddd(
 
         # Discover routers in each context
         for context in contexts:
-            routes_package = f"{base_package}.lib.{context}.presentation.web.routes"
+            routes_package = f"{package_path_str}.{context}.presentation.web.routes"
 
             try:
                 routes_module = importlib.import_module(routes_package)

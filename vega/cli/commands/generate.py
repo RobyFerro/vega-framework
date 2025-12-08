@@ -1178,14 +1178,17 @@ def _generate_listener(project_root: Path, project_name: str, class_name: str, f
 
 
 def _generate_context(project_root: Path, project_name: str, context_name: str):
-    """Generate bounded context structure under lib/"""
-    lib_path = project_root / "lib"
-    if not lib_path.exists():
-        click.echo(click.style("ERROR: lib/ directory not found. This project uses legacy structure.", fg='red'))
+    """Generate bounded context structure under package directory"""
+    # Use normalized project name as package directory
+    normalized_name = project_name.replace('-', '_')
+    package_path = project_root / normalized_name
+
+    if not package_path.exists():
+        click.echo(click.style(f"ERROR: {normalized_name}/ directory not found. This project uses legacy structure.", fg='red'))
         click.echo("Create a new project with `vega init` to use DDD bounded contexts.")
         return
 
-    context_path = lib_path / context_name
+    context_path = package_path / context_name
     if context_path.exists():
         click.echo(click.style(f"ERROR: Context '{context_name}' already exists", fg='red'))
         return

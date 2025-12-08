@@ -29,29 +29,32 @@ def init_project(project_name: str, template: str, parent_path: str):
     click.echo(f"[*] Architecture: Domain-Driven Design with Bounded Contexts")
     click.echo(f"[*] Location: {project_path.absolute()}\n")
 
-    # Create DDD structure with lib/ and bounded contexts
+    # Use normalized project name as package directory (replaces "lib/")
+    normalized_name = project_name.replace('-', '_')
+
+    # Create DDD structure with normalized package name and bounded contexts
     directories = [
-        "lib/core/domain/aggregates",
-        "lib/core/domain/entities",
-        "lib/core/domain/value_objects",
-        "lib/core/domain/events",
-        "lib/core/domain/repositories",
-        "lib/core/application/commands",
-        "lib/core/application/queries",
-        "lib/core/infrastructure/repositories",
-        "lib/core/infrastructure/services",
-        "lib/core/presentation/cli/commands",
-        "lib/shared",
-        "tests/lib/core/domain",
-        "tests/lib/core/application",
-        "tests/lib/core/infrastructure",
-        "tests/lib/core/presentation",
+        f"{normalized_name}/core/domain/aggregates",
+        f"{normalized_name}/core/domain/entities",
+        f"{normalized_name}/core/domain/value_objects",
+        f"{normalized_name}/core/domain/events",
+        f"{normalized_name}/core/domain/repositories",
+        f"{normalized_name}/core/application/commands",
+        f"{normalized_name}/core/application/queries",
+        f"{normalized_name}/core/infrastructure/repositories",
+        f"{normalized_name}/core/infrastructure/services",
+        f"{normalized_name}/core/presentation/cli/commands",
+        f"{normalized_name}/shared",
+        f"tests/{normalized_name}/core/domain",
+        f"tests/{normalized_name}/core/application",
+        f"tests/{normalized_name}/core/infrastructure",
+        f"tests/{normalized_name}/core/presentation",
     ]
 
     # Add web directories (always included)
     directories.extend([
-        "lib/core/presentation/web/routes",
-        "lib/core/presentation/web/models",
+        f"{normalized_name}/core/presentation/web/routes",
+        f"{normalized_name}/core/presentation/web/models",
     ])
 
     for directory in directories:
@@ -81,45 +84,17 @@ def init_project(project_name: str, template: str, parent_path: str):
 
     # Core context __init__.py
     core_init = render_context_init("core", project_name)
-    (project_path / "lib" / "core" / "__init__.py").write_text(core_init)
-    click.echo(f"  + Created lib/core/__init__.py (Core bounded context)")
+    (project_path / normalized_name / "core" / "__init__.py").write_text(core_init)
+    click.echo(f"  + Created {normalized_name}/core/__init__.py (Core bounded context)")
 
     # Shared kernel __init__.py
     shared_init = render_context_init("shared", project_name)
-    (project_path / "lib" / "shared" / "__init__.py").write_text(shared_init)
-    click.echo(f"  + Created lib/shared/__init__.py (Shared kernel)")
+    (project_path / normalized_name / "shared" / "__init__.py").write_text(shared_init)
+    click.echo(f"  + Created {normalized_name}/shared/__init__.py (Shared kernel)")
 
-    # lib/__init__.py - required for package imports
-    (project_path / "lib" / "__init__.py").write_text('"""Bounded contexts package"""\n')
-    click.echo(f"  + Created lib/__init__.py")
-
-    # Root __init__.py - required to make project a package
-    (project_path / "__init__.py").write_text(f'"""{project_name} - Vega DDD Project"""\n')
-    click.echo(f"  + Created __init__.py (root package)")
-
-    # Create package directory with normalized name (for imports)
-    # This allows the project to be imported as a Python package
-    normalized_name = project_name.replace('-', '_')
-    package_init_content = f'''"""{project_name} package
-
-This package allows the project to be imported by its normalized name.
-All modules (lib, config, etc.) are available from the parent directory.
-"""
-import sys
-from pathlib import Path
-
-# Add parent directory to path to allow imports
-_parent = Path(__file__).parent.parent
-if str(_parent) not in sys.path:
-    sys.path.insert(0, str(_parent))
-
-# Re-export commonly used modules
-from lib import *  # noqa: F401, F403
-'''
-    package_dir = project_path / normalized_name
-    package_dir.mkdir(exist_ok=True)
-    (package_dir / "__init__.py").write_text(package_init_content)
-    click.echo(f"  + Created {normalized_name}/ (package directory)")
+    # Package root __init__.py - required for package imports
+    (project_path / normalized_name / "__init__.py").write_text(f'"""{project_name} - Vega DDD Project"""\n')
+    click.echo(f"  + Created {normalized_name}/__init__.py (package root)")
 
     # Create config.py
     config_content = render_template("config.py.j2", project_name=project_name)

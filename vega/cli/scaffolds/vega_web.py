@@ -97,7 +97,7 @@ def create_vega_web_scaffold_in_context(
     """
     Create Vega Web scaffolding within a bounded context.
 
-    This creates web files at: lib/{context}/presentation/web/
+    This creates web files at: {project_name}/{context}/presentation/web/
 
     Args:
         project_root: Root directory of the project
@@ -113,7 +113,8 @@ def create_vega_web_scaffold_in_context(
         echo = click.echo
 
     created: list[Path] = []
-    web_dir = project_root / "lib" / context / "presentation" / "web"
+    normalized_name = project_name.replace('-', '_')
+    web_dir = project_root / normalized_name / context / "presentation" / "web"
     routes_dir = web_dir / "routes"
     models_dir = web_dir / "models"
 

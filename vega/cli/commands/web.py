@@ -41,8 +41,16 @@ def run(host: str, port: int, reload: bool, path: str, context: str):
         sys.exit(1)
 
     # Detect structure (DDD vs Legacy)
-    lib_path = project_path / "lib"
-    is_ddd = lib_path.exists() and lib_path.is_dir()
+    # Try to find package directory (normalized project name) or lib/ (legacy DDD)
+    normalized_name = project_path.name.replace('-', '_')
+    package_path = project_path / normalized_name
+    lib_path = project_path / "lib"  # Legacy DDD structure
+
+    is_ddd = package_path.exists() and package_path.is_dir()
+    if not is_ddd and lib_path.exists():
+        # Legacy DDD structure with lib/
+        is_ddd = True
+        package_path = lib_path
 
     web_main = None
     import_path = None
@@ -51,17 +59,17 @@ def run(host: str, port: int, reload: bool, path: str, context: str):
         # DDD structure - use auto-discovery to load all routers from all contexts
         click.echo(click.style("Detected DDD structure with bounded contexts", fg='cyan'))
 
-        contexts = [d.name for d in lib_path.iterdir()
+        contexts = [d.name for d in package_path.iterdir()
                    if d.is_dir() and not d.name.startswith('_') and d.name != 'shared']
 
         if len(contexts) == 0:
-            click.echo(click.style("ERROR: No bounded contexts found in lib/", fg='red'))
+            click.echo(click.style(f"ERROR: No bounded contexts found in {package_path.name}/", fg='red'))
             sys.exit(1)
 
         # Find contexts with web module
         web_contexts = []
         for ctx in contexts:
-            ctx_web_routes = lib_path / ctx / "presentation" / "web" / "routes"
+            ctx_web_routes = package_path / ctx / "presentation" / "web" / "routes"
             if ctx_web_routes.exists():
                 web_contexts.append(ctx)
 

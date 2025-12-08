@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vega-framework"
-version = "0.3.8"
+version = "0.3.9"
 description = "Enterprise-ready Python framework with Domain-Driven Design (DDD), CQRS, and Clean Architecture for building maintainable and scalable applications."
 authors = ["Roberto Ferro"]
 license = "MIT"
