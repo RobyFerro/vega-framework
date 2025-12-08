@@ -326,6 +326,27 @@ def render_vega_routes_init_autodiscovery() -> str:
 render_fastapi_routes_init_autodiscovery = render_vega_routes_init_autodiscovery
 
 
+def render_vega_routes_init_context(context_name: str, project_name: str) -> str:
+    """Return the template for web/routes/__init__.py in a bounded context"""
+    return f'''"""Routes for the {context_name} bounded context.
+
+All router modules in this package are automatically discovered
+by discover_routers_ddd() in the main application.
+
+Each route file should define a 'router' variable:
+    from vega.web import Router
+
+    router = Router()
+
+    @router.get("/example")
+    async def example():
+        return {{"message": "Hello from {context_name}"}}
+
+Routes will be automatically prefixed with /api/{context_name}/
+"""
+'''
+
+
 def render_event(class_name: str, fields: list[dict]) -> str:
     """Return the template for a domain event"""
     return render_template(

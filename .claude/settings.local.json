@@ -46,7 +46,10 @@
       "Bash(pip cache:*)",
       "Bash(find:*)",
       "Bash(del:*)",
-      "Bash(if exist \"test-vega-no-init\" rmdir /s /q \"test-vega-no-init\")"
+      "Bash(if exist \"test-vega-no-init\" rmdir /s /q \"test-vega-no-init\")",
+      "Bash(if [ -d \"test-ddd-web\" ])",
+      "Bash(then rm -rf test-ddd-web)",
+      "Bash(if exist \"c:\\temp\\test-ddd-web\" rmdir /s /q \"c:\\temp\\test-ddd-web\")"
     ],
     "deny": [],
     "ask": []

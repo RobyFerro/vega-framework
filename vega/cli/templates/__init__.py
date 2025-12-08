@@ -27,6 +27,7 @@ from .components import (
     render_vega_router,
     render_vega_middleware,
     render_vega_routes_init_autodiscovery,
+    render_vega_routes_init_context,
     # Backward compatibility (deprecated)
     render_fastapi_app,
     render_fastapi_routes_init,
@@ -86,6 +87,7 @@ __all__ = [
     "render_vega_router",
     "render_vega_middleware",
     "render_vega_routes_init_autodiscovery",
+    "render_vega_routes_init_context",
     # Backward compat (deprecated)
     "render_fastapi_app",
     "render_fastapi_routes_init",

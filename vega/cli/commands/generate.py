@@ -1203,12 +1203,32 @@ def _generate_context(project_root: Path, project_name: str, context_name: str):
         "infrastructure/repositories",
         "infrastructure/services",
         "presentation/cli/commands",
+        "presentation/web/routes",
+        "presentation/web/models",
     ]
 
     for directory in directories:
         dir_path = context_path / directory
         dir_path.mkdir(parents=True, exist_ok=True)
         click.echo(f"  + Created {context_name}/{directory}/")
+
+    # Initialize web package files
+    from vega.cli.templates import (
+        render_web_package_init,
+        render_vega_routes_init_context,
+        render_pydantic_models_init
+    )
+
+    web_init_path = context_path / "presentation" / "web" / "__init__.py"
+    web_init_path.write_text(render_web_package_init())
+
+    routes_init_path = context_path / "presentation" / "web" / "routes" / "__init__.py"
+    routes_init_path.write_text(render_vega_routes_init_context(context_name, project_name))
+
+    models_init_path = context_path / "presentation" / "web" / "models" / "__init__.py"
+    models_init_path.write_text(render_pydantic_models_init())
+
+    click.echo(f"  + Initialized web package in {context_name}")
 
     # Context __init__.py with documentation
     context_init = render_context_init(context_name, project_name)

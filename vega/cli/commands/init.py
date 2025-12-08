@@ -71,6 +71,11 @@ def init_project(project_name: str, template: str, parent_path: str):
 
         click.echo(f"  + Created {directory}/")
 
+    # Initialize web files in core context
+    click.echo("\n[*] Initializing Vega Web in core context")
+    from vega.cli.scaffolds import create_vega_web_scaffold_in_context
+    create_vega_web_scaffold_in_context(project_path, project_name, "core", echo=click.echo)
+
     # Create bounded context init files with documentation
     from vega.cli.templates import render_context_init
 
@@ -126,14 +131,10 @@ def init_project(project_name: str, template: str, parent_path: str):
     (project_path / "ARCHITECTURE.md").write_text(architecture_content, encoding='utf-8')
     click.echo(f"  + Created ARCHITECTURE.md")
 
-    # Create Vega Web scaffold (always included)
-    click.echo("\n[*] Adding Vega Web scaffold (presentation/web/)")
-    create_vega_web_scaffold(project_path, project_name)
-
-    # Create main.py for web project
+    # Create main.py for CLI commands
     main_content = render_template("main.py.j2", project_name=project_name, template="fastapi")
     (project_path / "main.py").write_text(main_content)
-    click.echo(f"  + Created main.py (Vega Web entrypoint)")
+    click.echo(f"  + Created main.py (CLI entry point)")
 
 
     # Success message with appropriate next steps
