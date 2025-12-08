@@ -59,6 +59,7 @@ except Exception as e:
     )
 
 # Customization examples:
-# - Scan specific bounded context: discover_beans("{{ project_name }}", subpackages=["lib.core.domain"])
-# - Scan multiple contexts: discover_beans("{{ project_name }}", subpackages=["lib.core.domain", "lib.sales.domain"])
+# - Scan specific bounded context: discover_beans("{{ project_name }}", subpackages=["{{ project_name }}.sales.domain"])
+# - Scan multiple contexts: discover_beans("{{ project_name }}", subpackages=["{{ project_name }}.sales.domain", "{{ project_name }}.billing.domain"])
+# - Scan shared kernel only: discover_beans("{{ project_name }}", subpackages=["{{ project_name }}.shared.domain"])
 # - Disable auto-discovery: Comment out discover_beans() and use manual SERVICES dict

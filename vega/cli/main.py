@@ -44,13 +44,11 @@ def init(project_name, path):
     Initialize a new Vega project with DDD and Clean Architecture structure.
 
     Creates:
-    - lib/core/ (bounded context with domain, application, infrastructure)
-    - domain/ (aggregates, entities, value objects, repositories)
-    - application/ (commands, queries, mediators)
-    - infrastructure/ (repository implementations, services)
-    - presentation/ (web routes, CLI commands)
+    - {project_name}/shared/ (shared kernel with full structure: domain, application, infrastructure, presentation)
     - config.py (DI container)
     - settings.py (app configuration)
+
+    Use 'vega generate context <name>' to create additional bounded contexts.
 
     Includes Vega Web support by default with Swagger UI and auto-discovery.
 

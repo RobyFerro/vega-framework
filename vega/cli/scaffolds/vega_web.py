@@ -102,7 +102,7 @@ def create_vega_web_scaffold_in_context(
     Args:
         project_root: Root directory of the project
         project_name: Name of the project
-        context: Name of the bounded context (e.g., "core", "sales")
+        context: Name of the bounded context (e.g., "shared", "sales", "billing")
         overwrite: Whether to overwrite existing files
         echo: Function to print messages (defaults to click.echo)
 

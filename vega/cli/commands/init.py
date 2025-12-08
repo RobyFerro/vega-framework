@@ -32,30 +32,27 @@ def init_project(project_name: str, template: str, parent_path: str):
     # Use normalized project name as package directory (replaces "lib/")
     normalized_name = project_name.replace('-', '_')
 
-    # Create DDD structure with normalized package name and bounded contexts
+    # Create DDD structure with normalized package name and shared kernel
     directories = [
-        f"{normalized_name}/core/domain/aggregates",
-        f"{normalized_name}/core/domain/entities",
-        f"{normalized_name}/core/domain/value_objects",
-        f"{normalized_name}/core/domain/events",
-        f"{normalized_name}/core/domain/repositories",
-        f"{normalized_name}/core/application/commands",
-        f"{normalized_name}/core/application/queries",
-        f"{normalized_name}/core/infrastructure/repositories",
-        f"{normalized_name}/core/infrastructure/services",
-        f"{normalized_name}/core/presentation/cli/commands",
-        f"{normalized_name}/shared",
-        f"tests/{normalized_name}/core/domain",
-        f"tests/{normalized_name}/core/application",
-        f"tests/{normalized_name}/core/infrastructure",
-        f"tests/{normalized_name}/core/presentation",
+        # Shared kernel with full structure
+        f"{normalized_name}/shared/domain/aggregates",
+        f"{normalized_name}/shared/domain/entities",
+        f"{normalized_name}/shared/domain/value_objects",
+        f"{normalized_name}/shared/domain/events",
+        f"{normalized_name}/shared/domain/repositories",
+        f"{normalized_name}/shared/application/commands",
+        f"{normalized_name}/shared/application/queries",
+        f"{normalized_name}/shared/infrastructure/repositories",
+        f"{normalized_name}/shared/infrastructure/services",
+        f"{normalized_name}/shared/presentation/cli/commands",
+        f"{normalized_name}/shared/presentation/web/routes",
+        f"{normalized_name}/shared/presentation/web/models",
+        # Tests for shared kernel
+        f"tests/{normalized_name}/shared/domain",
+        f"tests/{normalized_name}/shared/application",
+        f"tests/{normalized_name}/shared/infrastructure",
+        f"tests/{normalized_name}/shared/presentation",
     ]
-
-    # Add web directories (always included)
-    directories.extend([
-        f"{normalized_name}/core/presentation/web/routes",
-        f"{normalized_name}/core/presentation/web/models",
-    ])
 
     for directory in directories:
         dir_path = project_path / directory
@@ -74,18 +71,13 @@ def init_project(project_name: str, template: str, parent_path: str):
 
         click.echo(f"  + Created {directory}/")
 
-    # Initialize web files in core context
-    click.echo("\n[*] Initializing Vega Web in core context")
+    # Initialize web files in shared kernel
+    click.echo("\n[*] Initializing Vega Web in shared kernel")
     from vega.cli.scaffolds import create_vega_web_scaffold_in_context
-    create_vega_web_scaffold_in_context(project_path, project_name, "core", echo=click.echo)
+    create_vega_web_scaffold_in_context(project_path, project_name, "shared", echo=click.echo)
 
     # Create bounded context init files with documentation
     from vega.cli.templates import render_context_init
-
-    # Core context __init__.py
-    core_init = render_context_init("core", project_name)
-    (project_path / normalized_name / "core" / "__init__.py").write_text(core_init)
-    click.echo(f"  + Created {normalized_name}/core/__init__.py (Core bounded context)")
 
     # Shared kernel __init__.py
     shared_init = render_context_init("shared", project_name)

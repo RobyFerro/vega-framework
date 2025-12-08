@@ -28,7 +28,7 @@ def run(host: str, port: int, reload: bool, path: str, context: str):
         vega web run
         vega web run --reload
         vega web run --host 127.0.0.1 --port 3000
-        vega web run --context core --reload  # DDD structure
+        vega web run --context shared --reload  # DDD structure with shared kernel
         vega web run --path ./my-project --reload
     """
     project_path = Path(path).resolve()

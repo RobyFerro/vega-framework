@@ -11,10 +11,8 @@ This context contains:
 - Presentation layer (CLI commands, web routes)
 
 Context: {{ context_name }}
-{% if context_name == 'core' %}
-Description: Core business logic and domain model
-{% elif context_name == 'shared' %}
-Description: Shared kernel - common code across contexts
+{% if context_name == 'shared' %}
+Description: Shared kernel - common code across contexts (value objects, utilities, shared domain logic)
 {% else %}
 Description: TODO - Describe the purpose of this bounded context
 {% endif %}

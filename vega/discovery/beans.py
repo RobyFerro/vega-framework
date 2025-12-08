@@ -127,7 +127,7 @@ def discover_beans(
             if (lib_path / "shared").exists():
                 subpackages.append("lib.shared")
         else:
-            # Check if this is bounded context structure without lib/ (e.g., myapp/blog/domain, myapp/core/domain)
+            # Check if this is bounded context structure without lib/ (e.g., myapp/blog/domain, myapp/shared/domain)
             # Try to find the base package directory
             base_parts = base_package.split('.')
             search_paths = [Path.cwd()] + [Path(p) for p in sys.path if p]
