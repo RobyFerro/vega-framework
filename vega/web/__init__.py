@@ -73,6 +73,9 @@ from .params import Query
 from .openapi import get_openapi_schema
 from .docs import get_swagger_ui_html, get_redoc_html
 
+# Built-in routers
+from .builtin_routers import create_health_router
+
 __all__ = [
     # Version
     "__version__",
@@ -110,4 +113,6 @@ __all__ = [
     "get_openapi_schema",
     "get_swagger_ui_html",
     "get_redoc_html",
+    # Built-in routers
+    "create_health_router",
 ]

@@ -7,7 +7,6 @@ import click
 
 from vega.cli.templates import (
     render_fastapi_app,
-    render_fastapi_health_route,
     render_fastapi_main,
     render_fastapi_routes_init_autodiscovery,
     render_fastapi_user_route,
@@ -38,7 +37,6 @@ def create_fastapi_scaffold(
         (web_dir / "app.py", render_fastapi_app(project_name)),
         (web_dir / "main.py", render_fastapi_main(project_name)),
         (routes_dir / "__init__.py", render_fastapi_routes_init_autodiscovery()),
-        (routes_dir / "health.py", render_fastapi_health_route()),
         (routes_dir / "users.py", render_fastapi_user_route()),
         (models_dir / "__init__.py", render_pydantic_models_init()),
         (models_dir / "user_models.py", render_pydantic_user_models()),

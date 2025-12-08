@@ -9,7 +9,6 @@ import click
 
 from vega.cli.templates import (
     render_vega_app,
-    render_vega_health_route,
     render_vega_main,
     render_vega_routes_init_autodiscovery,
     render_vega_user_route,
@@ -54,7 +53,6 @@ def create_vega_web_scaffold(
         (web_dir / "app.py", render_vega_app(project_name)),
         (web_dir / "main.py", render_vega_main(project_name)),
         (routes_dir / "__init__.py", render_vega_routes_init_autodiscovery()),
-        (routes_dir / "health.py", render_vega_health_route()),
         (routes_dir / "users.py", render_vega_user_route()),
         (models_dir / "__init__.py", render_pydantic_models_init()),
         (models_dir / "user_models.py", render_pydantic_user_models()),

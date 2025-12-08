@@ -18,7 +18,8 @@ def discover_routers(
     routes_subpackage: str = "presentation.web.routes",
     api_prefix: str = "/api",
     auto_tags: bool = True,
-    auto_prefix: bool = True
+    auto_prefix: bool = True,
+    include_builtin: bool = True
 ) -> "Router":
     """
     Auto-discover and register Vega Web routers from a package.
@@ -33,6 +34,7 @@ def discover_routers(
         api_prefix: Prefix for the main API router (default: "/api")
         auto_tags: Automatically generate tags from module name (default: True)
         auto_prefix: Automatically generate prefix from module name (default: True)
+        include_builtin: Include framework-level builtin routers like health check (default: True)
 
     Returns:
         Router: Main router with all discovered routers included
@@ -60,6 +62,13 @@ def discover_routers(
         )
 
     main_router = Router(prefix=api_prefix)
+
+    # Include framework-level health router FIRST (if requested)
+    if include_builtin:
+        from vega.web.builtin_routers import create_health_router
+        health_router = create_health_router()
+        main_router.include_router(health_router, prefix="")  # No prefix, at root level
+        logger.info("Included framework-level health router at /health")
 
     # Resolve the routes package path
     try:
@@ -133,7 +142,8 @@ def discover_routers_ddd(
     base_package: str,
     api_prefix: str = "/api",
     auto_tags: bool = True,
-    auto_prefix: bool = True
+    auto_prefix: bool = True,
+    include_builtin: bool = True
 ) -> "Router":
     """
     Auto-discover and register Vega Web routers from all bounded contexts (DDD structure).
@@ -146,6 +156,7 @@ def discover_routers_ddd(
         api_prefix: Prefix for the main API router (default: "/api")
         auto_tags: Automatically generate tags from module name (default: True)
         auto_prefix: Automatically generate prefix from module name (default: True)
+        include_builtin: Include framework-level builtin routers like health check (default: True)
 
     Returns:
         Router: Main router with all discovered routers from all contexts
@@ -169,6 +180,13 @@ def discover_routers_ddd(
         )
 
     main_router = Router(prefix=api_prefix)
+
+    # Include framework-level health router FIRST (if requested)
+    if include_builtin:
+        from vega.web.builtin_routers import create_health_router
+        health_router = create_health_router()
+        main_router.include_router(health_router, prefix="")  # No prefix, at root level
+        logger.info("Included framework-level health router at /health")
 
     try:
         # Try to import lib package to check if DDD structure exists

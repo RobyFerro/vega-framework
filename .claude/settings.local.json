@@ -38,7 +38,13 @@
       "Bash(pipx uninstall:*)",
       "Bash(pipx install:*)",
       "Bash(vega generate:*)",
-      "Bash(vega add:*)"
+      "Bash(vega add:*)",
+      "Bash(if [ -d \"test-health-router\" ])",
+      "Bash(then rm -rf test-health-router)",
+      "Bash(fi)",
+      "Bash(printf:*)",
+      "Bash(pip cache:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

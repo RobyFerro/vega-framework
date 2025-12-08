@@ -112,10 +112,19 @@ def add_web_feature(project_path: Path, project_name: str):
 
     click.echo(f"\n{click.style('SUCCESS: Vega Web scaffold added!', fg='green', bold=True)}\n")
     click.echo("Next steps:")
-    click.echo("  1. Dependencies are already included in vega-framework")
+    click.echo("  1. Generate routes in your contexts:")
+    click.echo("     vega generate router <name>")
     click.echo("  2. Run the server:")
-    click.echo("     vega web run --reload")
-    click.echo("  3. Visit http://localhost:8000/api/health/status")
+    click.echo("     vega web run")
+    if is_ddd:
+        click.echo("  3. Visit endpoints:")
+        click.echo("     - http://localhost:8000/health (framework health check)")
+        click.echo("     - http://localhost:8000/docs (API documentation)")
+        click.echo("     - http://localhost:8000/api/{context}/{route}")
+    else:
+        click.echo("  3. Visit:")
+        click.echo("     - http://localhost:8000/health (framework health check)")
+        click.echo("     - http://localhost:8000/docs (API documentation)")
 
 
 def _create_web_in_context(context_path: Path, project_name: str, context_name: str, overwrite: bool = False):
@@ -131,20 +140,8 @@ def _create_web_in_context(context_path: Path, project_name: str, context_name: 
     (web_path / "__init__.py").write_text("")
     (routes_path / "__init__.py").write_text("")
 
-    # Create health route as example
-    from vega.cli.templates import render_vega_health_route
-    health_route = routes_path / "health.py"
-    if not health_route.exists() or overwrite:
-        health_route.write_text(render_vega_health_route())
-        click.echo(f"  + Created {context_name}/presentation/web/routes/health.py")
-
-    # Create main.py for the context web app
-    from vega.cli.templates import render_vega_main
-    main_file = web_path / "main.py"
-    if not main_file.exists() or overwrite:
-        main_content = render_vega_main(project_name)
-        main_file.write_text(main_content)
-        click.echo(f"  + Created {context_name}/presentation/web/main.py")
+    # Don't create health route - it's global at framework level
+    # Just create the routes directory structure
 
     click.echo(f"  + Web structure created in context '{context_name}'")
 
