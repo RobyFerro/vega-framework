@@ -416,11 +416,11 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
     layer_folder = 'commands' if cqrs_type == 'command' else 'queries'
     handler_type = 'COMMAND' if cqrs_type == 'command' else 'QUERY'
 
-    # Folder name for the interactor (e.g., CreateUser - keep PascalCase)
-    folder_name = class_name
+    # Folder name for the interactor (snake_case)
+    folder_name = file_name
 
     # Create the interactor directory
-    interactor_dir = base_path / "application" / layer_folder / class_name
+    interactor_dir = base_path / "application" / layer_folder / folder_name
 
     if interactor_dir.exists():
         click.echo(click.style(f"ERROR: Error: {interactor_dir.relative_to(project_root)} already exists", fg='red'))
@@ -497,7 +497,7 @@ __all__ = [
     else:
         app_module = f"{base_path.relative_to(project_root).as_posix().replace('/', '.')}.application"
     click.echo(f"\nUsage:")
-    click.echo(f"   from {app_module}.{layer_folder}.{class_name} import {class_name}Handler, {input_class}")
+    click.echo(f"   from {app_module}.{layer_folder}.{folder_name} import {class_name}Handler, {input_class}")
     click.echo(f"   {input_var} = {input_class}(...)  # Add your parameters")
     click.echo(f"   result = await {class_name}Handler({input_var})")
 
