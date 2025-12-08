@@ -395,6 +395,12 @@ def _generate_service(
 def _generate_interactor(project_root: Path, project_name: str, class_name: str, file_name: str, cqrs_type: str | None = None):
     """Generate interactor (use case) with CQRS pattern"""
 
+    # Detect bounded context so generated files land in the right folder
+    context = _detect_bounded_context(project_root)
+    if context is None and _has_bounded_context_root(project_root):
+        return  # Error already shown by detector
+    base_path = _get_context_base_path(project_root, context)
+
     # If no CQRS type specified, ask the user
     if not cqrs_type:
         cqrs_type = click.prompt(
@@ -411,7 +417,7 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
     folder_name = class_name
 
     # Create the interactor directory
-    interactor_dir = project_root / "application" / layer_folder / class_name
+    interactor_dir = base_path / "application" / layer_folder / class_name
 
     if interactor_dir.exists():
         click.echo(click.style(f"ERROR: Error: {interactor_dir.relative_to(project_root)} already exists", fg='red'))
@@ -420,10 +426,10 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
     interactor_dir.mkdir(parents=True, exist_ok=True)
 
     # Prepare file names and class names
-    input_file = f"{cqrs_type}"  # command.py or query.py
+    input_file = f"{file_name}_{cqrs_type}"  # e.g., create_user_command.py
     input_class = f"{class_name}{cqrs_type.capitalize()}"  # CreateUserCommand or GetUserQuery
     input_var = cqrs_type  # command or query
-    response_file = "response"
+    response_file = f"{file_name}_response"
     response_class = f"{class_name}Result"
 
     # Ask for description
@@ -442,7 +448,7 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
         response_class=response_class,
         description=description,
     )
-    handler_file = interactor_dir / "handler.py"
+    handler_file = interactor_dir / f"{file_name}_handler.py"
     handler_file.write_text(handler_content)
     click.echo(f"+ Created {click.style(str(handler_file.relative_to(project_root)), fg='green')}")
 
@@ -458,15 +464,15 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
 
     # Generate response.py
     response_content = render_cqrs_response(class_name, description)
-    response_file_path = interactor_dir / "response.py"
+    response_file_path = interactor_dir / f"{response_file}.py"
     response_file_path.write_text(response_content)
     click.echo(f"+ Created {click.style(str(response_file_path.relative_to(project_root)), fg='green')}")
 
     # Create __init__.py for easier imports
     init_content = f'''"""{ class_name} {cqrs_type} - CQRS Pattern"""
-from .handler import {class_name}Handler
+from .{file_name}_handler import {class_name}Handler
 from .{input_file} import {input_class}
-from .response import {response_class}
+from .{response_file} import {response_class}
 
 __all__ = [
     "{class_name}Handler",
@@ -479,8 +485,13 @@ __all__ = [
     click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
 
     # Usage instructions
+    # Build import path reflecting bounded context (if any)
+    if base_path == project_root:
+        app_module = "application"
+    else:
+        app_module = f"{base_path.relative_to(project_root).as_posix().replace('/', '.')}.application"
     click.echo(f"\nUsage:")
-    click.echo(f"   from application.{layer_folder}.{class_name} import {class_name}Handler, {input_class}")
+    click.echo(f"   from {app_module}.{layer_folder}.{class_name} import {class_name}Handler, {input_class}")
     click.echo(f"   {input_var} = {input_class}(...)  # Add your parameters")
     click.echo(f"   result = await {class_name}Handler({input_var})")
 
@@ -953,31 +964,31 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
         from vega.cli.templates import render_cli_commands_init
         init_file.write_text(render_cli_commands_init())
         click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
-    
+
     # Convert name to snake_case for command and file
     command_name = to_snake_case(name).replace('_', '-')
     file_name = to_snake_case(name)
-    
+
     # Generate command file
     command_file = commands_path / f"{file_name}.py"
-    
+
     if command_file.exists():
         click.echo(click.style(f"ERROR: Error: {command_file.relative_to(project_root)} already exists", fg='red'))
         return
-    
+
     # Determine if async (default is async unless explicitly set to 'sync' or 'simple')
     use_async = is_async not in ['sync', 'simple', 'false', 'no'] if is_async else True
-    
+
     # Prompt for command details
     description = click.prompt("Command description", default=f"{name} command")
-    
+
     # Ask if user wants to add options/arguments
     add_params = click.confirm("Add options or arguments?", default=False)
-    
+
     options = []
     arguments = []
     params_list = []
-    
+
     if add_params:
         click.echo("\nAdd options (e.g., --name, --email). Press Enter when done.")
         while True:
@@ -987,9 +998,9 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
             opt_type = click.prompt("Type", default="str", type=click.Choice(['str', 'int', 'bool']))
             opt_required = click.confirm("Required?", default=False)
             opt_help = click.prompt("Help text", default=f"{opt_name.replace('-', ' ').replace('_', ' ')}")
-            
+
             params_list.append(opt_name.replace('-', '_'))
-            
+
             opt_params = f"help='{opt_help}'"
             if opt_required:
                 opt_params += ", required=True"
@@ -998,29 +1009,29 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
                     opt_params += ", is_flag=True"
                 else:
                     opt_params += f", type={opt_type}"
-            
+
             options.append({
                 "flag": f"--{opt_name}",
                 "params": opt_params
             })
-        
+
         click.echo("\nAdd arguments (positional). Press Enter when done.")
         while True:
             arg_name = click.prompt("Argument name", default="", show_default=False)
             if not arg_name:
                 break
             arg_required = click.confirm("Required?", default=True)
-            
+
             params_list.append(arg_name)
-            
+
             arg_params = "" if arg_required else ", required=False"
             arguments.append({
                 "name": arg_name,
                 "params": arg_params
             })
-    
+
     params_signature = ", ".join(params_list) if params_list else ""
-    
+
     # Ask about interactor usage
     with_interactor = False
     interactor_name = ""
@@ -1028,11 +1039,11 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
         with_interactor = click.confirm("Will this command use an interactor?", default=True)
         if with_interactor:
             interactor_name = click.prompt("Interactor name", default=f"{to_pascal_case(name)}")
-    
+
     usage_example = f"python main.py {command_name}"
     if params_list:
         usage_example += " " + " ".join([f"--{p.replace('_', '-')}=value" if f"--{p.replace('_', '-')}" in str(options) else p for p in params_list])
-    
+
     # Generate content
     if use_async:
         content = render_cli_command(
@@ -1055,10 +1066,10 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
             params_signature=params_signature,
             params_list=params_list,
         )
-    
+
     command_file.write_text(content)
     click.echo(f"+ Created {click.style(str(command_file.relative_to(project_root)), fg='green')}")
-    
+
     # Instructions for next steps
     click.echo(f"\nNext steps:")
     click.echo(f"   1. Implement your command logic in {command_file.relative_to(project_root)}")
