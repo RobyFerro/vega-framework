@@ -48,12 +48,11 @@ def init_project(project_name: str, template: str, parent_path: str):
         "tests/lib/core/presentation",
     ]
 
-    # Add web directories if web template
-    if template in ["web", "fastapi"]:
-        directories.extend([
-            "lib/core/presentation/web/routes",
-            "lib/core/presentation/web/models",
-        ])
+    # Add web directories (always included)
+    directories.extend([
+        "lib/core/presentation/web/routes",
+        "lib/core/presentation/web/models",
+    ])
 
     for directory in directories:
         dir_path = project_path / directory
@@ -127,21 +126,14 @@ def init_project(project_name: str, template: str, parent_path: str):
     (project_path / "ARCHITECTURE.md").write_text(architecture_content, encoding='utf-8')
     click.echo(f"  + Created ARCHITECTURE.md")
 
-    # Create main.py based on template
-    # Support both "web" and "fastapi" (backward compat)
-    if template in ["web", "fastapi"]:
-        click.echo("\n[*] Adding Vega Web scaffold (presentation/web/)")
-        create_vega_web_scaffold(project_path, project_name)
+    # Create Vega Web scaffold (always included)
+    click.echo("\n[*] Adding Vega Web scaffold (presentation/web/)")
+    create_vega_web_scaffold(project_path, project_name)
 
-        # Create main.py for web project
-        main_content = render_template("main.py.j2", project_name=project_name, template="fastapi")
-        (project_path / "main.py").write_text(main_content)
-        click.echo(f"  + Created main.py (Vega Web entrypoint)")
-    else:
-        # Create standard main.py
-        main_content = render_template("main.py.j2", project_name=project_name, template="standard")
-        (project_path / "main.py").write_text(main_content)
-        click.echo(f"  + Created main.py")
+    # Create main.py for web project
+    main_content = render_template("main.py.j2", project_name=project_name, template="fastapi")
+    (project_path / "main.py").write_text(main_content)
+    click.echo(f"  + Created main.py (Vega Web entrypoint)")
 
 
     # Success message with appropriate next steps
@@ -151,17 +143,11 @@ def init_project(project_name: str, template: str, parent_path: str):
     click.echo(f"  poetry install")
     click.echo(f"  cp .env.example .env")
 
-    if template in ["web", "fastapi"]:
-        click.echo(f"\nRun commands:")
-        click.echo(f"  vega web run                # Start Vega Web server (http://localhost:8000)")
-        click.echo(f"  vega web run --reload       # Start with auto-reload")
-        click.echo(f"  python main.py hello        # Run CLI command")
-        click.echo(f"  python main.py --help       # Show all commands")
-    else:
-        click.echo(f"\nRun commands:")
-        click.echo(f"  python main.py hello        # Run example CLI command")
-        click.echo(f"  python main.py greet --name John  # Run with parameters")
-        click.echo(f"  python main.py --help       # Show all commands")
+    click.echo(f"\nRun commands:")
+    click.echo(f"  vega web run                # Start Vega Web server (http://localhost:8000)")
+    click.echo(f"  vega web run --reload       # Start with auto-reload")
+    click.echo(f"  python main.py hello        # Run CLI command")
+    click.echo(f"  python main.py --help       # Show all commands")
 
     click.echo(f"\nGenerate DDD components:")
     click.echo(f"  vega generate context sales          # Create new bounded context")

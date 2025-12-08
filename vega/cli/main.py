@@ -38,25 +38,27 @@ def cli():
 
 @cli.command()
 @click.argument('project_name')
-@click.option('--template', default='basic', help='Project template (basic, web, ai-rag)')
 @click.option('--path', default='.', help='Parent directory for project')
-def init(project_name, template, path):
+def init(project_name, path):
     """
-    Initialize a new Vega project with Clean Architecture structure.
+    Initialize a new Vega project with DDD and Clean Architecture structure.
 
     Creates:
-    - domain/ (entities, repositories, services, interactors)
-    - application/ (mediators)
-    - infrastructure/ (implementations)
+    - lib/core/ (bounded context with domain, application, infrastructure)
+    - domain/ (aggregates, entities, value objects, repositories)
+    - application/ (commands, queries, mediators)
+    - infrastructure/ (repository implementations, services)
+    - presentation/ (web routes, CLI commands)
     - config.py (DI container)
     - settings.py (app configuration)
 
+    Includes Vega Web support by default with Swagger UI and auto-discovery.
+
     Examples:
         vega init my-app
-        vega init my-api --template=web
-        vega init my-ai --template=ai-rag --path=./projects
+        vega init my-api --path=./projects
     """
-    init_project(project_name, template, path)
+    init_project(project_name, 'web', path)
 
 
 @cli.command()

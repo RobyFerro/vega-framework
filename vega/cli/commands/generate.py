@@ -599,7 +599,7 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
             click.echo(f"   Create it: mkdir -p {web_path / 'routes'}")
         else:
             click.echo("   Router generation requires Vega Web module")
-            click.echo("   Install it with: vega add web")
+            click.echo("   Web support is included by default in new projects (vega init <name>)")
         return
 
     # Convert name to appropriate formats
@@ -652,7 +652,7 @@ def _generate_web_models(project_root: Path, project_name: str, name: str, is_re
             click.echo(f"   Model generation requires web structure in context '{context}'")
         else:
             click.echo("   Model generation requires Vega Web module")
-            click.echo("   Install it with: vega add web")
+            click.echo("   Web support is included by default in new projects (vega init <name>)")
         return
 
     # Validate flags
@@ -738,7 +738,7 @@ def _generate_middleware(project_root: Path, project_name: str, class_name: str,
     if not web_path.exists():
         click.echo(click.style("ERROR: Web module not found", fg='red'))
         click.echo("   Middleware generation requires Vega Web module")
-        click.echo("   Install it with: vega add web")
+        click.echo("   Web support is included by default in new projects (vega init <name>)")
         return
 
     # Remove 'Middleware' suffix if present to avoid duplication

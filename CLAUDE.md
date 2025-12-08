@@ -192,8 +192,8 @@ Code style configuration:
 
 **Project Management**:
 ```bash
-vega init my-app                    # Create new project
-vega init my-api --template web     # Create with Vega Web
+vega init my-app                    # Create new project (includes web by default)
+vega init my-api --path ./projects  # Create in specific directory
 vega doctor                         # Validate architecture (not implemented yet)
 vega update                         # Update framework
 vega update --check                 # Check for updates
@@ -232,9 +232,10 @@ Aliases: `repo` = `repository`, `event-handler` = `subscriber`
 
 **Feature Management**:
 ```bash
-vega add web         # Add Vega Web support
-vega add sqlalchemy  # Add database support
+vega add sqlalchemy  # Add database support (alias: db)
 ```
+
+Note: Web support (Vega Web with Swagger UI) is integrated by default in all new projects
 
 **Database Migrations**:
 ```bash

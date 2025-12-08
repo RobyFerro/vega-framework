@@ -3,24 +3,25 @@ from pathlib import Path
 
 import click
 
-from vega.cli.scaffolds import create_vega_web_scaffold, create_sqlalchemy_scaffold
+from vega.cli.scaffolds import create_sqlalchemy_scaffold
 
 
 @click.command()
-@click.argument('feature', type=click.Choice(['web', 'sqlalchemy', 'db'], case_sensitive=False))
+@click.argument('feature', type=click.Choice(['sqlalchemy', 'db'], case_sensitive=False))
 @click.option('--path', default='.', help='Path to Vega project (default: current directory)')
 def add(feature: str, path: str):
     """Add features to an existing Vega project
 
     Features:
-        web        - Add Vega Web scaffold to the project
         sqlalchemy - Add SQLAlchemy database support (alias: db)
         db         - Alias for sqlalchemy
 
     Examples:
-        vega add web
         vega add sqlalchemy
         vega add db --path ./my-project
+
+    Note: Web support is now integrated by default in all new projects.
+    Use 'vega init <name>' to create a project with web support included.
     """
     project_path = Path(path).resolve()
 
@@ -33,113 +34,8 @@ def add(feature: str, path: str):
     # Get project name from directory
     project_name = project_path.name
 
-    if feature.lower() == 'web':
-        add_web_feature(project_path, project_name)
-    elif feature.lower() in ['sqlalchemy', 'db']:
+    if feature.lower() in ['sqlalchemy', 'db']:
         add_sqlalchemy_feature(project_path, project_name)
-
-
-def add_web_feature(project_path: Path, project_name: str):
-    """Add Vega Web scaffold to existing project (supports DDD structure)"""
-    click.echo(f"\n[*] Adding Vega Web scaffold to: {click.style(project_name, fg='green', bold=True)}\n")
-
-    # Detect if this is a DDD project (lib/ structure)
-    lib_path = project_path / "lib"
-    is_ddd = lib_path.exists() and lib_path.is_dir()
-
-    if is_ddd:
-        # DDD structure - add web to all contexts
-        click.echo(click.style("Detected DDD structure with bounded contexts", fg='cyan'))
-        contexts = [d.name for d in lib_path.iterdir()
-                   if d.is_dir() and not d.name.startswith('_') and d.name != 'shared']
-
-        if len(contexts) == 0:
-            click.echo(click.style("ERROR: No bounded contexts found in lib/", fg='red'))
-            return
-
-        # Ask which context(s) to add web support to
-        click.echo("\nAvailable contexts:")
-        for i, ctx in enumerate(contexts, 1):
-            click.echo(f"  {i}. {ctx}")
-        click.echo(f"  {len(contexts) + 1}. All contexts")
-
-        choice = click.prompt("Select context", type=click.IntRange(1, len(contexts) + 1), default=1)
-
-        if choice == len(contexts) + 1:
-            target_contexts = contexts
-        else:
-            target_contexts = [contexts[choice - 1]]
-
-        # Add web to selected context(s)
-        for context in target_contexts:
-            click.echo(f"\n[*] Adding web to context: {click.style(context, fg='green')}")
-            context_path = lib_path / context
-            web_dir = context_path / "presentation" / "web"
-
-            # Check if already exists
-            if web_dir.exists() and (web_dir / "main.py").exists():
-                click.echo(click.style(f"  WARNING: Web scaffold already exists in '{context}'", fg='yellow'))
-                if not click.confirm(f"  Overwrite in '{context}'?", default=False):
-                    continue
-                overwrite = True
-            else:
-                overwrite = False
-
-            # Create web structure in context
-            _create_web_in_context(context_path, project_name, context, overwrite)
-
-    else:
-        # Legacy structure - add to root presentation/
-        click.echo(click.style("Detected legacy Clean Architecture structure", fg='cyan'))
-        web_dir = project_path / "presentation" / "web"
-        if web_dir.exists() and (web_dir / "main.py").exists():
-            click.echo(click.style("WARNING: Web scaffold already exists!", fg='yellow'))
-            if not click.confirm("Do you want to overwrite existing files?"):
-                click.echo("Aborted.")
-                return
-            overwrite = True
-        else:
-            overwrite = False
-
-        # Create presentation directory if it doesn't exist
-        presentation_dir = project_path / "presentation"
-        if not presentation_dir.exists():
-            presentation_dir.mkdir(parents=True, exist_ok=True)
-            click.echo(f"  + Created presentation/")
-
-        # Create Vega Web scaffold
-        create_vega_web_scaffold(project_path, project_name, overwrite=overwrite)
-
-    click.echo(f"\n{click.style('SUCCESS: Vega Web scaffold added!', fg='green', bold=True)}\n")
-    click.echo("Next steps:")
-    click.echo("  1. Generate routes in your contexts:")
-    click.echo("     vega generate router <name>")
-    click.echo("  2. Run the server:")
-    click.echo("     vega web run")
-    if is_ddd:
-        click.echo("  3. Visit endpoints:")
-        click.echo("     - http://localhost:8000/health (framework health check)")
-        click.echo("     - http://localhost:8000/docs (API documentation)")
-        click.echo("     - http://localhost:8000/api/{context}/{route}")
-    else:
-        click.echo("  3. Visit:")
-        click.echo("     - http://localhost:8000/health (framework health check)")
-        click.echo("     - http://localhost:8000/docs (API documentation)")
-
-
-def _create_web_in_context(context_path: Path, project_name: str, context_name: str, overwrite: bool = False):
-    """Create web structure inside a bounded context"""
-    web_path = context_path / "presentation" / "web"
-    web_path.mkdir(parents=True, exist_ok=True)
-
-    # Create routes directory
-    routes_path = web_path / "routes"
-    routes_path.mkdir(exist_ok=True)
-
-    # Don't create health route - it's global at framework level
-    # Just create the routes directory structure
-
-    click.echo(f"  + Web structure created in context '{context_name}'")
 
 
 def add_sqlalchemy_feature(project_path: Path, project_name: str):
