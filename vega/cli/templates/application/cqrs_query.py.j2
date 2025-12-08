@@ -1,19 +1,19 @@
-"""Query DTO: {{ class_name }}"""
+"""Query DTO: {{ dto_class_name }}"""
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class {{ class_name }}Query:
+class {{ dto_class_name }}:
     """
     Query DTO: {{ description }}
 
     CQRS Pattern: QUERY (read-only operation)
 
     Example:
-        >>> query = {{ class_name }}Query(
+        >>> query = {{ dto_class_name }}(
         ...     # Add your parameters here
         ... )
-        >>> result = await {{ class_name }}Handler(query)
+        >>> result = await {{ main_class_name }}Handler(query)
     """
     # TODO: Add query parameters here
     # Example:

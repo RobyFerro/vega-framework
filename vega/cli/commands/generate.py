@@ -427,7 +427,10 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
 
     # Prepare file names and class names
     input_file = f"{file_name}_{cqrs_type}"  # e.g., create_user_command.py
-    input_class = f"{class_name}{cqrs_type.capitalize()}"  # CreateUserCommand or GetUserQuery
+    if cqrs_type == 'query':
+        input_class = f"{class_name}{cqrs_type}"  # lower suffix for queries
+    else:
+        input_class = f"{class_name}{cqrs_type.capitalize()}"  # CreateUserCommand
     input_var = cqrs_type  # command or query
     response_file = f"{file_name}_response"
     response_class = f"{class_name}Result"
@@ -456,7 +459,7 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
     if cqrs_type == 'command':
         input_content = render_cqrs_command(class_name, description)
     else:
-        input_content = render_cqrs_query(class_name, description)
+        input_content = render_cqrs_query(input_class, class_name, description)
 
     input_file_path = interactor_dir / f"{input_file}.py"
     input_file_path.write_text(input_content)

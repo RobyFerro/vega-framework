@@ -87,12 +87,13 @@ def render_cqrs_command(class_name: str, description: str) -> str:
     )
 
 
-def render_cqrs_query(class_name: str, description: str) -> str:
+def render_cqrs_query(dto_class_name: str, main_class_name: str, description: str) -> str:
     """Return the template for a CQRS query."""
     return render_template(
         "cqrs_query.py.j2",
         subfolder="application",
-        class_name=class_name,
+        dto_class_name=dto_class_name,
+        main_class_name=main_class_name,
         description=description,
     )
 
