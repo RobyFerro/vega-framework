@@ -44,7 +44,9 @@
       "Bash(fi)",
       "Bash(printf:*)",
       "Bash(pip cache:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(del:*)",
+      "Bash(if exist \"test-vega-no-init\" rmdir /s /q \"test-vega-no-init\")"
     ],
     "deny": [],
     "ask": []

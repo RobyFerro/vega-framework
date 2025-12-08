@@ -136,10 +136,6 @@ def _create_web_in_context(context_path: Path, project_name: str, context_name: 
     routes_path = web_path / "routes"
     routes_path.mkdir(exist_ok=True)
 
-    # Create __init__.py files
-    (web_path / "__init__.py").write_text("")
-    (routes_path / "__init__.py").write_text("")
-
     # Don't create health route - it's global at framework level
     # Just create the routes directory structure
 

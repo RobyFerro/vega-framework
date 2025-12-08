@@ -672,11 +672,6 @@ def _generate_web_models(project_root: Path, project_name: str, name: str, is_re
     models_path = web_path / "models"
     models_path.mkdir(exist_ok=True)
 
-    # Ensure __init__.py exists
-    init_file = models_path / "__init__.py"
-    if not init_file.exists():
-        init_file.write_text('"""Pydantic models for API validation"""\n')
-
     # Convert name to PascalCase for class names
     model_name = to_pascal_case(name)
     model_file = to_snake_case(model_name)
@@ -756,12 +751,6 @@ def _generate_middleware(project_root: Path, project_name: str, class_name: str,
     middleware_path = web_path / "middleware"
     middleware_path.mkdir(exist_ok=True)
 
-    # Check if __init__.py exists
-    init_file = middleware_path / "__init__.py"
-    if not init_file.exists():
-        init_file.write_text('"""Vega Web Middlewares"""\n')
-        click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
-
     # Generate middleware file
     middleware_file = middleware_path / f"{file_name}.py"
 
@@ -819,12 +808,6 @@ def _generate_sqlalchemy_model(project_root: Path, project_name: str, class_name
     # Create models directory if it doesn't exist
     models_path = project_root / "infrastructure" / "models"
     models_path.mkdir(exist_ok=True)
-
-    # Check if __init__.py exists in models directory
-    init_file = models_path / "__init__.py"
-    if not init_file.exists():
-        init_file.write_text('"""SQLAlchemy models"""\n')
-        click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
 
     # Generate model file
     model_file = models_path / f"{file_name}.py"
@@ -1048,9 +1031,7 @@ def _generate_event(project_root: Path, project_name: str, class_name: str, file
     events_path = base_path / "domain" / "events"
     events_path.mkdir(parents=True, exist_ok=True)
 
-    init_file = events_path / "__init__.py"
-    if not init_file.exists():
-        init_file.write_text("")
+    # No need to create empty __init__.py
 
     file_path = events_path / f"{file_name}.py"
     if file_path.exists():
@@ -1091,10 +1072,6 @@ def _generate_event_handler(project_root: Path, project_name: str, class_name: s
 
     handlers_path = project_root / "events"
     handlers_path.mkdir(parents=True, exist_ok=True)
-
-    init_file = handlers_path / "__init__.py"
-    if not init_file.exists():
-        init_file.write_text("")
 
     handler_file = handlers_path / f"{file_name}.py"
     if handler_file.exists():
@@ -1150,10 +1127,6 @@ def _generate_listener(project_root: Path, project_name: str, class_name: str, f
 
     listeners_path = project_root / "infrastructure" / "listeners"
     listeners_path.mkdir(parents=True, exist_ok=True)
-
-    init_file = listeners_path / "__init__.py"
-    if not init_file.exists():
-        init_file.write_text("")
 
     listener_file = listeners_path / f"{file_name}.py"
     if listener_file.exists():
@@ -1235,7 +1208,6 @@ def _generate_context(project_root: Path, project_name: str, context_name: str):
     for directory in directories:
         dir_path = context_path / directory
         dir_path.mkdir(parents=True, exist_ok=True)
-        (dir_path / "__init__.py").write_text("")
         click.echo(f"  + Created {context_name}/{directory}/")
 
     # Context __init__.py with documentation

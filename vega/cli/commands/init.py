@@ -59,9 +59,6 @@ def init_project(project_name: str, template: str, parent_path: str):
         dir_path = project_path / directory
         dir_path.mkdir(parents=True, exist_ok=True)
 
-        # Create __init__.py for Python packages
-        (dir_path / "__init__.py").write_text("")
-
         # Use auto-discovery template for cli/commands
         if "cli" in directory and "commands" in directory:
             from vega.cli.templates import render_cli_commands_init
@@ -88,8 +85,7 @@ def init_project(project_name: str, template: str, parent_path: str):
     (project_path / "lib" / "shared" / "__init__.py").write_text(shared_init)
     click.echo(f"  + Created lib/shared/__init__.py (Shared kernel)")
 
-    # lib/__init__.py
-    (project_path / "lib" / "__init__.py").write_text("")
+    # lib/__init__.py - removed (not needed)
 
     # Create config.py
     config_content = render_template("config.py.j2", project_name=project_name)
