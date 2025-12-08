@@ -89,7 +89,13 @@ def init_project(project_name: str, template: str, parent_path: str):
     (project_path / "lib" / "shared" / "__init__.py").write_text(shared_init)
     click.echo(f"  + Created lib/shared/__init__.py (Shared kernel)")
 
-    # lib/__init__.py - removed (not needed)
+    # lib/__init__.py - required for package imports
+    (project_path / "lib" / "__init__.py").write_text('"""Bounded contexts package"""\n')
+    click.echo(f"  + Created lib/__init__.py")
+
+    # Root __init__.py - required to make project a package
+    (project_path / "__init__.py").write_text(f'"""{project_name} - Vega DDD Project"""\n')
+    click.echo(f"  + Created __init__.py (root package)")
 
     # Create config.py
     config_content = render_template("config.py.j2", project_name=project_name)
