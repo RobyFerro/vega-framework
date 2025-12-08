@@ -97,6 +97,30 @@ def init_project(project_name: str, template: str, parent_path: str):
     (project_path / "__init__.py").write_text(f'"""{project_name} - Vega DDD Project"""\n')
     click.echo(f"  + Created __init__.py (root package)")
 
+    # Create package directory with normalized name (for imports)
+    # This allows the project to be imported as a Python package
+    normalized_name = project_name.replace('-', '_')
+    package_init_content = f'''"""{project_name} package
+
+This package allows the project to be imported by its normalized name.
+All modules (lib, config, etc.) are available from the parent directory.
+"""
+import sys
+from pathlib import Path
+
+# Add parent directory to path to allow imports
+_parent = Path(__file__).parent.parent
+if str(_parent) not in sys.path:
+    sys.path.insert(0, str(_parent))
+
+# Re-export commonly used modules
+from lib import *  # noqa: F401, F403
+'''
+    package_dir = project_path / normalized_name
+    package_dir.mkdir(exist_ok=True)
+    (package_dir / "__init__.py").write_text(package_init_content)
+    click.echo(f"  + Created {normalized_name}/ (package directory)")
+
     # Create config.py
     config_content = render_template("config.py.j2", project_name=project_name)
     (project_path / "config.py").write_text(config_content)
