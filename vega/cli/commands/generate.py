@@ -444,10 +444,7 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
 
     # Prepare file names and class names
     input_file = f"{file_name}_{cqrs_type}"  # e.g., create_user_command.py
-    if cqrs_type == 'query':
-        input_class = f"{class_name}{cqrs_type}"  # lower suffix for queries
-    else:
-        input_class = f"{class_name}{cqrs_type.capitalize()}"  # CreateUserCommand
+    input_class = f"{class_name}{cqrs_type.capitalize()}"  # CreateUserCommand or GetUserQuery
     input_var = cqrs_type  # command or query
     response_file = f"{file_name}_response"
     response_class = f"{class_name}Result"
@@ -455,12 +452,19 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
     # Ask for description
     description = click.prompt("Description", default=f"{class_name} {cqrs_type}")
 
+    # Build import base module (handles bounded context)
+    if base_path == project_root:
+        app_module = "application"
+    else:
+        app_module = f"{base_path.relative_to(project_root).as_posix().replace('/', '.')}.application"
+
     # Generate handler.py
     handler_content = render_cqrs_handler(
         class_name=class_name,
         handler_type=handler_type,
         layer_folder=layer_folder,
         folder_name=folder_name,
+        app_module=app_module,
         input_file=input_file,
         input_class=input_class,
         input_var=input_var,
@@ -505,11 +509,6 @@ __all__ = [
     click.echo(f"+ Created {click.style(str(init_file.relative_to(project_root)), fg='green')}")
 
     # Usage instructions
-    # Build import path reflecting bounded context (if any)
-    if base_path == project_root:
-        app_module = "application"
-    else:
-        app_module = f"{base_path.relative_to(project_root).as_posix().replace('/', '.')}.application"
     click.echo(f"\nUsage:")
     click.echo(f"   from {app_module}.{layer_folder}.{folder_name} import {class_name}Handler, {input_class}")
     click.echo(f"   {input_var} = {input_class}(...)  # Add your parameters")

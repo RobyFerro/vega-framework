@@ -2,8 +2,8 @@
 from vega.patterns import Interactor
 from vega.di import bind
 
-from application.{{ layer_folder }}.{{ folder_name }}.{{ input_file }} import {{ input_class }}
-from application.{{ layer_folder }}.{{ folder_name }}.{{ response_file }} import {{ response_class }}
+from {{ app_module }}.{{ layer_folder }}.{{ folder_name }}.{{ input_file }} import {{ input_class }}
+from {{ app_module }}.{{ layer_folder }}.{{ folder_name }}.{{ response_file }} import {{ response_class }}
 # Import your dependencies
 # from domain.repositories.xxx_repository import XxxRepository
 # from domain.services.xxx_service import XxxService
