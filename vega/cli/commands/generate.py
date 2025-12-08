@@ -33,32 +33,70 @@ from vega.cli.scaffolds import create_fastapi_scaffold
 from vega.cli.utils import to_snake_case, to_pascal_case
 
 
+def _has_bounded_context_root(project_root: Path) -> bool:
+    """Return True if the project contains a bounded-context root (lib/ or <pkg_name>/)."""
+    normalized_name = project_root.name.replace('-', '_')
+    return (project_root / "lib").exists() or (project_root / normalized_name).exists()
+
+
+def _find_project_root(start_path: Path) -> Path | None:
+    """
+    Walk upwards from start_path until a directory containing config.py is found.
+    Returns None if not found.
+    """
+    current = start_path
+    while True:
+        if (current / "config.py").exists():
+            return current
+        if current.parent == current:
+            # Reached filesystem root
+            return None
+        current = current.parent
+
+
 def _detect_bounded_context(project_root: Path) -> str | None:
     """
-    Detect which bounded context we're in based on current directory or prompt user.
+    Detect which bounded context we're in based on current directory or by prompting the user.
 
-    Returns:
-        Context name if found, None if lib/ doesn't exist (legacy structure)
+    Supports both legacy lib/ structure and the new package-based layout
+    (<project_name>/<context>/...). If no bounded-context root is present,
+    returns None to allow legacy flat projects.
     """
+    normalized_name = project_root.name.replace('-', '_')
     lib_path = project_root / "lib"
-    if not lib_path.exists():
-        return None  # Legacy structure
+    package_path = project_root / normalized_name
+
+    # Collect potential context roots (prefer package layout)
+    context_roots: list[Path] = []
+    if package_path.exists():
+        context_roots.append(package_path)
+    if lib_path.exists():
+        context_roots.append(lib_path)
+
+    if not context_roots:
+        return None  # Legacy flat structure
 
     # Try to detect context from current working directory
-    try:
-        cwd = Path.cwd()
-        relative = cwd.relative_to(lib_path)
-        if relative.parts:
-            return relative.parts[0]
-    except (ValueError, IndexError):
-        pass
+    cwd = Path.cwd()
+    for root in context_roots:
+        try:
+            relative = cwd.relative_to(root)
+            if relative.parts:
+                return relative.parts[0]
+        except (ValueError, IndexError):
+            continue
 
-    # Prompt user to select context
-    contexts = [d.name for d in lib_path.iterdir()
-                if d.is_dir() and not d.name.startswith('_') and d.name != 'shared']
+    # Build available contexts list (deduplicated, preserve order)
+    contexts: list[str] = []
+    for root in context_roots:
+        for d in root.iterdir():
+            if d.is_dir() and not d.name.startswith('_') and d.name != 'shared':
+                if d.name not in contexts:
+                    contexts.append(d.name)
 
     if not contexts:
-        click.echo(click.style("ERROR: No bounded contexts found in lib/", fg='red'))
+        root_hint = package_path if package_path.exists() else lib_path
+        click.echo(click.style(f"ERROR: No bounded contexts found in {root_hint.name}/", fg='red'))
         click.echo("Create a context first with: vega generate context <name>")
         return None
 
@@ -91,6 +129,13 @@ def _get_context_base_path(project_root: Path, context: str | None) -> Path:
     """
     if context is None:
         return project_root  # Legacy structure
+
+    normalized_name = project_root.name.replace('-', '_')
+    package_path = project_root / normalized_name / context
+    if package_path.exists():
+        return package_path
+
+    # Fallback to legacy lib/ structure
     return project_root / "lib" / context
 
 
@@ -120,12 +165,14 @@ def generate_component(
 ):
     """Generate a component in the Vega project"""
 
-    project_root = Path(project_path).resolve()
+    start_path = Path(project_path).resolve()
+    project_root = _find_project_root(start_path)
 
     # Check if we're in a Vega project
-    if not (project_root / "config.py").exists():
+    if project_root is None:
         click.echo(click.style("ERROR: Error: Not a Vega project (config.py not found)", fg='red'))
-        click.echo("   Run this command from your project root, or use --path option")
+        click.echo(f"   Path checked: {start_path}")
+        click.echo("   Run this command from your project root, or point --path to the project")
         return
 
     # Get project name from directory
@@ -220,7 +267,7 @@ def generate_component(
 def _generate_entity(project_root: Path, project_name: str, class_name: str, file_name: str):
     """Generate domain entity (context-aware)"""
     context = _detect_bounded_context(project_root)
-    if context is None and (project_root / "lib").exists():
+    if context is None and _has_bounded_context_root(project_root):
         return  # Error already shown
 
     base_path = _get_context_base_path(project_root, context)
@@ -246,7 +293,7 @@ def _generate_repository(
 ):
     """Generate repository interface (context-aware)"""
     context = _detect_bounded_context(project_root)
-    if context is None and (project_root / "lib").exists():
+    if context is None and _has_bounded_context_root(project_root):
         return  # Error already shown
 
     base_path = _get_context_base_path(project_root, context)
@@ -312,7 +359,7 @@ def _generate_service(
 ):
     """Generate service interface (context-aware)"""
     context = _detect_bounded_context(project_root)
-    if context is None and (project_root / "lib").exists():
+    if context is None and _has_bounded_context_root(project_root):
         return  # Error already shown
 
     base_path = _get_context_base_path(project_root, context)
@@ -1024,7 +1071,7 @@ def _generate_command(project_root: Path, project_name: str, name: str, is_async
 def _generate_event(project_root: Path, project_name: str, class_name: str, file_name: str):
     """Generate a domain event (context-aware)."""
     context = _detect_bounded_context(project_root)
-    if context is None and (project_root / "lib").exists():
+    if context is None and _has_bounded_context_root(project_root):
         return  # Error already shown
 
     base_path = _get_context_base_path(project_root, context)
@@ -1215,6 +1262,22 @@ def _generate_context(project_root: Path, project_name: str, context_name: str):
         dir_path.mkdir(parents=True, exist_ok=True)
         click.echo(f"  + Created {context_name}/{directory}/")
 
+    # Create test scaffolding per bounded context to keep tests co-located
+    tests_base = project_root / "tests" / normalized_name / context_name
+    test_dirs = [
+        "domain",
+        "application",
+        "infrastructure",
+        "presentation",
+    ]
+    for test_dir in test_dirs:
+        path = tests_base / test_dir
+        path.mkdir(parents=True, exist_ok=True)
+        init_file = path / "__init__.py"
+        if not init_file.exists():
+            init_file.write_text("")
+        click.echo(f"  + Created tests/{normalized_name}/{context_name}/{test_dir}/")
+
     # Initialize web package files
     from vega.cli.templates import (
         render_web_package_init,
@@ -1247,7 +1310,7 @@ def _generate_context(project_root: Path, project_name: str, context_name: str):
 def _generate_aggregate(project_root: Path, project_name: str, class_name: str, file_name: str):
     """Generate aggregate root in domain/aggregates/"""
     context = _detect_bounded_context(project_root)
-    if context is None and (project_root / "lib").exists():
+    if context is None and _has_bounded_context_root(project_root):
         return  # Error already shown by _detect_bounded_context
 
     base_path = _get_context_base_path(project_root, context)
@@ -1258,7 +1321,12 @@ def _generate_aggregate(project_root: Path, project_name: str, class_name: str, 
     else:
         # Legacy: create in domain/entities (no aggregates folder in legacy)
         file_path = base_path / "domain" / "entities" / f"{file_name}.py"
-        click.echo(click.style("WARNING: Using legacy structure. Consider migrating to lib/ structure.", fg='yellow'))
+        click.echo(
+            click.style(
+                "WARNING: Using legacy structure. Consider migrating to bounded contexts (project_name/<context>/...).",
+                fg='yellow'
+            )
+        )
 
     if file_path.exists():
         click.echo(click.style(f"ERROR: {file_path} already exists", fg='red'))
@@ -1280,7 +1348,7 @@ def _generate_aggregate(project_root: Path, project_name: str, class_name: str, 
 def _generate_value_object(project_root: Path, project_name: str, class_name: str, file_name: str):
     """Generate value object in domain/value_objects/"""
     context = _detect_bounded_context(project_root)
-    if context is None and (project_root / "lib").exists():
+    if context is None and _has_bounded_context_root(project_root):
         return  # Error already shown
 
     base_path = _get_context_base_path(project_root, context)
