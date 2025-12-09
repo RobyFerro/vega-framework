@@ -1,9 +1,11 @@
 """Click CLI commands auto-discovery utilities"""
 import importlib
+import importlib.util
 import inspect
 import logging
+import sys
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 try:
     import click
@@ -11,6 +13,52 @@ except ImportError:
     click = None
 
 logger = logging.getLogger(__name__)
+
+
+def _find_package_dir_from_filesystem(base_package: str, subpackage: str = "") -> Optional[Path]:
+    """
+    Find package directory from filesystem without requiring __init__.py.
+
+    This function supports PEP 420 namespace packages by searching for
+    package directories in sys.path and the current working directory.
+
+    Args:
+        base_package: Base package name (e.g., "myapp")
+        subpackage: Subpackage path (e.g., "domain.repositories")
+
+    Returns:
+        Path to the package directory if found, None otherwise
+    """
+    # Construct the relative path parts
+    base_parts = base_package.split('.')
+    subpackage_parts = subpackage.split('.') if subpackage else []
+
+    # Search locations: current directory first, then sys.path
+    search_paths = [Path.cwd()] + [Path(p) for p in sys.path if p]
+
+    for search_root in search_paths:
+        # Strategy 1: Try full path (base_package + subpackage)
+        potential_dir = search_root
+        for part in base_parts + subpackage_parts:
+            potential_dir = potential_dir / part
+
+        if potential_dir.exists() and potential_dir.is_dir():
+            if list(potential_dir.glob("*.py")) or list(potential_dir.glob("**/*.py")):
+                logger.debug(f"Found package directory via filesystem (full path): {potential_dir}")
+                return potential_dir
+
+        # Strategy 2: If we're already inside base_package directory, look for subpackage only
+        if subpackage_parts:
+            potential_dir = search_root
+            for part in subpackage_parts:
+                potential_dir = potential_dir / part
+
+            if potential_dir.exists() and potential_dir.is_dir():
+                if list(potential_dir.glob("*.py")) or list(potential_dir.glob("**/*.py")):
+                    logger.debug(f"Found package directory via filesystem (subpackage only): {potential_dir}")
+                    return potential_dir
+
+    return None
 
 
 def discover_commands(
@@ -69,7 +117,30 @@ def discover_commands(
 
         # Import the commands package to get its path
         commands_module = importlib.import_module(commands_package)
-        commands_dir = Path(commands_module.__file__).parent
+
+        # Handle namespace packages (PEP 420) where __file__ can be None
+        if hasattr(commands_module, '__file__') and commands_module.__file__ is not None:
+            commands_dir = Path(commands_module.__file__).parent
+        else:
+            # For namespace packages, use importlib.util.find_spec
+            spec = importlib.util.find_spec(commands_package)
+            if spec is None:
+                # Fallback: search filesystem
+                parts = commands_package.split('.')
+                commands_dir = _find_package_dir_from_filesystem(parts[0], '.'.join(parts[1:]) if len(parts) > 1 else "")
+                if commands_dir is None:
+                    raise ImportError(f"Cannot locate commands package '{commands_package}' (namespace package without __file__)")
+            elif spec.origin is not None:
+                commands_dir = Path(spec.origin).parent
+            elif spec.submodule_search_locations:
+                # Namespace package: use first location from submodule_search_locations
+                commands_dir = Path(spec.submodule_search_locations[0])
+            else:
+                # Fallback: search filesystem
+                parts = commands_package.split('.')
+                commands_dir = _find_package_dir_from_filesystem(parts[0], '.'.join(parts[1:]) if len(parts) > 1 else "")
+                if commands_dir is None:
+                    raise ImportError(f"Cannot locate commands package '{commands_package}' (namespace package without __file__)")
 
         logger.debug(f"Discovering commands in: {commands_dir}")
 
@@ -141,8 +212,37 @@ def discover_commands_ddd(
 
     try:
         # Try to import lib package to check if DDD structure exists
-        lib_module = importlib.import_module(f"{base_package}.lib")
-        lib_path = Path(lib_module.__file__).parent
+        # First try the package itself (new structure), then lib/ (legacy)
+        package_module = None
+        package_path_str = None
+
+        try:
+            # New structure: contexts directly in base package
+            package_module = importlib.import_module(base_package)
+            if hasattr(package_module, '__file__') and package_module.__file__ is not None:
+                lib_path = Path(package_module.__file__).parent
+                package_path_str = base_package
+            else:
+                # Namespace package: use find_spec or filesystem search
+                lib_path = _find_package_dir_from_filesystem(base_package)
+                if lib_path is None:
+                    raise ImportError(f"Cannot locate package '{base_package}' (namespace package without __file__)")
+                package_path_str = base_package
+        except (ImportError, AttributeError):
+            # Legacy structure: contexts in base_package.lib
+            try:
+                lib_module = importlib.import_module(f"{base_package}.lib")
+                if hasattr(lib_module, '__file__') and lib_module.__file__ is not None:
+                    lib_path = Path(lib_module.__file__).parent
+                    package_path_str = f"{base_package}.lib"
+                else:
+                    # Namespace package: use find_spec or filesystem search
+                    lib_path = _find_package_dir_from_filesystem(base_package, "lib")
+                    if lib_path is None:
+                        raise ImportError(f"Cannot locate package '{base_package}.lib' (namespace package without __file__)")
+                    package_path_str = f"{base_package}.lib"
+            except ImportError:
+                raise
 
         logger.info(f"Detected DDD structure in: {lib_path}")
 
@@ -158,11 +258,36 @@ def discover_commands_ddd(
 
         # Discover commands in each context
         for context in contexts:
-            commands_package = f"{base_package}.lib.{context}.presentation.cli.commands"
+            commands_package = f"{package_path_str}.{context}.presentation.cli.commands"
 
             try:
                 commands_module = importlib.import_module(commands_package)
-                commands_dir = Path(commands_module.__file__).parent
+
+                # Handle namespace packages (PEP 420) where __file__ can be None
+                if hasattr(commands_module, '__file__') and commands_module.__file__ is not None:
+                    commands_dir = Path(commands_module.__file__).parent
+                else:
+                    # For namespace packages, use importlib.util.find_spec
+                    spec = importlib.util.find_spec(commands_package)
+                    if spec is None:
+                        # Fallback: search filesystem
+                        parts = commands_package.split('.')
+                        commands_dir = _find_package_dir_from_filesystem(parts[0], '.'.join(parts[1:]) if len(parts) > 1 else "")
+                        if commands_dir is None:
+                            logger.debug(f"Cannot locate commands package '{commands_package}', skipping context '{context}'")
+                            continue
+                    elif spec.origin is not None:
+                        commands_dir = Path(spec.origin).parent
+                    elif spec.submodule_search_locations:
+                        # Namespace package: use first location from submodule_search_locations
+                        commands_dir = Path(spec.submodule_search_locations[0])
+                    else:
+                        # Fallback: search filesystem
+                        parts = commands_package.split('.')
+                        commands_dir = _find_package_dir_from_filesystem(parts[0], '.'.join(parts[1:]) if len(parts) > 1 else "")
+                        if commands_dir is None:
+                            logger.debug(f"Cannot locate commands package '{commands_package}', skipping context '{context}'")
+                            continue
 
                 logger.debug(f"Discovering commands in context '{context}': {commands_dir}")
 
