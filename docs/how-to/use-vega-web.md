@@ -223,9 +223,9 @@ from presentation.web.main import app
 client = TestClient(app)
 
 def test_health():
-    response = client.get("/health/status")
+    response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json()["status"] == "healthy"
 ```
 
 For asynchronous tests reach for `httpx.AsyncClient` paired with `asgi_lifespan` to exercise

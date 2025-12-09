@@ -1,6 +1,7 @@
 """Dependency Injection configuration for {{ project_name }}"""
 import logging
 import sys
+from pathlib import Path
 
 from vega.di import Container, set_container
 from vega.discovery import discover_beans
@@ -10,11 +11,11 @@ logger = logging.getLogger(__name__)
 
 # Domain interfaces (Abstract)
 # Example:
-# from {{ project_name }}.domain.repositories.user_repository import UserRepository
+# from {{ project_package }}.domain.repositories.user_repository import UserRepository
 
 # Infrastructure implementations (Concrete)
 # Example:
-# from {{ project_name }}.infrastructure.repositories.memory_user_repository import MemoryUserRepository
+# from {{ project_package }}.infrastructure.repositories.memory_user_repository import MemoryUserRepository
 
 # Uncomment and configure database manager if using SQLAlchemy
 
@@ -31,6 +32,11 @@ SERVICES = {
     # Note: Classes decorated with @bean are auto-discovered and don't need manual registration
 }
 
+# Ensure project root is on sys.path for imports/discovery (works even without __init__.py)
+project_root = Path(__file__).resolve().parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 # Create and set container
 container = Container(SERVICES)
 set_container(container)
@@ -39,15 +45,15 @@ set_container(container)
 # DDD Structure (lib/): Automatically scans all bounded contexts in lib/
 # Legacy Structure: Scans domain/, application/, infrastructure/
 try:
-    logger.debug(f"Starting bean auto-discovery for package: {{ project_name }}")
+    logger.debug(f"Starting bean auto-discovery for package: {{ project_package }}")
     logger.debug(f"Current sys.path: {sys.path}")
 
     # Auto-discovery works with both structures:
     # - DDD: lib/{context}/domain, lib/{context}/application, lib/{context}/infrastructure
     # - Legacy: domain/, application/, infrastructure/
-    discovered = discover_beans("{{ project_name }}")
+    discovered = discover_beans("{{ project_package }}")
 
-    logger.info(f"Successfully discovered {discovered} bean(s) for {{ project_name }}")
+    logger.info(f"Successfully discovered {discovered} bean(s) for {{ project_package }}")
 except Exception as e:
     # Fallback to manual registration if auto-discovery fails
     # This ensures backward compatibility with older project structures

@@ -1,5 +1,6 @@
 """DI Container beans auto-discovery utilities"""
 import importlib
+import importlib.util
 import inspect
 import logging
 import sys
@@ -201,6 +202,16 @@ def discover_beans(
                     package_dir = Path(package_module.__file__).parent
                     found_via_import = True
                     logger.debug(f"Found package via import: {package_dir}")
+                else:
+                    # Namespace package (PEP 420): use importlib.util.find_spec
+                    spec = importlib.util.find_spec(full_package)
+                    if spec is not None and spec.submodule_search_locations:
+                        # Use first location from namespace package
+                        package_dir = Path(spec.submodule_search_locations[0])
+                        found_via_import = True
+                        logger.debug(f"Found namespace package via find_spec: {package_dir}")
+                    else:
+                        raise ImportError(f"Package '{full_package}' has no __file__ and no submodule_search_locations")
             except ImportError as e:
                 logger.debug(f"Cannot import '{full_package}': {e}, trying filesystem scan...")
 
@@ -246,7 +257,34 @@ def discover_beans(
 
                 try:
                     # Import the module (this triggers @bean decorator)
-                    module = importlib.import_module(module_name)
+                    # Try standard import first (works with regular packages)
+                    try:
+                        module = importlib.import_module(module_name)
+                    except (ImportError, ModuleNotFoundError) as import_err:
+                        # If standard import fails (e.g., namespace package issue),
+                        # use spec_from_file_location to load directly from file
+                        # This bypasses the need for package __init__.py files
+                        spec = importlib.util.spec_from_file_location(module_name, file)
+                        if spec is None or spec.loader is None:
+                            raise ImportError(f"Could not create spec for {module_name} from {file}") from import_err
+                        
+                        module = importlib.util.module_from_spec(spec)
+                        # Add parent packages to sys.modules to avoid import errors
+                        # when the module imports from parent packages
+                        parent_parts = module_name.split('.')[:-1]
+                        for i in range(len(parent_parts)):
+                            parent_name = '.'.join(parent_parts[:i+1])
+                            if parent_name not in sys.modules:
+                                # Create a minimal namespace package module
+                                parent_module = importlib.util.module_from_spec(
+                                    importlib.util.spec_from_loader(parent_name, loader=None)
+                                )
+                                sys.modules[parent_name] = parent_module
+                        
+                        # Execute the module (this triggers @bean decorator)
+                        spec.loader.exec_module(module)
+                        # Store in sys.modules so it can be imported by name later
+                        sys.modules[module_name] = module
 
                     # Count beans in this module
                     module_beans = 0
@@ -260,6 +298,8 @@ def discover_beans(
 
                 except Exception as e:
                     logger.warning(f"Failed to import {module_name}: {e}")
+                    import traceback
+                    logger.debug(traceback.format_exc())
                     continue
 
         except Exception as e:

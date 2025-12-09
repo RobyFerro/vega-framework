@@ -312,6 +312,7 @@ def _generate_repository(
     aggregate_path = base_path / "domain" / "aggregates" / f"{entity_file}.py"
     aggregate_exists = aggregate_path.exists()
     entity_exists = entity_path.exists()
+    resource_folder = "aggregates" if aggregate_exists else "entities"
 
     if not entity_exists and not aggregate_exists:
         click.echo(
@@ -328,8 +329,10 @@ def _generate_repository(
         )
         if choice == 'entity':
             _generate_entity(project_root, project_name, entity_name, entity_file)
+            resource_folder = "entities"
         else:
             _generate_aggregate(project_root, project_name, entity_name, entity_file)
+            resource_folder = "aggregates"
         click.echo()  # spacing
     else:
         # Show what we found
@@ -339,7 +342,12 @@ def _generate_repository(
             click.echo(click.style(f"✔ Found aggregate at {aggregate_path.relative_to(project_root)}", fg='green'))
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    content = render_repository_interface(class_name, entity_name, entity_file)
+    content = render_repository_interface(
+        class_name=class_name,
+        entity_name=entity_name,
+        entity_file=entity_file,
+        resource_folder=resource_folder,
+    )
     file_path.write_text(content)
 
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
@@ -360,6 +368,7 @@ def _generate_repository(
             entity_file,
             implementation,
             context,
+            resource_folder,
         )
 
 
@@ -380,7 +389,7 @@ def _generate_service(
     # Services go in domain layer for DDD (domain services)
     # Or in application layer for application services
     # Default to domain for now
-    file_path = base_path / "domain" / "repositories" / f"{file_name}.py"
+    file_path = base_path / "domain" / "services" / f"{file_name}.py"
 
     if file_path.exists():
         click.echo(click.style(f"ERROR: Error: {file_path} already exists", fg='red'))
@@ -540,6 +549,7 @@ def _generate_infrastructure_repository(
     entity_file: str,
     implementation: str,
     context: str | None = None,
+    resource_folder: str = "entities",
 ) -> None:
     """Generate infrastructure repository implementation (context-aware)."""
     impl_class, impl_file = _resolve_implementation_names(interface_class_name, implementation)
@@ -552,13 +562,13 @@ def _generate_infrastructure_repository(
         return
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
-
     content = render_infrastructure_repository(
         impl_class,
         interface_class_name,
         interface_file_name,
         entity_name,
         entity_file,
+        resource_folder,
     )
 
     file_path.write_text(content)
@@ -573,14 +583,17 @@ def _generate_infrastructure_service(
 ) -> None:
     """Generate infrastructure service implementation extending the domain interface."""
     impl_class, impl_file = _resolve_implementation_names(interface_class_name, implementation)
-    file_path = project_root / "infrastructure" / "services" / f"{impl_file}.py"
+    
+    # Detect bounded context to find correct base path
+    context = _detect_bounded_context(project_root)
+    base_path = _get_context_base_path(project_root, context)
+    file_path = base_path / "infrastructure" / "services" / f"{impl_file}.py"
 
     if file_path.exists():
         click.echo(click.style(f"WARNING: Implementation {file_path} already exists", fg='yellow'))
         return
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
-
     content = render_infrastructure_service(
         impl_class,
         interface_class_name,
@@ -746,7 +759,7 @@ def _generate_web_models(project_root: Path, project_name: str, name: str, is_re
 
     # Ensure models directory exists
     models_path = web_path / "models"
-    models_path.mkdir(exist_ok=True)
+    models_path.mkdir(parents=True, exist_ok=True)
 
     # Convert name to PascalCase for class names
     model_name = to_pascal_case(name)
@@ -882,8 +895,11 @@ def _generate_sqlalchemy_model(project_root: Path, project_name: str, class_name
         return
 
     # Create models directory if it doesn't exist
-    models_path = project_root / "infrastructure" / "models"
-    models_path.mkdir(exist_ok=True)
+    # Detect bounded context to find correct base path
+    context = _detect_bounded_context(project_root)
+    base_path = _get_context_base_path(project_root, context)
+    models_path = base_path / "infrastructure" / "models"
+    models_path.mkdir(parents=True, exist_ok=True)
 
     # Generate model file
     model_file = models_path / f"{file_name}.py"
@@ -1106,8 +1122,6 @@ def _generate_event(project_root: Path, project_name: str, class_name: str, file
     base_path = _get_context_base_path(project_root, context)
     events_path = base_path / "domain" / "events"
     events_path.mkdir(parents=True, exist_ok=True)
-
-    # No need to create empty __init__.py
 
     file_path = events_path / f"{file_name}.py"
     if file_path.exists():
@@ -1356,7 +1370,6 @@ def _generate_aggregate(project_root: Path, project_name: str, class_name: str, 
         return
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
-
     content = render_aggregate(class_name)
     file_path.write_text(content)
 
@@ -1388,7 +1401,6 @@ def _generate_value_object(project_root: Path, project_name: str, class_name: st
         return
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
-
     content = render_value_object(class_name)
     file_path.write_text(content)
 

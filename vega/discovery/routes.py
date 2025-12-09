@@ -67,7 +67,7 @@ def discover_routers(
     api_prefix: str = "/api",
     auto_tags: bool = True,
     auto_prefix: bool = True,
-    include_builtin: bool = True
+    include_builtin: bool = False,
 ) -> "Router":
     """
     Auto-discover and register Vega Web routers from a package.
@@ -82,7 +82,7 @@ def discover_routers(
         api_prefix: Prefix for the main API router (default: "/api")
         auto_tags: Automatically generate tags from module name (default: True)
         auto_prefix: Automatically generate prefix from module name (default: True)
-        include_builtin: Include framework-level builtin routers like health check (default: True)
+        include_builtin: (deprecated) include old framework-level builtin routers (default: False)
 
     Returns:
         Router: Main router with all discovered routers included
@@ -110,13 +110,6 @@ def discover_routers(
         )
 
     main_router = Router(prefix=api_prefix)
-
-    # Include framework-level health router FIRST (if requested)
-    if include_builtin:
-        from vega.web.builtin_routers import create_health_router
-        health_router = create_health_router()
-        main_router.include_router(health_router, prefix="")  # No prefix, at root level
-        logger.info("Included framework-level health router at /health")
 
     # Resolve the routes package path
     try:
@@ -214,7 +207,7 @@ def discover_routers_ddd(
     api_prefix: str = "/api",
     auto_tags: bool = True,
     auto_prefix: bool = True,
-    include_builtin: bool = True
+    include_builtin: bool = False,
 ) -> "Router":
     """
     Auto-discover and register Vega Web routers from all bounded contexts (DDD structure).
@@ -227,7 +220,7 @@ def discover_routers_ddd(
         api_prefix: Prefix for the main API router (default: "/api")
         auto_tags: Automatically generate tags from module name (default: True)
         auto_prefix: Automatically generate prefix from module name (default: True)
-        include_builtin: Include framework-level builtin routers like health check (default: True)
+        include_builtin: (deprecated) include old framework-level builtin routers (default: False)
 
     Returns:
         Router: Main router with all discovered routers from all contexts
@@ -251,13 +244,6 @@ def discover_routers_ddd(
         )
 
     main_router = Router(prefix=api_prefix)
-
-    # Include framework-level health router FIRST (if requested)
-    if include_builtin:
-        from vega.web.builtin_routers import create_health_router
-        health_router = create_health_router()
-        main_router.include_router(health_router, prefix="")  # No prefix, at root level
-        logger.info("Included framework-level health router at /health")
 
     try:
         # Try to import base package to check if DDD structure exists
@@ -295,10 +281,10 @@ def discover_routers_ddd(
 
         logger.info(f"Detected DDD structure in: {package_path}")
 
-        # Get all bounded contexts (directories except __pycache__ and shared)
+        # Get all bounded contexts (directories except __pycache__)
         contexts = [
             d.name for d in package_path.iterdir()
-            if d.is_dir() and not d.name.startswith('_') and d.name != 'shared'
+            if d.is_dir() and not d.name.startswith('_')
         ]
 
         logger.info(f"Found {len(contexts)} bounded context(s): {contexts}")
@@ -352,18 +338,21 @@ def discover_routers_ddd(
                         router = getattr(module, 'router', None)
 
                         if isinstance(router, Router):
-                            # Generate tags with context name
-                            if auto_tags:
-                                tag = f"{context.title()} - {file.stem.replace('_', ' ').title()}"
-                                tags = [tag]
+                            # Special handling: shared/default router hosts framework health at root
+                            if context == "shared" and file.stem == "default":
+                                tags = ["Health"] if auto_tags else None
+                                prefix = ""
                             else:
-                                tags = None
+                                if auto_tags:
+                                    tag = f"{context.title()} - {file.stem.replace('_', ' ').title()}"
+                                    tags = [tag]
+                                else:
+                                    tags = None
 
-                            # Generate prefix with context
-                            if auto_prefix:
-                                prefix = f"/{context}/{file.stem.replace('_', '-')}"
-                            else:
-                                prefix = None
+                                if auto_prefix:
+                                    prefix = f"/{context}/{file.stem.replace('_', '-')}"
+                                else:
+                                    prefix = None
 
                             main_router.include_router(
                                 router,

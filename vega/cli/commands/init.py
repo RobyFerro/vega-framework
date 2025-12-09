@@ -81,7 +81,11 @@ def init_project(project_name: str, template: str, parent_path: str):
     # Documentation-only __init__.py files are omitted for cleaner project structure.
 
     # Create config.py
-    config_content = render_template("config.py.j2", project_name=project_name)
+    config_content = render_template(
+        "config.py.j2",
+        project_name=project_name,
+        project_package=normalized_name,
+    )
     (project_path / "config.py").write_text(config_content)
     click.echo(f"  + Created config.py")
 

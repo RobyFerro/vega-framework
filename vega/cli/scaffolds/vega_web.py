@@ -12,6 +12,7 @@ from vega.cli.templates import (
     render_vega_main,
     render_vega_routes_init_autodiscovery,
     render_vega_user_route,
+    render_shared_default_route,
     render_pydantic_models_init,
     render_pydantic_user_models,
 )
@@ -125,6 +126,7 @@ def create_vega_web_scaffold_in_context(
     # Only create __init__.py files that contain functional code
     files: Iterable[tuple[Path, str]] = (
         (routes_dir / "__init__.py", render_vega_routes_init_context(context, project_name)),
+        (routes_dir / "default.py", render_shared_default_route()),
         (routes_dir / "users.py", render_vega_user_route()),
         (models_dir / "__init__.py", render_pydantic_models_init()),
         (models_dir / "user_models.py", render_pydantic_user_models()),

@@ -142,12 +142,11 @@ def run(host: str, port: int, reload: bool, path: str, context: str):
                 version="1.0.0"
             )
 
-            # Auto-discover and include all routers from all contexts
-            # This now includes framework-level health router automatically
-            router = discover_routers_ddd(project_name, include_builtin=True)
+            # Auto-discover and include all routers from all contexts (shared/default provides /health)
+            router = discover_routers_ddd(project_name, include_builtin=False)
             app.include_router(router)
 
-            click.echo(click.style("✓ Routers auto-discovered successfully (including framework /health)", fg='green'))
+            click.echo(click.style("✓ Routers auto-discovered successfully (shared /health included)", fg='green'))
 
         except Exception as e:
             click.echo(click.style("ERROR: Failed to create Vega Web app with auto-discovery", fg='red'))
@@ -162,7 +161,7 @@ def run(host: str, port: int, reload: bool, path: str, context: str):
         # For DDD, we run the app instance directly (can't use string path with reload)
         click.echo(f"\nStarting web server on http://{host}:{port}")
         click.echo("Available endpoints:")
-        click.echo(f"  - http://{host}:{port}/health (framework health check)")
+        click.echo(f"  - http://{host}:{port}/health (shared default health check)")
         click.echo(f"  - http://{host}:{port}/docs (API documentation)")
         click.echo(f"  - http://{host}:{port}/api/{{context}}/{{route}}")
         if reload:
@@ -200,7 +199,7 @@ def run(host: str, port: int, reload: bool, path: str, context: str):
 
         click.echo(f"\nStarting web server on http://{host}:{port}")
         click.echo("Available endpoints:")
-        click.echo(f"  - http://{host}:{port}/health (framework health check)")
+        click.echo(f"  - http://{host}:{port}/health (shared default health check)")
         click.echo(f"  - http://{host}:{port}/docs (API documentation)")
         click.echo(f"  - http://{host}:{port}/api/...")
         if reload:

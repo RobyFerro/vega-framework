@@ -43,7 +43,6 @@ Creates Vega Web boilerplate:
 - `presentation/web/app.py`
 - `presentation/web/main.py`
 - `presentation/web/routes/__init__.py`
-- `presentation/web/routes/health.py`
 - `presentation/web/routes/users.py`
 - `presentation/web/models/__init__.py`
 - `presentation/web/models/user_models.py`
@@ -53,7 +52,7 @@ Creates Vega Web boilerplate:
 
 1. `poetry install` *(or `poetry update` to refresh dependencies)*
 2. `vega web run --reload`
-3. Hit `http://localhost:8000/api/health/status`
+3. Visita `http://localhost:8000/docs`
 
 ## SQLAlchemy Support (`sqlalchemy` / `db`)
 

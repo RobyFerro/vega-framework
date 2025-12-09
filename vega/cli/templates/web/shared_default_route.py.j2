@@ -1,0 +1,18 @@
+"""Default shared router with health endpoint"""
+from datetime import datetime
+
+from vega.web import Router
+
+router = Router()
+
+
+@router.get("/health", summary="Application health check", tags=["Health"])
+async def health_check():
+    """
+    Global health check endpoint exposed from the shared default router.
+    """
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+

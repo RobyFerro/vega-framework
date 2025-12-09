@@ -12,6 +12,7 @@ def render_repository_interface(
     class_name: str,
     entity_name: str,
     entity_file: str,
+    resource_folder: str,
 ) -> str:
     """Return the template for a repository interface."""
     return render_template(
@@ -20,6 +21,7 @@ def render_repository_interface(
         class_name=class_name,
         entity_name=entity_name,
         entity_file=entity_file,
+        resource_folder=resource_folder,
     )
 
 
@@ -116,6 +118,7 @@ def render_infrastructure_repository(
     interface_file_name: str,
     entity_name: str,
     entity_file: str,
+    resource_folder: str,
 ) -> str:
     """Return the template for a repository implementation."""
     return render_template(
@@ -126,6 +129,7 @@ def render_infrastructure_repository(
         interface_file_name=interface_file_name,
         entity_name=entity_name,
         entity_file=entity_file,
+        resource_folder=resource_folder,
     )
 
 
@@ -202,6 +206,11 @@ def render_vega_user_route() -> str:
     return render_template("users_route.py.j2", subfolder="web")
 
 
+def render_shared_default_route() -> str:
+    """Return the template for shared/presentation/web/routes/default.py"""
+    return render_template("shared_default_route.py.j2", subfolder="web")
+
+
 def render_vega_router(resource_name: str, resource_file: str, project_name: str) -> str:
     """Return the template for a Vega Web router"""
     return render_template(
@@ -231,6 +240,7 @@ render_fastapi_dependencies = render_vega_dependencies
 render_fastapi_main = render_vega_main
 render_fastapi_project_main = render_vega_project_main
 render_fastapi_user_route = render_vega_user_route
+render_shared_kernel_default_route = render_shared_default_route
 render_fastapi_router = render_vega_router
 render_fastapi_middleware = render_vega_middleware
 
