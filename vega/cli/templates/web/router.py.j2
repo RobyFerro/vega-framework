@@ -8,7 +8,7 @@ from typing import List
 # TODO: Import your interactors/use cases here
 # from {{ project_name }}.application.interactors.{{ resource_file }} import Create{{ resource_name }}, Get{{ resource_name }}, List{{ resource_name }}
 
-router = Router()
+router = Router(prefix="/{{ resource_file.replace('_', '-') }}")
 
 # TODO: Remove this in-memory storage and use proper repositories/interactors
 {{ resource_file }}_db: dict[str, dict] = {}

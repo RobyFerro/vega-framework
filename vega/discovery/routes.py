@@ -350,7 +350,9 @@ def discover_routers_ddd(
                                     tags = None
 
                                 if auto_prefix:
-                                    prefix = f"/{context}/{file.stem.replace('_', '-')}"
+                                    # Use only the bounded context as include prefix;
+                                    # route-level prefix is owned by the child router itself.
+                                    prefix = f"/{context}"
                                 else:
                                     prefix = None
 
