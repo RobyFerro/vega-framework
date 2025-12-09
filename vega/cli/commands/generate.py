@@ -27,7 +27,6 @@ from vega.cli.templates import (
     # DDD
     render_aggregate,
     render_value_object,
-    render_context_init,
 )
 from vega.cli.scaffolds import create_fastapi_scaffold
 from vega.cli.utils import to_snake_case, to_pascal_case
@@ -1303,20 +1302,16 @@ def _generate_context(project_root: Path, project_name: str, context_name: str):
     for test_dir in test_dirs:
         path = tests_base / test_dir
         path.mkdir(parents=True, exist_ok=True)
-        init_file = path / "__init__.py"
-        if not init_file.exists():
-            init_file.write_text("")
+        # Note: __init__.py files are not required for namespace packages in Python 3.3+
         click.echo(f"  + Created tests/{normalized_name}/{context_name}/{test_dir}/")
 
     # Initialize web package files
+    # Note: Only create __init__.py files that contain functional code
+    # (Python 3.3+ namespace packages don't require empty __init__.py files)
     from vega.cli.templates import (
-        render_web_package_init,
         render_vega_routes_init_context,
         render_pydantic_models_init
     )
-
-    web_init_path = context_path / "presentation" / "web" / "__init__.py"
-    web_init_path.write_text(render_web_package_init())
 
     routes_init_path = context_path / "presentation" / "web" / "routes" / "__init__.py"
     routes_init_path.write_text(render_vega_routes_init_context(context_name, project_name))
@@ -1326,9 +1321,7 @@ def _generate_context(project_root: Path, project_name: str, context_name: str):
 
     click.echo(f"  + Initialized web package in {context_name}")
 
-    # Context __init__.py with documentation
-    context_init = render_context_init(context_name, project_name)
-    (context_path / "__init__.py").write_text(context_init)
+    # Note: Context __init__.py with only documentation is omitted (Python 3.3+)
 
     click.echo(f"\n{click.style('SUCCESS!', fg='green')} Bounded context '{context_name}' created")
     click.echo(f"\nNext steps:")

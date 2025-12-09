@@ -12,7 +12,6 @@ from vega.cli.templates import (
     render_fastapi_user_route,
     render_pydantic_models_init,
     render_pydantic_user_models,
-    render_web_package_init,
 )
 
 
@@ -32,8 +31,9 @@ def create_fastapi_scaffold(
     routes_dir = web_dir / "routes"
     models_dir = web_dir / "models"
 
+    # Note: web/__init__.py is omitted (Python 3.3+ namespace packages don't require it)
+    # Only create __init__.py files that contain functional code
     files: Iterable[tuple[Path, str]] = (
-        (web_dir / "__init__.py", render_web_package_init()),
         (web_dir / "app.py", render_fastapi_app(project_name)),
         (web_dir / "main.py", render_fastapi_main(project_name)),
         (routes_dir / "__init__.py", render_fastapi_routes_init_autodiscovery()),

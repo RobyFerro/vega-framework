@@ -76,17 +76,9 @@ def init_project(project_name: str, template: str, parent_path: str):
     from vega.cli.scaffolds import create_vega_web_scaffold_in_context
     create_vega_web_scaffold_in_context(project_path, project_name, "shared", echo=click.echo)
 
-    # Create bounded context init files with documentation
-    from vega.cli.templates import render_context_init
-
-    # Shared kernel __init__.py
-    shared_init = render_context_init("shared", project_name)
-    (project_path / normalized_name / "shared" / "__init__.py").write_text(shared_init)
-    click.echo(f"  + Created {normalized_name}/shared/__init__.py (Shared kernel)")
-
-    # Package root __init__.py - required for package imports
-    (project_path / normalized_name / "__init__.py").write_text(f'"""{project_name} - Vega DDD Project"""\n')
-    click.echo(f"  + Created {normalized_name}/__init__.py (package root)")
+    # Note: In Python 3.3+, __init__.py files are optional for namespace packages.
+    # We only create them when they contain functional code (auto-discovery, imports, etc.)
+    # Documentation-only __init__.py files are omitted for cleaner project structure.
 
     # Create config.py
     config_content = render_template("config.py.j2", project_name=project_name)

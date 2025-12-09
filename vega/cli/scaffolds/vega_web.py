@@ -14,7 +14,6 @@ from vega.cli.templates import (
     render_vega_user_route,
     render_pydantic_models_init,
     render_pydantic_user_models,
-    render_web_package_init,
 )
 
 
@@ -48,8 +47,9 @@ def create_vega_web_scaffold(
     routes_dir = web_dir / "routes"
     models_dir = web_dir / "models"
 
+    # Note: web/__init__.py is omitted (Python 3.3+ namespace packages don't require it)
+    # Only create __init__.py files that contain functional code
     files: Iterable[tuple[Path, str]] = (
-        (web_dir / "__init__.py", render_web_package_init()),
         (web_dir / "app.py", render_vega_app(project_name)),
         (web_dir / "main.py", render_vega_main(project_name)),
         (routes_dir / "__init__.py", render_vega_routes_init_autodiscovery()),
@@ -121,9 +121,9 @@ def create_vega_web_scaffold_in_context(
     # Import the new context-aware template function
     from vega.cli.templates import render_vega_routes_init_context
 
-    # Create example files in the context
+    # Note: web/__init__.py is omitted (Python 3.3+ namespace packages don't require it)
+    # Only create __init__.py files that contain functional code
     files: Iterable[tuple[Path, str]] = (
-        (web_dir / "__init__.py", render_web_package_init()),
         (routes_dir / "__init__.py", render_vega_routes_init_context(context, project_name)),
         (routes_dir / "users.py", render_vega_user_route()),
         (models_dir / "__init__.py", render_pydantic_models_init()),
