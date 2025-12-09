@@ -13,6 +13,7 @@ def render_repository_interface(
     entity_name: str,
     entity_file: str,
     resource_folder: str,
+    domain_module_base: str = "",
 ) -> str:
     """Return the template for a repository interface."""
     return render_template(
@@ -22,13 +23,22 @@ def render_repository_interface(
         entity_name=entity_name,
         entity_file=entity_file,
         resource_folder=resource_folder,
+        domain_module_base=domain_module_base,
     )
 
 
-def render_service_interface(class_name: str) -> str:
+def render_service_interface(
+    class_name: str,
+    domain_module_base: str = "",
+    application_module_base: str = "",
+) -> str:
     """Return the template for a service interface."""
     return render_template(
-        "service_interface.py.j2", subfolder="application", class_name=class_name
+        "service_interface.py.j2",
+        subfolder="application",
+        class_name=class_name,
+        domain_module_base=domain_module_base,
+        application_module_base=application_module_base,
     )
 
 
@@ -60,6 +70,7 @@ def render_cqrs_handler(
     response_file: str,
     response_class: str,
     description: str,
+    domain_module_base: str = "",
 ) -> str:
     """Return the template for a CQRS handler."""
     handler_type_lower = handler_type.lower()
@@ -78,6 +89,7 @@ def render_cqrs_handler(
         response_file=response_file,
         response_class=response_class,
         description=description,
+        domain_module_base=domain_module_base,
     )
 
 
@@ -119,6 +131,7 @@ def render_infrastructure_repository(
     entity_name: str,
     entity_file: str,
     resource_folder: str,
+    domain_module_base: str = "",
 ) -> str:
     """Return the template for a repository implementation."""
     return render_template(
@@ -130,6 +143,7 @@ def render_infrastructure_repository(
         entity_name=entity_name,
         entity_file=entity_file,
         resource_folder=resource_folder,
+        domain_module_base=domain_module_base,
     )
 
 
@@ -137,6 +151,7 @@ def render_infrastructure_service(
     impl_class: str,
     interface_class_name: str,
     interface_file_name: str,
+    application_module_base: str = "",
 ) -> str:
     """Return the template for a service implementation."""
     return render_template(
@@ -145,6 +160,7 @@ def render_infrastructure_service(
         impl_class=impl_class,
         interface_class_name=interface_class_name,
         interface_file_name=interface_file_name,
+        application_module_base=application_module_base,
     )
 
 def render_web_package_init() -> str:

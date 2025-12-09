@@ -138,6 +138,41 @@ def _get_context_base_path(project_root: Path, context: str | None) -> Path:
     return project_root / "lib" / context
 
 
+def _get_module_base(project_root: Path, context: str | None, project_name: str | None = None) -> str:
+    """
+    Calculate the module base for imports based on the project structure.
+
+    Args:
+        project_root: Root of the project
+        context: Bounded context name (None for legacy structure)
+        project_name: Project name (if None, derived from project_root.name)
+
+    Returns:
+        Module base string for absolute imports (e.g., 'myproject.billing' or 'lib.billing'),
+        or empty string for legacy structure (to use relative imports)
+    """
+    if context is None:
+        return ""  # Legacy structure - use relative/legacy imports
+
+    if project_name is None:
+        project_name = project_root.name
+
+    normalized_name = project_name.replace('-', '_')
+
+    # Check if package structure exists
+    package_path = project_root / normalized_name / context
+    if package_path.exists():
+        return f"{normalized_name}.{context}"
+
+    # Fallback to lib/ structure
+    lib_path = project_root / "lib" / context
+    if lib_path.exists():
+        return f"lib.{context}"
+
+    # If neither exists, use package structure by default (for new contexts)
+    return f"{normalized_name}.{context}"
+
+
 def _resolve_implementation_names(class_name: str, implementation: str) -> tuple[str, str]:
     """Derive implementation class and file names from flag input."""
     impl_pascal = to_pascal_case(implementation) or "Impl"
@@ -351,11 +386,16 @@ def _generate_repository(
             click.echo(click.style(f"✔ Found aggregate at {aggregate_path.relative_to(project_root)}", fg='green'))
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Calculate module base for imports
+    domain_module_base = _get_module_base(project_root, context, project_name)
+
     content = render_repository_interface(
         class_name=class_name,
         entity_name=entity_name,
         entity_file=entity_file,
         resource_folder=resource_folder,
+        domain_module_base=domain_module_base,
     )
     file_path.write_text(content)
 
@@ -371,6 +411,7 @@ def _generate_repository(
     if implementation:
         _generate_infrastructure_repository(
             project_root,
+            project_name,
             class_name,
             file_name,
             entity_name,
@@ -405,7 +446,16 @@ def _generate_service(
         return
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    content = render_service_interface(class_name)
+
+    # Calculate module base for imports
+    domain_module_base = _get_module_base(project_root, context, project_name)
+    application_module_base = domain_module_base  # Same base for application layer
+
+    content = render_service_interface(
+        class_name,
+        domain_module_base=domain_module_base,
+        application_module_base=application_module_base,
+    )
     file_path.write_text(content)
 
     click.echo(f"+ Created {click.style(str(file_path.relative_to(project_root)), fg='green')}")
@@ -417,9 +467,11 @@ def _generate_service(
     if implementation:
         _generate_infrastructure_service(
             project_root,
+            project_name,
             class_name,
             file_name,
             implementation,
+            context,
         )
 
 
@@ -472,8 +524,10 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
     # Build import base module (handles bounded context)
     if base_path == project_root:
         app_module = "application"
+        domain_module_base = ""
     else:
         app_module = f"{base_path.relative_to(project_root).as_posix().replace('/', '.')}.application"
+        domain_module_base = _get_module_base(project_root, context, project_name)
 
     # Generate handler.py
     handler_content = render_cqrs_handler(
@@ -488,6 +542,7 @@ def _generate_interactor(project_root: Path, project_name: str, class_name: str,
         response_file=response_file,
         response_class=response_class,
         description=description,
+        domain_module_base=domain_module_base,
     )
     handler_file = interactor_dir / f"{file_name}_handler.py"
     handler_file.write_text(handler_content)
@@ -552,6 +607,7 @@ def _generate_mediator(project_root: Path, project_name: str, class_name: str, f
 
 def _generate_infrastructure_repository(
     project_root: Path,
+    project_name: str,
     interface_class_name: str,
     interface_file_name: str,
     entity_name: str,
@@ -571,6 +627,10 @@ def _generate_infrastructure_repository(
         return
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Calculate module base for imports
+    domain_module_base = _get_module_base(project_root, context, project_name)
+
     content = render_infrastructure_repository(
         impl_class,
         interface_class_name,
@@ -578,6 +638,7 @@ def _generate_infrastructure_repository(
         entity_name,
         entity_file,
         resource_folder,
+        domain_module_base=domain_module_base,
     )
 
     file_path.write_text(content)
@@ -586,15 +647,19 @@ def _generate_infrastructure_repository(
 
 def _generate_infrastructure_service(
     project_root: Path,
+    project_name: str,
     interface_class_name: str,
     interface_file_name: str,
     implementation: str,
+    context: str | None = None,
 ) -> None:
     """Generate infrastructure service implementation extending the domain interface."""
     impl_class, impl_file = _resolve_implementation_names(interface_class_name, implementation)
-    
-    # Detect bounded context to find correct base path
-    context = _detect_bounded_context(project_root)
+
+    # Detect bounded context if not provided
+    if context is None:
+        context = _detect_bounded_context(project_root)
+
     base_path = _get_context_base_path(project_root, context)
     file_path = base_path / "infrastructure" / "services" / f"{impl_file}.py"
 
@@ -603,10 +668,15 @@ def _generate_infrastructure_service(
         return
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Calculate module base for imports
+    application_module_base = _get_module_base(project_root, context, project_name)
+
     content = render_infrastructure_service(
         impl_class,
         interface_class_name,
         interface_file_name,
+        application_module_base=application_module_base,
     )
 
     file_path.write_text(content)

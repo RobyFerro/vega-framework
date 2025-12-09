@@ -1,6 +1,10 @@
 """{{ impl_class }} implementation"""
 from vega.di import bean
+{% if application_module_base %}
+from {{ application_module_base }}.domain.services.{{ interface_file_name }} import {{ interface_class_name }}
+{% else %}
 from application.services.{{ interface_file_name }} import {{ interface_class_name }}
+{% endif %}
 
 
 @bean

@@ -2,8 +2,13 @@
 from typing import List
 
 from vega.di import bean
+{% if domain_module_base %}
+from {{ domain_module_base }}.domain.{{ resource_folder }}.{{ entity_file }} import {{ entity_name }}
+from {{ domain_module_base }}.domain.repositories.{{ interface_file_name }} import {{ interface_class_name }}
+{% else %}
 from domain.{{ resource_folder }}.{{ entity_file }} import {{ entity_name }}
 from domain.repositories.{{ interface_file_name }} import {{ interface_class_name }}
+{% endif %}
 
 
 @bean

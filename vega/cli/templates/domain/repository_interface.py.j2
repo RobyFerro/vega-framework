@@ -3,7 +3,11 @@ from abc import abstractmethod
 from typing import List, Optional
 
 from vega.patterns import Repository
+{% if domain_module_base %}
+from {{ domain_module_base }}.domain.{{ resource_folder }}.{{ entity_file }} import {{ entity_name }}
+{% else %}
 from domain.{{ resource_folder }}.{{ entity_file }} import {{ entity_name }}
+{% endif %}
 
 
 class {{ class_name }}(Repository[{{ entity_name }}]):
