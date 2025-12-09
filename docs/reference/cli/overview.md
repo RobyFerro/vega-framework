@@ -54,6 +54,7 @@ vega generate mediator CheckoutFlow
 vega add web
 vega generate router User
 vega generate webmodel CreateUserRequest --request
+vega generate router User --demo-router   # Generate sample CRUD endpoints
 
 # Infrastructure layer
 vega add sqlalchemy

@@ -211,10 +211,20 @@ def render_shared_default_route() -> str:
     return render_template("shared_default_route.py.j2", subfolder="web")
 
 
-def render_vega_router(resource_name: str, resource_file: str, project_name: str) -> str:
-    """Return the template for a Vega Web router"""
+def render_vega_router(
+    resource_name: str,
+    resource_file: str,
+    project_name: str,
+    demo: bool = False,
+) -> str:
+    """Return the template for a Vega Web router.
+
+    demo=True keeps the sample CRUD endpoints used by the legacy template,
+    while the default generates an empty router skeleton.
+    """
+    template_name = "router.py.j2" if demo else "router_empty.py.j2"
     return render_template(
-        "router.py.j2",
+        template_name,
         subfolder="web",
         resource_name=resource_name,
         resource_file=resource_file,

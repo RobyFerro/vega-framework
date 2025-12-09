@@ -100,9 +100,11 @@ Writes an async handler in the top-level `events/` package so auto-discovery can
 ```bash
 vega add web
 vega generate router User
+# Legacy demo template
+vega generate router User --demo-router
 ```
 
-Requires the Vega Web scaffold. Generates `presentation/web/routes/user.py`, adds the router to `routes/__init__.py`, and reminds you to build request/response models and interactors.
+Requires the Vega Web scaffold. By default generates an **empty** router skeleton under `presentation/web/routes/user.py` so you can start from a clean slate. Pass `--demo-router` to keep the previous sample CRUD endpoints. The generator also creates `routes/__init__.py` if missing and reminds you to build request/response models and interactors.
 
 ### Vega Web Middleware (`middleware`)
 
@@ -169,6 +171,7 @@ The generator also lays down `presentation/cli/commands/__init__.py` with auto-d
 
 - `--path PATH` – Run the generator against a project located somewhere else.
 - `--impl NAME` – Valid for `repository`, `service`, and `command`. Adds an infrastructure implementation or switches the command template to synchronous mode.
+- `--demo-router` – Only for `router`. Use the demo CRUD template instead of the empty skeleton.
 - `--request`, `--response` – Required flags for `webmodel` to pick the correct template.
 
 Attempting to use `--impl` on unsupported component types results in a warning and the flag is ignored.

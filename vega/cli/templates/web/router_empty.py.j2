@@ -1,0 +1,11 @@
+"""{{ resource_name }} routes."""
+from vega.web import Router
+
+# Prefix defaults to the kebab-case version of the resource name
+router = Router(prefix="/{{ resource_file.replace('_', '-') }}")
+
+# Add your endpoints below. Example:
+# @router.get("/")
+# async def list_{{ resource_file }}():
+#     return {"items": []}
+

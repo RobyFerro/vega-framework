@@ -86,7 +86,8 @@ def init(project_name, path):
 @click.option('--impl', default=None, help='Generate infrastructure implementation for repository/service (e.g., memory, sql) or command type (async, sync)')
 @click.option('--request', is_flag=True, help='Generate request model (for webmodel)')
 @click.option('--response', is_flag=True, help='Generate response model (for webmodel)')
-def generate(component_type, name, path, impl, request, response):
+@click.option('--demo-router', is_flag=True, help='Generate a demo router with sample CRUD endpoints (default is empty)')
+def generate(component_type, name, path, impl, request, response, demo_router):
     """
     Generate a component in your Vega project.
 
@@ -144,7 +145,7 @@ def generate(component_type, name, path, impl, request, response):
     if component_type == 'cli-command':
         component_type = 'cli_command'
 
-    generate_component(component_type, name, path, impl, request, response)
+    generate_component(component_type, name, path, impl, request, response, demo_router)
 
 
 @cli.command()

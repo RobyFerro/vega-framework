@@ -161,6 +161,7 @@ def generate_component(
     implementation: str | None = None,
     is_request: bool = False,
     is_response: bool = False,
+    demo_router: bool = False,
 ):
     """Generate a component in the Vega project"""
 
@@ -214,6 +215,14 @@ def generate_component(
 
     file_name = to_snake_case(class_name)
 
+    if demo_router and component_type != 'router':
+        click.echo(
+            click.style(
+                "WARNING: --demo-router is ignored for component types other than 'router'",
+                fg='yellow',
+            )
+        )
+
     # DDD generators (context-aware)
     if component_type == 'context':
         _generate_context(project_root, project_name, name)
@@ -243,7 +252,7 @@ def generate_component(
     elif component_type == 'mediator':
         _generate_mediator(project_root, project_name, class_name, file_name)
     elif component_type == 'router':
-        _generate_router(project_root, project_name, name)
+        _generate_router(project_root, project_name, name, demo_router=demo_router)
     elif component_type == 'middleware':
         _generate_middleware(project_root, project_name, class_name, file_name)
     elif component_type == 'model':
@@ -672,7 +681,7 @@ def _register_router_in_init(project_root: Path, resource_file: str, resource_na
     click.echo(f"+ Updated {click.style(str(routes_init.relative_to(project_root)), fg='green')}")
 
 
-def _generate_router(project_root: Path, project_name: str, name: str) -> None:
+def _generate_router(project_root: Path, project_name: str, name: str, demo_router: bool = False) -> None:
     """Generate a Vega Web router for a resource (context-aware)"""
 
     # Detect bounded context
@@ -713,7 +722,12 @@ def _generate_router(project_root: Path, project_name: str, name: str) -> None:
         click.echo(click.style(f"ERROR: Error: {router_file.relative_to(project_root)} already exists", fg='red'))
         return
 
-    content = render_fastapi_router(resource_name, resource_file, project_name)
+    content = render_fastapi_router(
+        resource_name=resource_name,
+        resource_file=resource_file,
+        project_name=project_name,
+        demo=demo_router,
+    )
     router_file.write_text(content)
 
     click.echo(f"+ Created {click.style(str(router_file.relative_to(project_root)), fg='green')}")
