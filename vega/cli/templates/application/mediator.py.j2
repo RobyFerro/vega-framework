@@ -14,10 +14,5 @@ class {{ class_name }}(Mediator[dict]):  # Replace dict with your return type
 
     async def call(self) -> dict:
         """Execute the workflow"""
-        # TODO: Orchestrate multiple use cases
-        # Example:
-        # user = await CreateUser(name="John")
-        # await SendWelcomeEmail(user.email)
-        # return user
-
+        # Orchestrate multiple use cases
         raise NotImplementedError("Implement this workflow")

@@ -2,15 +2,15 @@
 from vega.web import Router, HTTPException, status
 from typing import List
 
-# TODO: Import your Pydantic models here
+# Import your Pydantic models here
 # from ..models.{{ resource_file }}_models import Create{{ resource_name }}Request, {{ resource_name }}Response
 
-# TODO: Import your interactors/use cases here
+# Import your interactors/use cases here
 # from {{ project_name }}.application.interactors.{{ resource_file }} import Create{{ resource_name }}, Get{{ resource_name }}, List{{ resource_name }}
 
 router = Router(prefix="/{{ resource_file.replace('_', '-') }}")
 
-# TODO: Remove this in-memory storage and use proper repositories/interactors
+# Remove this in-memory storage and use proper repositories/interactors
 {{ resource_file }}_db: dict[str, dict] = {}
 {{ resource_file }}_counter = 0
 
@@ -30,8 +30,8 @@ async def create_{{ resource_file }}(
     {{ resource_file }}_counter += 1
     item_id = f"{{ resource_file }}_{% raw %}{{% endraw %}{{ resource_file }}_counter{% raw %}}{% endraw %}"
 
-    # TODO: Replace with actual use case/interactor
-    # Example: item = await Create{{ resource_name }}(param=value)
+    # Replace with actual use case/interactor
+    # item = await Create{{ resource_name }}(param=value)
 
     new_item = {
         "id": item_id,
@@ -50,8 +50,8 @@ async def create_{{ resource_file }}(
 )
 async def list_{{ resource_file }}s():
     """Get all {{ resource_file }}s"""
-    # TODO: Replace with actual use case/interactor
-    # Example: items = await List{{ resource_name }}s()
+    # Replace with actual use case/interactor
+    # items = await List{{ resource_name }}s()
     return list({{ resource_file }}_db.values())
 
 
@@ -63,8 +63,8 @@ async def list_{{ resource_file }}s():
 )
 async def get_{{ resource_file }}(item_id: str):
     """Get a {{ resource_name.lower() }} by ID"""
-    # TODO: Replace with actual use case/interactor
-    # Example: item = await Get{{ resource_name }}(item_id=item_id)
+    # Replace with actual use case/interactor
+    # item = await Get{{ resource_name }}(item_id=item_id)
 
     if item_id not in {{ resource_file }}_db:
         raise HTTPException(
@@ -86,8 +86,8 @@ async def update_{{ resource_file }}(
     # {{ resource_file }}_data: Update{{ resource_name }}Request  # Uncomment when you have the model
 ):
     """Update a {{ resource_name.lower() }}"""
-    # TODO: Replace with actual use case/interactor
-    # Example: item = await Update{{ resource_name }}(item_id=item_id, data=...)
+    # Replace with actual use case/interactor
+    # item = await Update{{ resource_name }}(item_id=item_id, data=...)
 
     if item_id not in {{ resource_file }}_db:
         raise HTTPException(
@@ -107,8 +107,8 @@ async def update_{{ resource_file }}(
 )
 async def delete_{{ resource_file }}(item_id: str):
     """Delete a {{ resource_name.lower() }}"""
-    # TODO: Replace with actual use case/interactor
-    # Example: await Delete{{ resource_name }}(item_id=item_id)
+    # Replace with actual use case/interactor
+    # await Delete{{ resource_name }}(item_id=item_id)
 
     if item_id not in {{ resource_file }}_db:
         raise HTTPException(

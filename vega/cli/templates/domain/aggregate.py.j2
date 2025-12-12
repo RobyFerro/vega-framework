@@ -5,39 +5,14 @@ from vega.patterns import AggregateRoot
 
 @dataclass
 class {{ class_name }}(AggregateRoot[str]):
-    """
-    {{ class_name }} aggregate root.
-
-    An aggregate is a cluster of domain objects that can be treated as a single unit.
-    This is the aggregate root - all access to the aggregate goes through this entity.
-
-    Aggregates enforce:
-    - Business invariants (consistency rules)
-    - Transactional boundaries
-    - Identity and lifecycle management
-
-    Example:
-        # Create a new {{ class_name | lower }}
-        {{ instance_name }} = {{ class_name }}(
-            id="unique-id",
-            # Add your fields here
-        )
-
-        # Modify through methods that enforce invariants
-        # {{ instance_name }}.some_business_method(...)
-    """
+    """{{ class_name }} aggregate root"""
     id: str
-    # TODO: Add your aggregate fields here
+    # Add your aggregate fields here
 
     def __post_init__(self):
-        """Validate aggregate invariants."""
+        """Validate aggregate invariants"""
         if not self.id:
             raise ValueError("{{ class_name }} must have an ID")
-        # TODO: Add your validation logic here
+        # Add validation logic here
 
-    # TODO: Add business methods that enforce invariants
-    # def add_item(self, item: Item):
-    #     """Add an item while maintaining invariants."""
-    #     if len(self.items) >= 100:
-    #         raise ValueError("Cannot add more than 100 items")
-    #     self.items.append(item)
+    # Add business methods that enforce invariants

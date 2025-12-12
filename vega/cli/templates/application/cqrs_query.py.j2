@@ -4,19 +4,6 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class {{ dto_class_name }}:
-    """
-    Query DTO: {{ description }}
-
-    CQRS Pattern: QUERY (read-only operation)
-
-    Example:
-        >>> query = {{ dto_class_name }}(
-        ...     # Add your parameters here
-        ... )
-        >>> result = await {{ main_class_name }}Handler(query)
-    """
-    # TODO: Add query parameters here
-    # Example:
-    # user_id: str
-    # session_id: str
+    """Query DTO: {{ description }}"""
+    # Add query parameters here
     pass

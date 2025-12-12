@@ -5,15 +5,9 @@ from typing import Optional
 class {{ model_name }}Response(BaseModel):
     """{{ description }}"""
     # Add your fields here
-    # Example:
-    # id: str = Field(..., description="Unique identifier")
-    # name: str = Field(..., description="Name field")
-    # created_at: str = Field(..., description="Creation timestamp")
 
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {
-                # Add example values here
-            }
+            "example": {}
         }
     )

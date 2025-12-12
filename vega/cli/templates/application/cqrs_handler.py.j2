@@ -15,17 +15,7 @@ from {{ app_module }}.{{ layer_folder }}.{{ folder_name }}.{{ response_file }} i
 
 
 class {{ class_name }}Handler(Interactor[{{ response_class }}]):
-    """
-    Handler: Processa {{ input_class }}.
-
-    CQRS Pattern: {{ handler_type }} HANDLER
-
-    Example:
-        >>> {{ input_var }} = {{ input_class }}(
-        ...     # Add your parameters here
-        ... )
-        >>> result = await {{ class_name }}Handler({{ input_var }})
-    """
+    """{{ handler_type }} handler for {{ input_class }}"""
 
     def __init__(self, {{ input_var }}: {{ input_class }}):
         self.{{ input_var }} = {{ input_var }}
@@ -33,19 +23,9 @@ class {{ class_name }}Handler(Interactor[{{ response_class }}]):
     @bind
     async def call(
         self,
-        # Add your dependencies here (repositories, services, etc.)
+        # Add dependencies here (repositories, services, etc.)
         # repository: XxxRepository,
     ) -> {{ response_class }}:
         """Execute the {{ handler_type_lower }} logic"""
-        # TODO: Implement {{ handler_type_lower }} logic
-        {% if handler_type == 'QUERY' %}
-        # Query example: Read data without side effects
-        # data = await repository.get_by_id(self.{{ input_var }}.id)
-        # return {{ response_class }}(data=data)
-        {% else %}
-        # Command example: Modify state and return result
-        # entity = Entity(...)
-        # saved = await repository.save(entity)
-        # return {{ response_class }}(id=saved.id)
-        {% endif %}
+        # Implement {{ handler_type_lower }} logic
         raise NotImplementedError("Implement this {{ handler_type_lower }} handler")
